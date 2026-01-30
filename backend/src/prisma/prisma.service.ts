@@ -15,7 +15,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     const pool = new Pool({
       connectionString: url,
-      // Neon requires SSL; your URL already has sslmode=require, but this is still safe:
       ssl: { rejectUnauthorized: false },
     });
 
