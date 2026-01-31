@@ -16,7 +16,7 @@ export class HealthService {
   async db() {
     try {
       // Prisma raw query to confirm DB is reachable
-      await this.prisma.$queryRaw`SELECT 1`;
+      await this.prisma.$executeRawUnsafe('SELECT 1');
       return {
         status: 'ok',
         db: 'connected',
