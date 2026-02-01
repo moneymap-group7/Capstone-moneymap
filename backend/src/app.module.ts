@@ -7,9 +7,9 @@ import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
-    AuthModule,
-    PrismaModule,
-    HealthModule
+ AuthModule,     // ✅ auth lives here
+    PrismaModule,   // ✅ database
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
