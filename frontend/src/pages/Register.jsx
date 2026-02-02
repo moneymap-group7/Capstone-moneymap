@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import api from "../services/api"; // adjust path if different
+import api from "../services/api";
 
 const initialForm = {
-  firstName: "",
-  lastName: "",
+  name: "",
   email: "",
   password: "",
 };
@@ -15,7 +14,7 @@ function isValidEmail(email) {
 }
 
 function passwordMeetsPolicy(pw) {
-  // aligned with your QA: min 8 + upper + lower + digit + special
+  // min 8 + upper + lower + digit + special
   if (pw.length < 8) return { ok: false, msg: "Password must be at least 8 characters." };
   if (!/[A-Z]/.test(pw)) return { ok: false, msg: "Password must include an uppercase letter." };
   if (!/[a-z]/.test(pw)) return { ok: false, msg: "Password must include a lowercase letter." };
@@ -34,23 +33,18 @@ export default function Register() {
 
   function setField(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }));
-    // clear field error as user types
     setErrors((prev) => ({ ...prev, [name]: "" }));
     setServerError("");
   }
 
   function validateAll() {
     const e = {};
-    const firstName = form.firstName.trim();
-    const lastName = form.lastName.trim();
+    const name = form.name.trim();
     const email = form.email.trim().toLowerCase();
     const password = form.password; // do not trim password
 
-    if (!firstName) e.firstName = "First name is required.";
-    else if (firstName.length < 2 || firstName.length > 50) e.firstName = "First name must be 2–50 characters.";
-
-    if (!lastName) e.lastName = "Last name is required.";
-    else if (lastName.length < 2 || lastName.length > 50) e.lastName = "Last name must be 2–50 characters.";
+    if (!name) e.name = "Full name is required.";
+    else if (name.length < 2 || name.length > 100) e.name = "Full name must be 2–100 characters.";
 
     if (!email) e.email = "Email is required.";
     else if (!isValidEmail(email)) e.email = "Enter a valid email address.";
@@ -61,14 +55,14 @@ export default function Register() {
       if (!pwCheck.ok) e.password = pwCheck.msg;
     }
 
-    return { e, normalized: { firstName, lastName, email, password } };
+    return { e, payload: { name, email, password } };
   }
 
   async function onSubmit(ev) {
     ev.preventDefault();
     setServerError("");
 
-    const { e, normalized } = validateAll();
+    const { e, payload } = validateAll();
     if (Object.keys(e).length > 0) {
       setErrors(e);
       return;
@@ -76,20 +70,23 @@ export default function Register() {
 
     setLoading(true);
     try {
-      // IMPORTANT: confirm endpoint with backend team
-      // Typical: POST /auth/register
-      await api.post("/auth/register", normalized);
 
-      // success: go to login
+      await api.post("/auth/register", payload);
       navigate("/login");
     } catch (err) {
-      // handle common backend statuses
       const status = err?.response?.status;
-      const msg =
-        err?.response?.data?.message ||
-        (status === 409 ? "Email already exists." : "Registration failed. Please try again.");
 
-      setServerError(msg);
+      if (!err?.response) {
+        setServerError("Backend not reachable. Is the server running?");
+      } else {
+
+        const msg =
+          err?.response?.data?.message ||
+          err?.response?.data?.error?.message ||
+          (status === 409 ? "Email already exists." : "Registration failed. Please try again.");
+
+        setServerError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -110,30 +107,22 @@ export default function Register() {
 
       <form onSubmit={onSubmit} noValidate>
         <label style={{ display: "block", marginBottom: 10 }}>
-          First Name
+          Full Name
           <input
-            value={form.firstName}
-            onChange={(e) => setField("firstName", e.target.value)}
+            name="name"
+            value={form.name}
+            onChange={(e) => setField("name", e.target.value)}
             style={{ width: "100%", padding: 10, marginTop: 6 }}
-            autoComplete="given-name"
+            autoComplete="name"
           />
-          {errors.firstName ? <div style={{ color: "crimson", marginTop: 6 }}>{errors.firstName}</div> : null}
-        </label>
-
-        <label style={{ display: "block", marginBottom: 10 }}>
-          Last Name
-          <input
-            value={form.lastName}
-            onChange={(e) => setField("lastName", e.target.value)}
-            style={{ width: "100%", padding: 10, marginTop: 6 }}
-            autoComplete="family-name"
-          />
-          {errors.lastName ? <div style={{ color: "crimson", marginTop: 6 }}>{errors.lastName}</div> : null}
+          {errors.name ? <div style={{ color: "crimson", marginTop: 6 }}>{errors.name}</div> : null}
         </label>
 
         <label style={{ display: "block", marginBottom: 10 }}>
           Email
           <input
+            type="email"
+            name="email"
             value={form.email}
             onChange={(e) => setField("email", e.target.value)}
             style={{ width: "100%", padding: 10, marginTop: 6 }}
@@ -147,6 +136,7 @@ export default function Register() {
           Password
           <input
             type="password"
+            name="password"
             value={form.password}
             onChange={(e) => setField("password", e.target.value)}
             style={{ width: "100%", padding: 10, marginTop: 6 }}
