@@ -3,13 +3,17 @@ import * as bcrypt from "bcrypt";
 import { PrismaService } from "../prisma/prisma.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { JwtService } from "@nestjs/jwt";
+
 
 @Injectable()
 export class AuthService {
   private readonly SALT_ROUNDS = 10;
 
-  constructor(private readonly prisma: PrismaService) {}
-
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService
+  ) {}
   async register(dto: RegisterDto) {
     const email = dto.email.trim().toLowerCase();
 
@@ -39,15 +43,22 @@ return {
 
   }
 
-  async login(dto: LoginDto) {
-    const email = dto.email.trim().toLowerCase();
+async login(dto: LoginDto) {
+  const email = dto.email.trim().toLowerCase();
 
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) throw new UnauthorizedException("Invalid credentials");
+  const user = await this.prisma.user.findUnique({ where: { email } });
+  if (!user) throw new UnauthorizedException("Invalid credentials");
 
-    const ok = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!ok) throw new UnauthorizedException("Invalid credentials");
+  const ok = await bcrypt.compare(dto.password, user.passwordHash);
+  if (!ok) throw new UnauthorizedException("Invalid credentials");
 
-    return { message: "Login successful" };
-  }
+   const accessToken = this.jwtService.sign({
+  sub: user.userId.toString(),  
+  email: user.email,
+});
+
+return { accessToken };
+
+  return { accessToken };
+}
 }

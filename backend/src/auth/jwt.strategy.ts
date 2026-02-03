@@ -12,12 +12,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET || "dev_secret_change_later",
+      secretOrKey: process.env.JWT_ACCESS_SECRET as string,
       ignoreExpiration: false,
     });
   }
 
   validate(payload: JwtPayload) {
-    return { userId: payload.sub, email: payload.email };
+    return {
+      userId: payload.sub,
+      email: payload.email,
+    };
   }
 }
