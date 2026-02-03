@@ -55,7 +55,7 @@ export default function Register() {
       if (!pwCheck.ok) e.password = pwCheck.msg;
     }
 
-    return { e, payload: { name, email, password } };
+    return { e, payload: { fullName: name, email, password } };
   }
 
   async function onSubmit(ev) {

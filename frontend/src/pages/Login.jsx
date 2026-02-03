@@ -38,6 +38,12 @@ export default function Login() {
         password,
       });
 
+      // TEMP (until backend returns JWT): treat successful response as logged-in
+      localStorage.setItem("mm_access_token", "dev-session");
+      navigate("/dashboard");
+      return;
+
+
       // Support multiple possible backend response shapes
       const token =
         res?.data?.data?.accessToken || // contract: { success, data: { accessToken } }
