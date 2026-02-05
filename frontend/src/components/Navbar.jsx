@@ -32,6 +32,7 @@ export default function Navbar() {
       {isLoggedIn && (
         <>
           <Link to="/dashboard">Dashboard</Link>
+          <Link to="/upload"></Link>
           <button
             onClick={handleLogout}
             style={{
