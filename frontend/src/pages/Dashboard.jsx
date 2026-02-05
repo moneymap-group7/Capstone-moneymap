@@ -46,7 +46,7 @@ export default function Dashboard() {
           onClick={() => navigate("/upload")}
           style={{ padding: "8px 12px", cursor: "pointer" }}
         >
-          Go to Upload
+          Upload
         </button>
       </div>
     </main>
