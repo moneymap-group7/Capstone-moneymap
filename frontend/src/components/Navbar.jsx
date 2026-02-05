@@ -6,7 +6,7 @@ export default function Navbar() {
 
   function handleLogout() {
     localStorage.removeItem("mm_access_token");
-    localStorage.removeItem("mm_user"); // optional, if stored
+    localStorage.removeItem("mm_user"); 
     navigate("/login");
   }
 

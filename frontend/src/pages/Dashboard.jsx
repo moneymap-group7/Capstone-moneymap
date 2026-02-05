@@ -6,8 +6,6 @@ export default function Dashboard() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    // Optional: show user name if you stored it during login
-    // (safe even if not stored)
     try {
       const raw = localStorage.getItem("mm_user");
       if (raw) {
