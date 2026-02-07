@@ -1,6 +1,5 @@
 export type ParsedTransactionForDb = {
   transactionDate: Date;
-  postedDate: Date | null;
 
   description: string;
 
