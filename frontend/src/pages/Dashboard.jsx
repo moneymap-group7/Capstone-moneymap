@@ -6,8 +6,6 @@ export default function Dashboard() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    // Optional: show user name if you stored it during login
-    // (safe even if not stored)
     try {
       const raw = localStorage.getItem("mm_user");
       if (raw) {
@@ -19,12 +17,6 @@ export default function Dashboard() {
     }
   }, []);
 
-  function handleLogout() {
-    localStorage.removeItem("mm_access_token");
-    localStorage.removeItem("mm_user");
-    navigate("/login");
-  }
-
   return (
     <main style={{ padding: 24 }}>
       <h1>Dashboard</h1>
@@ -33,7 +25,15 @@ export default function Dashboard() {
         ✅ You are logged in{ name ? `, ${name}` : "" }.
       </p>
 
-      <div style={{ marginTop: 16, padding: 12, border: "1px solid #ddd", borderRadius: 8, maxWidth: 520 }}>
+      <div
+        style={{
+          marginTop: 16,
+          padding: 12,
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          maxWidth: 520,
+        }}
+      >
         <h3 style={{ marginTop: 0 }}>Sprint 1 Placeholder</h3>
         <ul style={{ marginBottom: 0 }}>
           <li>Protected route is working (you can see this page only with a token).</li>
@@ -41,12 +41,14 @@ export default function Dashboard() {
         </ul>
       </div>
 
-      <button
-        onClick={handleLogout}
-        style={{ marginTop: 18, padding: "8px 12px", cursor: "pointer" }}
-      >
-        Logout
-      </button>
+      <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+        <button
+          onClick={() => navigate("/upload")}
+          style={{ padding: "8px 12px", cursor: "pointer" }}
+        >
+          Upload
+        </button>
+      </div>
     </main>
   );
 }
