@@ -1,10 +1,5 @@
 export type ParsedTransactionForDb = {
   transactionDate: Date;
-<<<<<<< HEAD
-  postedDate: Date | null;
-=======
->>>>>>> csv-parser-Saloni
-
   description: string;
 
   amount: string; 
