@@ -14,7 +14,7 @@ import { validateCibcRows } from './validation/transaction-csv.validator';
 
 @Controller('transactions')
 export class TransactionsController {
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('upload-csv')
   @UseInterceptors(
     FileInterceptor('file', {
