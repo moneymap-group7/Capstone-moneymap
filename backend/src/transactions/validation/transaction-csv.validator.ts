@@ -8,6 +8,7 @@ export type ValidRow = {
 
   description: string;
 
+
   amount: string; 
   transactionType: 'DEBIT' | 'CREDIT';
   cardLast4: string | null;
