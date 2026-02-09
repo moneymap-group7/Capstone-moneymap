@@ -28,6 +28,8 @@ enum TransactionType {
 
 enum TransactionSource {
   CSV
+  PDF
+  MANUAL
 }
 
 enum SpendCategory {
