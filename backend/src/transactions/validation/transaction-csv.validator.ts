@@ -32,6 +32,48 @@ function last4(masked: string): string | null {
   return digits.slice(-4);
 }
 
+function cleanMerchant(desc: string): string {
+  const original = (desc ?? "").replace(/\s+/g, " ").trim();
+  if (!original) return "Card Transaction";
+
+  let s = original;
+
+  // normalize common noise prefixes
+  s = s.replace(/^(pos\s+purchase|purchase|pos|preauth)\s+/i, "");
+
+  // normalize UBER variants aggressively
+  if (/^uber\b/i.test(s)) return "UBER TRIP";
+
+  // 1) always drop trailing province/state like ", ON"
+  s = s.replace(/,\s*[A-Z]{2}\s*$/i, "").trim();
+
+  // 2) now trailing phone will be at end if it existed
+  s = s.replace(/\s+(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})\s*$/g, "").trim();
+
+  // 3) remove trailing reference-like blobs
+  s = s.replace(/\s+(ref|reference|auth|approval)\s*#?\s*[\w-]{6,}$/i, "").trim();
+
+  // 4) optional: remove trailing city token(s) if present (keep conservative)
+  // only remove the *last* 1-2 words if they look like a location and result stays meaningful
+  const beforeCity = s.replace(/\s+[A-Za-z.'-]+(?:\s+[A-Za-z.'-]+)?\s*$/i, "").trim();
+  if (beforeCity.split(/\s+/).length >= 2 && beforeCity.length >= 8) {
+    // if original had ", XX" we assume last words might be city; apply reduction
+    s = beforeCity;
+  }
+
+  s = s.replace(/\s+/g, " ").trim();
+
+  // guard against meaningless leftovers
+  const upper = s.toUpperCase();
+  if (!s || upper.length < 3 || ["THE", "ON", "CA"].includes(upper)) {
+    return "Card Transaction";
+  }
+
+  return s;
+}
+
+
+
 
 export function validateCibcRows(rows: CibcRawRow[]): ValidRow[] {
   const errors: string[] = [];
@@ -88,7 +130,7 @@ export function validateCibcRows(rows: CibcRawRow[]): ValidRow[] {
 
     out.push({
       transactionDate,
-      description: (row.description ?? '').replace(/\s+/g, ' ').trim(),
+      description: cleanMerchant(row.description),
       amount,
       transactionType,
       cardLast4: last4(row.cardMasked),
