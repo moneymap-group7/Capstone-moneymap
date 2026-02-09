@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { uploadStatement } from "../services/statementService";
 
 const STATUS = {
   IDLE: "IDLE",
@@ -20,62 +21,120 @@ function formatBytes(bytes) {
   return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
-async function uploadStatementMock(file) {
-  await new Promise((r) => setTimeout(r, 800));
-
-  if (!file.name.toLowerCase().endsWith(".csv")) {
-    return { status: "FAIL_VALIDATION", errors: ["Only CSV files are allowed."] };
-  }
-
-  return {
-    status: "SUCCESS",
-    message: "Statement uploaded successfully.",
-    statementId: `STMT-${Math.floor(Math.random() * 100000)}`,
-  };
-}
-
 export default function UploadStatement() {
   const inputRef = useRef(null);
+
   const [status, setStatus] = useState(STATUS.IDLE);
   const [file, setFile] = useState(null);
+
   const [errors, setErrors] = useState([]);
-  const [message, setMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [meta, setMeta] = useState(null); // store response summary (optional)
+
+  function reset() {
+    setStatus(STATUS.IDLE);
+    setFile(null);
+    setErrors([]);
+    setSuccessMessage("");
+    setMeta(null);
+    if (inputRef.current) inputRef.current.value = "";
+  }
 
   function onFileChange(e) {
     const f = e.target.files?.[0] || null;
     setFile(f);
     setErrors([]);
-    setMessage("");
+    setSuccessMessage("");
+    setMeta(null);
     setStatus(f ? STATUS.READY : STATUS.IDLE);
   }
 
   async function handleUpload() {
-    if (!file) return;
+    if (!file || status === STATUS.UPLOADING) return;
+
     setStatus(STATUS.UPLOADING);
-    const res = await uploadStatementMock(file);
-    if (res.status === "SUCCESS") {
-      setStatus(STATUS.SUCCESS);
-      setMessage(res.message);
-    } else {
+    setErrors([]);
+    setSuccessMessage("");
+    setMeta(null);
+
+    try {
+      const result = await uploadStatement(file);
+
+      if (result.ok) {
+        // Backend success payload differs by team; we safely show a generic message
+        const msg =
+          (result.data && typeof result.data === "object" && (result.data.message || result.data.status)) ||
+          "Upload successful.";
+
+        setStatus(STATUS.SUCCESS);
+        setSuccessMessage(String(msg));
+        setMeta(result.data);
+        return;
+      }
+
+      // Error handling
+      const list =
+        Array.isArray(result.errors) && result.errors.length
+          ? result.errors.map((x) => (typeof x === "string" ? x : JSON.stringify(x)))
+          : [result.message || "Upload failed."];
+
       setStatus(STATUS.ERROR);
-      setErrors(res.errors);
+      setErrors(list);
+    } catch (e) {
+      setStatus(STATUS.ERROR);
+      setErrors(["Unexpected error occurred during upload."]);
     }
   }
 
   return (
-    <main style={{ padding: 24 }}>
+    <main style={{ padding: 24, maxWidth: 720 }}>
       <h2>Upload Bank Statement</h2>
-      <input ref={inputRef} type="file" accept=".csv" onChange={onFileChange} />
-      {file && <p>{file.name} ({formatBytes(file.size)})</p>}
-      <button onClick={handleUpload} disabled={status !== STATUS.READY}>
-        Upload
-      </button>
 
-      {status === STATUS.SUCCESS && <p style={{ color: "green" }}>{message}</p>}
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv"
+        onChange={onFileChange}
+        disabled={status === STATUS.UPLOADING}
+      />
+
+      {file && (
+        <p style={{ marginTop: 10 }}>
+          <strong>{file.name}</strong> ({formatBytes(file.size)})
+        </p>
+      )}
+
+      <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
+        <button onClick={handleUpload} disabled={status !== STATUS.READY}>
+          {status === STATUS.UPLOADING ? "Uploading..." : "Upload"}
+        </button>
+        <button onClick={reset} disabled={status === STATUS.UPLOADING}>
+          Reset
+        </button>
+      </div>
+
+      {status === STATUS.SUCCESS && (
+        <div style={{ marginTop: 18, color: "green" }}>
+          <div>{successMessage}</div>
+
+          {/* Optional: show a small response preview for debugging */}
+          {meta && typeof meta === "object" && (
+            <pre style={{ marginTop: 10, color: "#111", background: "#f6f6f6", padding: 12 }}>
+              {JSON.stringify(meta, null, 2)}
+            </pre>
+          )}
+        </div>
+      )}
+
       {status === STATUS.ERROR && (
-        <ul style={{ color: "red" }}>
-          {errors.map((e, i) => <li key={i}>{e}</li>)}
-        </ul>
+        <div style={{ marginTop: 18, color: "red" }}>
+          <div style={{ fontWeight: 700 }}>Upload failed</div>
+          <ul style={{ marginTop: 8 }}>
+            {errors.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
+        </div>
       )}
     </main>
   );
