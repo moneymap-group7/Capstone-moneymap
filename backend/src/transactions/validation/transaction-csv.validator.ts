@@ -6,7 +6,7 @@ export type ValidRow = {
   // Keep raw merchant internally if you want later:
   // description: string;
 
-  // ✅ generic label (no merchant leak)
+  // generic label (no merchant leak)
   label: 'CARD TRANSACTION' | 'SUBSCRIPTION' | 'TRANSFER' | 'INCOME' | 'OTHER';
 
   amount: string; // signed decimal string
@@ -27,8 +27,9 @@ function to2(n: string) {
 }
 
 function last4(masked: string): string | null {
-  const m = (masked ?? '').match(/(\d{4})$/);
-  return m ? m[1] : null;
+  const digits = (masked ?? "").replace(/\D/g, "");
+  if (digits.length < 4) return null;
+  return digits.slice(-4);
 }
 
 function makeLabel(desc: string): ValidRow['label'] {
@@ -89,12 +90,12 @@ export function validateCibcRows(rows: CibcRawRow[]): ValidRow[] {
         transactionType = 'DEBIT';
         const d = to2(debit);
         if (Number(d) <= 0) throw new Error('debit <=0');
-        amount = `-${d}`;
+        amount = d;
       } else {
         transactionType = 'CREDIT';
         const c = to2(credit);
         if (Number(c) <= 0) throw new Error('credit <=0');
-        amount = `${c}`;
+        amount = c;
       }
     } catch {
       errors.push(`Row ${rowNum}: invalid amount (debit="${debit}", credit="${credit}")`);
