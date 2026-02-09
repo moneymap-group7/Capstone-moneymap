@@ -23,17 +23,23 @@ function formatBytes(bytes) {
   return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
+function pickNumber(obj, keys) {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (typeof v === "number") return v;
+    if (typeof v === "string" && v.trim() !== "" && !Number.isNaN(Number(v))) return Number(v);
+  }
+  return null;
+}
+
 export default function UploadStatement() {
   const inputRef = useRef(null);
 
   const [status, setStatus] = useState(STATUS.IDLE);
   const [file, setFile] = useState(null);
 
-  // status + errors (new)
   const [statusMsg, setStatusMsg] = useState("");
   const [errorList, setErrorList] = useState([]);
-
-  // keep meta for debugging (optional)
   const [meta, setMeta] = useState(null);
 
   function reset() {
@@ -79,15 +85,12 @@ export default function UploadStatement() {
         return;
       }
 
-      // show status + raw details so you can debug quickly
       const list = [];
       if (result.status) list.push(`HTTP ${result.status}`);
       if (result.message) list.push(result.message);
 
       if (Array.isArray(result.errors) && result.errors.length) {
-        result.errors.forEach((e) =>
-          list.push(typeof e === "string" ? e : JSON.stringify(e))
-        );
+        result.errors.forEach((e) => list.push(typeof e === "string" ? e : JSON.stringify(e)));
       } else if (result.raw) {
         list.push(typeof result.raw === "string" ? result.raw : JSON.stringify(result.raw));
       }
@@ -138,24 +141,101 @@ export default function UploadStatement() {
         <StatusBanner type="success" message={statusMsg || "Upload successful."} />
       )}
 
-      {status === STATUS.ERROR && (
-        <ErrorBox title="Upload failed" errors={errorList} />
-      )}
-
-      {/* Optional debug preview (only on success) */}
+      {/* Import Summary (Step B) */}
       {status === STATUS.SUCCESS && meta && typeof meta === "object" && (
-        <pre
+        <div
           style={{
-            marginTop: 10,
-            color: "#111",
-            background: "#f6f6f6",
+            marginTop: 16,
+            border: "1px solid #ddd",
+            borderRadius: 10,
             padding: 12,
-            borderRadius: 8,
+            background: "#fafafa",
           }}
         >
-          {JSON.stringify(meta, null, 2)}
-        </pre>
+          <h3 style={{ marginTop: 0 }}>Import Summary</h3>
+
+          {(() => {
+            const total = pickNumber(meta, ["totalRows", "total", "rows", "rowCount"]);
+            const imported = pickNumber(meta, [
+              "insertedCount",
+              "imported",
+              "created",
+              "saved",
+              "successCount",
+            ]);
+            const skipped = pickNumber(meta, ["skippedCount", "skipped", "ignored"]);
+
+            const warnings = Array.isArray(meta.warnings)
+              ? meta.warnings
+              : Array.isArray(meta.warning)
+              ? meta.warning
+              : null;
+
+            return (
+              <>
+                <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  {total !== null && (
+                    <li>
+                      <strong>Total rows:</strong> {total}
+                    </li>
+                  )}
+                  {imported !== null && (
+                    <li>
+                      <strong>Imported:</strong> {imported}
+                    </li>
+                  )}
+                  {skipped !== null && (
+                    <li>
+                      <strong>Skipped:</strong> {skipped}
+                    </li>
+                  )}
+
+                  {total === null && imported === null && skipped === null && (
+                    <li>
+                      <strong>Result:</strong> Upload completed (no summary fields returned).
+                    </li>
+                  )}
+                </ul>
+
+                {warnings && warnings.length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontWeight: 700 }}>Warnings</div>
+                    <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                      {warnings.slice(0, 5).map((w, i) => (
+                        <li key={i}>{typeof w === "string" ? w : JSON.stringify(w)}</li>
+                      ))}
+                    </ul>
+                    {warnings.length > 5 && (
+                      <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
+                        Showing first 5 warnings.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
+          {/* Debug raw response (optional) */}
+          <details style={{ marginTop: 12 }}>
+            <summary style={{ cursor: "pointer" }}>View raw response (debug)</summary>
+            <pre
+              style={{
+                marginTop: 10,
+                color: "#111",
+                background: "#f6f6f6",
+                padding: 12,
+                borderRadius: 8,
+                overflowX: "auto",
+              }}
+            >
+              {JSON.stringify(meta, null, 2)}
+            </pre>
+          </details>
+        </div>
       )}
+
+      {status === STATUS.ERROR && <ErrorBox title="Upload failed" errors={errorList} />}
     </main>
   );
 }
