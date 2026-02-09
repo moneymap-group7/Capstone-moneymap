@@ -16,6 +16,7 @@ import * as path from "path";
 import type { Request } from "express";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { StatementsService } from "./statements.service";
 
 function safeName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -30,6 +31,7 @@ function getUserIdOrThrow(req: Request): string {
 
 @Controller("statements")
 export class StatementsController {
+  constructor(private readonly statementsService: StatementsService) {}
   @UseGuards(JwtAuthGuard)
   @Post("upload")
   @UseInterceptors(
@@ -73,16 +75,17 @@ export class StatementsController {
       throw new UnsupportedMediaTypeException("Only .csv files are allowed.");
     }
 
+    
+    const relativePath = `uploads/${userId}/${file.filename}`;
 
-    return {
-      message: "File uploaded successfully.",
+    return await this.statementsService.processUploadedStatement({
       userId: String(userId),
       originalFileName: file.originalname,
       storedFileName: file.filename,
       mimeType: file.mimetype,
       size: file.size,
-      relativePath: `uploads/${userId}/${file.filename}`,
-    };
+      relativePath,
+    });
       } catch (e: any) {
     if (e?.getStatus) throw e;
 
