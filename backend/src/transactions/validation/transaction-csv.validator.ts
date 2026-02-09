@@ -53,8 +53,7 @@ function cleanMerchant(desc: string): string {
   // 3) remove trailing reference-like blobs
   s = s.replace(/\s+(ref|reference|auth|approval)\s*#?\s*[\w-]{6,}$/i, "").trim();
 
-  // 4) optional: remove trailing city token(s) if present (keep conservative)
-  // only remove the *last* 1-2 words if they look like a location and result stays meaningful
+  // 4) remove trailing city token(s) if present (keep conservative)
   const beforeCity = s.replace(/\s+[A-Za-z.'-]+(?:\s+[A-Za-z.'-]+)?\s*$/i, "").trim();
   if (beforeCity.split(/\s+/).length >= 2 && beforeCity.length >= 8) {
     // if original had ", XX" we assume last words might be city; apply reduction
