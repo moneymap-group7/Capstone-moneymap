@@ -16,7 +16,7 @@ export class TransactionsService {
   userId: uid,
   transactionDate: r.transactionDate,
   postedDate: null,
-  description: (r.label ?? "CSV transaction").slice(0, 255),
+  description: (r.description ?? "CSV transaction").slice(0, 255),
   amount: r.amount,
   currency: r.currency,
   transactionType: r.transactionType,

@@ -6,10 +6,10 @@ export type ValidRow = {
   // Keep raw merchant internally if you want later:
   // description: string;
 
-  // generic label (no merchant leak)
-  label: 'CARD TRANSACTION' | 'SUBSCRIPTION' | 'TRANSFER' | 'INCOME' | 'OTHER';
+  description: string;
 
-  amount: string; // signed decimal string
+
+  amount: string; 
   transactionType: 'DEBIT' | 'CREDIT';
   cardLast4: string | null;
   currency: 'CAD';
@@ -27,27 +27,11 @@ function to2(n: string) {
 }
 
 function last4(masked: string): string | null {
-  const digits = (masked ?? "").replace(/\D/g, "");
+  const digits = (masked ?? '').replace(/\D/g, '');
   if (digits.length < 4) return null;
   return digits.slice(-4);
 }
 
-function makeLabel(desc: string): ValidRow['label'] {
-  const d = (desc ?? '').toLowerCase();
-
-  // You can expand these rules any time:
-  if (d.includes('openai') || d.includes('netflix') || d.includes('spotify') || d.includes('subscr')) {
-    return 'SUBSCRIPTION';
-  }
-  if (d.includes('e-transfer') || d.includes('etransfer') || d.includes('transfer')) {
-    return 'TRANSFER';
-  }
-  if (d.includes('payroll') || d.includes('salary') || d.includes('deposit')) {
-    return 'INCOME';
-  }
-  if (!d.trim()) return 'OTHER';
-  return 'CARD TRANSACTION';
-}
 
 export function validateCibcRows(rows: CibcRawRow[]): ValidRow[] {
   const errors: string[] = [];
@@ -104,7 +88,7 @@ export function validateCibcRows(rows: CibcRawRow[]): ValidRow[] {
 
     out.push({
       transactionDate,
-      label: makeLabel(row.description),
+      description: (row.description ?? '').replace(/\s+/g, ' ').trim(),
       amount,
       transactionType,
       cardLast4: last4(row.cardMasked),

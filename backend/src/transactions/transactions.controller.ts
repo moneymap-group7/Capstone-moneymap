@@ -74,7 +74,7 @@ export class TransactionsController {
       cardLast4: row.cardLast4,
       source: row.source,
       currency: row.currency,
-      label: row.label,
+      description: row.description,
     }));
 
     return {
