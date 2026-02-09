@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { uploadStatement } from "../services/statementService";
+import ErrorBox from "../components/common/ErrorBox";
+import StatusBanner from "../components/common/StatusBanner";
 
 const STATUS = {
   IDLE: "IDLE",
@@ -27,15 +29,18 @@ export default function UploadStatement() {
   const [status, setStatus] = useState(STATUS.IDLE);
   const [file, setFile] = useState(null);
 
-  const [errors, setErrors] = useState([]);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [meta, setMeta] = useState(null); // store response summary (optional)
+  // status + errors (new)
+  const [statusMsg, setStatusMsg] = useState("");
+  const [errorList, setErrorList] = useState([]);
+
+  // keep meta for debugging (optional)
+  const [meta, setMeta] = useState(null);
 
   function reset() {
     setStatus(STATUS.IDLE);
     setFile(null);
-    setErrors([]);
-    setSuccessMessage("");
+    setStatusMsg("");
+    setErrorList([]);
     setMeta(null);
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -43,8 +48,8 @@ export default function UploadStatement() {
   function onFileChange(e) {
     const f = e.target.files?.[0] || null;
     setFile(f);
-    setErrors([]);
-    setSuccessMessage("");
+    setStatusMsg("");
+    setErrorList([]);
     setMeta(null);
     setStatus(f ? STATUS.READY : STATUS.IDLE);
   }
@@ -53,36 +58,47 @@ export default function UploadStatement() {
     if (!file || status === STATUS.UPLOADING) return;
 
     setStatus(STATUS.UPLOADING);
-    setErrors([]);
-    setSuccessMessage("");
+    setStatusMsg("Uploading… please wait.");
+    setErrorList([]);
     setMeta(null);
 
     try {
       const result = await uploadStatement(file);
 
       if (result.ok) {
-        // Backend success payload differs by team; we safely show a generic message
         const msg =
-          (result.data && typeof result.data === "object" && (result.data.message || result.data.status)) ||
+          (result.data &&
+            typeof result.data === "object" &&
+            (result.data.message || result.data.status)) ||
           "Upload successful.";
 
         setStatus(STATUS.SUCCESS);
-        setSuccessMessage(String(msg));
+        setStatusMsg(String(msg));
+        setErrorList([]);
         setMeta(result.data);
         return;
       }
 
-      // Error handling
-      const list =
-        Array.isArray(result.errors) && result.errors.length
-          ? result.errors.map((x) => (typeof x === "string" ? x : JSON.stringify(x)))
-          : [result.message || "Upload failed."];
+      // show status + raw details so you can debug quickly
+      const list = [];
+      if (result.status) list.push(`HTTP ${result.status}`);
+      if (result.message) list.push(result.message);
+
+      if (Array.isArray(result.errors) && result.errors.length) {
+        result.errors.forEach((e) =>
+          list.push(typeof e === "string" ? e : JSON.stringify(e))
+        );
+      } else if (result.raw) {
+        list.push(typeof result.raw === "string" ? result.raw : JSON.stringify(result.raw));
+      }
 
       setStatus(STATUS.ERROR);
-      setErrors(list);
-    } catch (e) {
+      setStatusMsg("");
+      setErrorList(list.length ? list : ["Upload failed."]);
+    } catch {
       setStatus(STATUS.ERROR);
-      setErrors(["Unexpected error occurred during upload."]);
+      setStatusMsg("");
+      setErrorList(["Unexpected error occurred during upload."]);
     }
   }
 
@@ -113,28 +129,32 @@ export default function UploadStatement() {
         </button>
       </div>
 
-      {status === STATUS.SUCCESS && (
-        <div style={{ marginTop: 18, color: "green" }}>
-          <div>{successMessage}</div>
+      {/* Status feedback */}
+      {status === STATUS.UPLOADING && (
+        <StatusBanner type="info" message={statusMsg || "Uploading…"} />
+      )}
 
-          {/* Optional: show a small response preview for debugging */}
-          {meta && typeof meta === "object" && (
-            <pre style={{ marginTop: 10, color: "#111", background: "#f6f6f6", padding: 12 }}>
-              {JSON.stringify(meta, null, 2)}
-            </pre>
-          )}
-        </div>
+      {status === STATUS.SUCCESS && (
+        <StatusBanner type="success" message={statusMsg || "Upload successful."} />
       )}
 
       {status === STATUS.ERROR && (
-        <div style={{ marginTop: 18, color: "red" }}>
-          <div style={{ fontWeight: 700 }}>Upload failed</div>
-          <ul style={{ marginTop: 8 }}>
-            {errors.map((e, i) => (
-              <li key={i}>{e}</li>
-            ))}
-          </ul>
-        </div>
+        <ErrorBox title="Upload failed" errors={errorList} />
+      )}
+
+      {/* Optional debug preview (only on success) */}
+      {status === STATUS.SUCCESS && meta && typeof meta === "object" && (
+        <pre
+          style={{
+            marginTop: 10,
+            color: "#111",
+            background: "#f6f6f6",
+            padding: 12,
+            borderRadius: 8,
+          }}
+        >
+          {JSON.stringify(meta, null, 2)}
+        </pre>
       )}
     </main>
   );
