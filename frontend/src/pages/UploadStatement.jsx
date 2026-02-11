@@ -105,6 +105,8 @@ export default function UploadStatement() {
     }
   }
 
+  const canUpload = !!file && status !== STATUS.UPLOADING;
+
   return (
     <main style={{ padding: 24, maxWidth: 720 }}>
       <h2>Upload Bank Statement</h2>
@@ -124,7 +126,7 @@ export default function UploadStatement() {
       )}
 
       <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-        <button onClick={handleUpload} disabled={status !== STATUS.READY}>
+        <button onClick={handleUpload} disabled={!canUpload}>
           {status === STATUS.UPLOADING ? "Uploading..." : "Upload"}
         </button>
         <button onClick={reset} disabled={status === STATUS.UPLOADING}>
@@ -132,7 +134,6 @@ export default function UploadStatement() {
         </button>
       </div>
 
-      {/* Status feedback */}
       {status === STATUS.UPLOADING && (
         <StatusBanner type="info" message={statusMsg || "Uploading…"} />
       )}
@@ -141,7 +142,6 @@ export default function UploadStatement() {
         <StatusBanner type="success" message={statusMsg || "Upload successful."} />
       )}
 
-      {/* Import Summary (Step B) */}
       {status === STATUS.SUCCESS && meta && typeof meta === "object" && (
         <div
           style={{
@@ -189,7 +189,6 @@ export default function UploadStatement() {
                       <strong>Skipped:</strong> {skipped}
                     </li>
                   )}
-
                   {total === null && imported === null && skipped === null && (
                     <li>
                       <strong>Result:</strong> Upload completed (no summary fields returned).
@@ -216,7 +215,6 @@ export default function UploadStatement() {
             );
           })()}
 
-          {/* Debug raw response (optional) */}
           <details style={{ marginTop: 12 }}>
             <summary style={{ cursor: "pointer" }}>View raw response (debug)</summary>
             <pre
