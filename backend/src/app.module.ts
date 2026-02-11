@@ -9,6 +9,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { HealthModule } from "./health/health.module";
 import { StatementsModule } from "./statements/statements.module";
 import { TransactionsModule } from "./transactions/transactions.module";
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TransactionsModule } from "./transactions/transactions.module";
     HealthModule,
     StatementsModule,
     TransactionsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
