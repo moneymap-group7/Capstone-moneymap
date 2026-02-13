@@ -1,25 +1,14 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from "@nestjs/common";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { CategoriesService } from "./categories.service";
 
-@Controller('categories')
+@Controller("categories")
+@UseGuards(JwtAuthGuard)
 export class CategoriesController {
+  constructor(private readonly categoriesService: CategoriesService) {}
+
   @Get()
-  getCategories() {
-    return [
-      'FOOD_AND_DINING',
-      'GROCERIES',
-      'TRANSPORTATION',
-      'SHOPPING',
-      'UTILITIES',
-      'RENT',
-      'ENTERTAINMENT',
-      'HEALTH',
-      'EDUCATION',
-      'TRAVEL',
-      'FEES',
-      'INCOME',
-      'TRANSFER',
-      'OTHER',
-      'UNCATEGORIZED',
-    ];
+  async getCategories() {
+    return this.categoriesService.listCategories();
   }
 }

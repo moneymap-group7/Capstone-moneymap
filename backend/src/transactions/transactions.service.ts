@@ -34,14 +34,39 @@ export class TransactionsService {
     return { inserted: result.count };
   }
 
-  async listForUser(userId: string) {
+    async listForUser(userId: string, page = 1, pageSize = 20) {
     const uid = BigInt(userId);
 
-    return this.prisma.transaction.findMany({
-      where: { userId: uid },
-      orderBy: { transactionDate: "desc" },
-      take: 200,
-    });
+    // safety bounds (prevents huge queries)
+    const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+    const safePageSize =
+      Number.isFinite(pageSize) && pageSize > 0 ? Math.min(pageSize, 100) : 20;
+
+    const skip = (safePage - 1) * safePageSize;
+
+    const where = { userId: uid };
+
+    const [total, rows] = await Promise.all([
+      this.prisma.transaction.count({ where }),
+      this.prisma.transaction.findMany({
+        where,
+        orderBy: { transactionDate: "desc" },
+        skip,
+        take: safePageSize,
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+
+    return {
+      data: rows,
+      meta: {
+        page: safePage,
+        pageSize: safePageSize,
+        total,
+        totalPages,
+      },
+    };
   }
 
   async getByIdForUser(transactionId: string, userId: string) {
