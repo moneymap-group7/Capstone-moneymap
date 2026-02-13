@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 
+
 export default function Navbar() {
   const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem("mm_access_token");
@@ -26,6 +27,7 @@ export default function Navbar() {
         <>
           <Link to="/login">Login</Link>
           <Link to="/register">Register</Link>
+           <Link to="/categories">Categories</Link>
         </>
       )}
 
