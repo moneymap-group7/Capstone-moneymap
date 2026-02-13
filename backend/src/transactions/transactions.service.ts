@@ -82,4 +82,26 @@ export class TransactionsService {
 
     return tx;
   }
+
+   async updateSpendCategoryForUser(
+    transactionId: string,
+    userId: string,
+    spendCategory: SpendCategory,
+  ) {
+    const tid = BigInt(transactionId);
+    const uid = BigInt(userId);
+
+    const tx = await this.prisma.transaction.findUnique({
+      where: { transactionId: tid },
+      select: { transactionId: true, userId: true },
+    });
+
+    if (!tx) throw new NotFoundException("Transaction not found");
+    if (tx.userId !== uid) throw new ForbiddenException("Not allowed");
+
+    return this.prisma.transaction.update({
+      where: { transactionId: tid },
+      data: { spendCategory },
+    });
+  }
 }
