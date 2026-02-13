@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -106,11 +107,20 @@ export class TransactionsController {
   }
 
   // GET /transactions → only my transactions
-  @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard)
   @Get()
-  async listMine(@Req() req: Request) {
+  async listMine(
+    @Req() req: Request,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
+  ) {
     const user = req.user as { userId: string; email: string };
-    return this.transactionsService.listForUser(user.userId);
+
+    return this.transactionsService.listForUser(
+      user.userId,
+      page ? Number(page) : 1,
+      pageSize ? Number(pageSize) : 20,
+    );
   }
 
   // GET /transactions/:id → only if transaction belongs to me
