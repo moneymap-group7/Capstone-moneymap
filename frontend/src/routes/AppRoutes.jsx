@@ -5,6 +5,7 @@ import Register from "../pages/Register";
 import Dashboard from "../pages/Dashboard";
 import UploadStatement from "../pages/UploadStatement";
 import ProtectedRoute from "./ProtectedRoute";
+import Transactions from "../pages/Transactions";
 
 export default function AppRoutes() {
   return (
@@ -16,6 +17,7 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/upload" element={<UploadStatement />} />
+        <Route path="/transactions" element={<Transactions />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
