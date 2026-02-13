@@ -28,8 +28,6 @@ enum TransactionType {
 
 enum TransactionSource {
   CSV
-  PDF
-  MANUAL
 }
 
 enum SpendCategory {
@@ -81,4 +79,18 @@ model Transaction {
   @@index([spendCategory])
   @@index([cardLast4])
   @@map("transactions")
+}
+model BankCategoryRule {
+  id            Int           @id @default(autoincrement())
+  bank          String        
+  matchText     String       
+  spendCategory SpendCategory 
+  priority      Int           @default(100)
+  createdAt     DateTime      @default(now())
+
+  @@index([bank])
+  @@index([matchText])
+  @@index([spendCategory])
+  @@index([priority])
+  @@map("bank_category_rules")
 }

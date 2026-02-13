@@ -1,4 +1,4 @@
-const ENDPOINT = "http://localhost:3000/statements/upload";
+const ENDPOINT = "/api/statements/upload";
 const FIELD_NAME = "file";
 
 export async function uploadStatement(file) {
