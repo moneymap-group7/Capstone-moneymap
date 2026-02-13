@@ -5,7 +5,6 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import Dashboard from "../pages/Dashboard";
 import UploadStatement from "../pages/UploadStatement";
-
 import Transactions from "../pages/Transactions";
 import Categories from "../pages/Categories";
 
