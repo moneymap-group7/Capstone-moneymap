@@ -1,3 +1,5 @@
+import api from "./api";
+
 const MOCK = [
   {
     transactionId: 1,
@@ -29,4 +31,11 @@ export async function getTransactionsMock({ delayMs = 400 } = {}) {
   return new Promise((resolve) => {
     setTimeout(() => resolve(MOCK), delayMs);
   });
+}
+
+export async function getTransactions({ page = 1, pageSize = 20 } = {}) {
+  const res = await api.get("/transactions", {
+    params: { page, pageSize },
+  });
+  return res.data; // { data, meta }
 }
