@@ -38,7 +38,14 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
         setLoading(true);
         setErrors([]);
 
-        const result = await getTransactions({ page, pageSize });
+        const result = await getTransactions({
+          page,
+          pageSize,
+          q: q.trim() || undefined,
+          type: typeFilter === "ALL" ? undefined : typeFilter,
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+        });
         if (!alive) return;
 
         setData(result?.data || []);
@@ -56,7 +63,7 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
     return () => {
       alive = false;
     };
-  }, [page, pageSize]);
+  }, [page, pageSize, q, typeFilter, fromDate, toDate]);
 
   const rows = useMemo(() => {
     return (data || []).map((tx) => {
@@ -75,26 +82,7 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
     });
   }, [data]);
 
-  const filteredRows = useMemo(() => {
-  const query = q.trim().toLowerCase();
-
-  return rows.filter((r) => {
-    // text search
-    if (query) {
-      const hay = `${r.description} ${r.category} ${r.type}`.toLowerCase();
-      if (!hay.includes(query)) return false;
-    }
-
-    // type filter
-    if (typeFilter !== "ALL" && r.type !== typeFilter) return false;
-
-    // date range (r.date is yyyy-mm-dd)
-    if (fromDate && r.date < fromDate) return false;
-    if (toDate && r.date > toDate) return false;
-
-    return true;
-  });
-}, [rows, q, typeFilter, fromDate, toDate]);
+  const filteredRows = rows;
 
   return (
     <div style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
@@ -117,7 +105,7 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
           }}
           title="Count of loaded rows"
         >
-          {meta?.total ?? rows.length} total · {filteredRows.length} shown on this page
+          {meta?.total ?? rows.length} total · {rows.length} shown on this page
         </div>
       </div>
 

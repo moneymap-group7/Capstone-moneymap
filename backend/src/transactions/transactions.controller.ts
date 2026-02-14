@@ -116,14 +116,23 @@ export class TransactionsController {
     @Req() req: Request,
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string,
+    @Query("q") q?: string,
+    @Query("type") type?: string,
+    @Query("fromDate") fromDate?: string,
+    @Query("toDate") toDate?: string,
+    @Query("category") category?: string,
   ) {
     const user = req.user as { userId: string; email: string };
 
-    return this.transactionsService.listForUser(
-      user.userId,
-      page ? Number(page) : 1,
-      pageSize ? Number(pageSize) : 20,
-    );
+    return this.transactionsService.listForUser(user.userId, {
+      page: page ? Number(page) : 1,
+      pageSize: pageSize ? Number(pageSize) : 20,
+      q,
+      type,
+      fromDate,
+      toDate,
+      category,
+    });
   }
 
   // GET /transactions/:id → only if transaction belongs to me

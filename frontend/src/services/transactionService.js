@@ -33,9 +33,25 @@ export async function getTransactionsMock({ delayMs = 400 } = {}) {
   });
 }
 
-export async function getTransactions({ page = 1, pageSize = 20 } = {}) {
-  const res = await api.get("/transactions", {
-    params: { page, pageSize },
-  });
+export async function getTransactions({
+  page = 1,
+  pageSize = 20,
+  q,
+  type,
+  fromDate,
+  toDate,
+  category,
+} = {}) {
+  const params = {
+    page,
+    pageSize,
+    ...(q ? { q } : {}),
+    ...(type ? { type } : {}),
+    ...(fromDate ? { fromDate } : {}),
+    ...(toDate ? { toDate } : {}),
+    ...(category ? { category } : {}),
+  };
+
+  const res = await api.get("/transactions", { params });
   return res.data; // { data, meta }
 }
