@@ -25,6 +25,11 @@ const [page, setPage] = useState(1);
 const [pageSize, setPageSize] = useState(20);
 const [meta, setMeta] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 1 });
 
+const [q, setQ] = useState("");                 // search text
+const [typeFilter, setTypeFilter] = useState("ALL"); // ALL | DEBIT | CREDIT
+const [fromDate, setFromDate] = useState("");   // yyyy-mm-dd
+const [toDate, setToDate] = useState("");       // yyyy-mm-dd
+
   useEffect(() => {
     let alive = true;
 
@@ -70,6 +75,27 @@ const [meta, setMeta] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 
     });
   }, [data]);
 
+  const filteredRows = useMemo(() => {
+  const query = q.trim().toLowerCase();
+
+  return rows.filter((r) => {
+    // text search
+    if (query) {
+      const hay = `${r.description} ${r.category} ${r.type}`.toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+
+    // type filter
+    if (typeFilter !== "ALL" && r.type !== typeFilter) return false;
+
+    // date range (r.date is yyyy-mm-dd)
+    if (fromDate && r.date < fromDate) return false;
+    if (toDate && r.date > toDate) return false;
+
+    return true;
+  });
+}, [rows, q, typeFilter, fromDate, toDate]);
+
   return (
     <div style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
@@ -91,12 +117,122 @@ const [meta, setMeta] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 
           }}
           title="Count of loaded rows"
         >
-          {meta?.total ?? rows.length} items
+          {meta?.total ?? rows.length} total · {filteredRows.length} shown on this page
         </div>
       </div>
 
       {/* show error only if errors exist */}
       {errors.length > 0 && <ErrorBox title="Error" errors={errors} />}
+          <div
+            style={{
+              marginTop: 14,
+              padding: 12,
+              border: "1px solid #e5e7eb",
+              borderRadius: 12,
+              background: "#fff",
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <input
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search description…"
+              style={{
+                flex: "1 1 240px",
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontSize: 14,
+              }}
+            />
+
+            <select
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                padding: "10px 10px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontSize: 14,
+              }}
+              title="Type"
+            >
+              <option value="ALL">All types</option>
+              <option value="DEBIT">DEBIT</option>
+              <option value="CREDIT">CREDIT</option>
+            </select>
+
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                padding: "10px 10px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontSize: 14,
+              }}
+              title="From date"
+            />
+
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                padding: "10px 10px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontSize: 14,
+              }}
+              title="To date"
+            />
+
+            <button
+              onClick={() => {
+                setQ("");
+                setTypeFilter("ALL");
+                setFromDate("");
+                setToDate("");
+                setPage(1);
+              }}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+              title="Clear filters"
+            >
+              Clear
+            </button>
+        </div>
 
       <div
         style={{
@@ -114,7 +250,7 @@ const [meta, setMeta] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 
           </div>
         ) : errors.length > 0 ? (
           <div style={{ padding: 18, color: "#6b7280" }}>Fix the errors above.</div>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <div style={{ padding: 18, color: "#6b7280" }}>No transactions found.</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
@@ -130,7 +266,7 @@ const [meta, setMeta] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 
               </thead>
 
               <tbody>
-                {rows.map((tx) => (
+                {filteredRows.map((tx) => (
                   <tr key={tx.id} style={styles.tr}>
                     <td style={styles.td}>{tx.date}</td>
 
@@ -192,7 +328,9 @@ const [meta, setMeta] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 
               borderRadius: 10,
               border: "1px solid #e5e7eb",
               background: "#fff",
+              color: "#000",
               fontSize: 14,
+              
             }}
             title="Rows per page"
           >
@@ -204,13 +342,14 @@ const [meta, setMeta] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 
           </select>
 
           <button
-            onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1 || loading}
             style={{
               padding: "10px 12px",
               borderRadius: 10,
               border: "1px solid #e5e7eb",
               background: "#fff",
+              color: "#000",
               fontWeight: 700,
               cursor: "pointer",
             }}
