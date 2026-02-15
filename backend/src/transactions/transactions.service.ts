@@ -4,8 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+
 import { PrismaService } from "../prisma/prisma.service";
-import { TransactionSource, SpendCategory } from "@prisma/client";
+import {
+  Prisma,
+  SpendCategory,
+  TransactionSource,
+  TransactionType,
+} from "@prisma/client";
 import type { ValidRow } from "./validation/transaction-csv.validator";
 
 @Injectable()
@@ -19,7 +25,8 @@ export class TransactionsService {
       userId: uid,
       transactionDate: r.transactionDate,
       postedDate: null,
-      description: (r.label ?? "CSV transaction").slice(0, 255),
+      // keep description (matches DB + UI)
+      description: (r.description ?? "CSV transaction").slice(0, 255),
       amount: r.amount,
       currency: r.currency,
       transactionType: r.transactionType,
@@ -37,33 +44,90 @@ export class TransactionsService {
     return { inserted: result.count };
   }
 
-async listForUser(userId: string, page = 1, limit = 10) {
-  const uid = BigInt(userId);
+  async listForUser(
+    userId: string,
+    opts: {
+      page?: number;
+      pageSize?: number;
+      q?: string;
+      type?: string;
+      fromDate?: string;
+      toDate?: string;
+      category?: string;
+    } = {},
+  ) {
+    const uid = BigInt(userId);
 
-  const skip = (page - 1) * limit;
+    const page = opts.page ?? 1;
+    const pageSize = opts.pageSize ?? 20;
 
-  const [data, total] = await this.prisma.$transaction([
-    this.prisma.transaction.findMany({
-      where: { userId: uid },
-      orderBy: { transactionDate: "desc" },
-      skip,
-      take: limit,
-    }),
-    this.prisma.transaction.count({
-      where: { userId: uid },
-    }),
-  ]);
+    const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+    const safePageSize =
+      Number.isFinite(pageSize) && pageSize > 0 ? Math.min(pageSize, 100) : 20;
 
-  return {
-    data,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
-}
+    const skip = (safePage - 1) * safePageSize;
+
+    const where: Prisma.TransactionWhereInput = { userId: uid };
+
+    const q = (opts.q || "").trim();
+    if (q) where.description = { contains: q, mode: "insensitive" };
+
+    if (opts.type) {
+      const t = String(opts.type).toUpperCase();
+      if (t !== "DEBIT" && t !== "CREDIT") {
+        throw new BadRequestException("Invalid type. Use DEBIT or CREDIT.");
+      }
+      where.transactionType = t as TransactionType;
+    }
+
+    if (opts.category) {
+      const c = String(opts.category).toUpperCase();
+      const allowed = Object.values(SpendCategory);
+      if (!allowed.includes(c as SpendCategory)) {
+        throw new BadRequestException("Invalid category.");
+      }
+      where.spendCategory = c as SpendCategory;
+    }
+
+    const isYyyyMmDd = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+    if (opts.fromDate && !isYyyyMmDd(opts.fromDate)) {
+      throw new BadRequestException("fromDate must be YYYY-MM-DD");
+    }
+    if (opts.toDate && !isYyyyMmDd(opts.toDate)) {
+      throw new BadRequestException("toDate must be YYYY-MM-DD");
+    }
+
+    if (opts.fromDate || opts.toDate) {
+      where.transactionDate = {};
+      if (opts.fromDate)
+        where.transactionDate.gte = new Date(`${opts.fromDate}T00:00:00.000Z`);
+      if (opts.toDate)
+        where.transactionDate.lte = new Date(`${opts.toDate}T23:59:59.999Z`);
+    }
+
+    const [total, rows] = await Promise.all([
+      this.prisma.transaction.count({ where }),
+      this.prisma.transaction.findMany({
+        where,
+        orderBy: { transactionDate: "desc" },
+        skip,
+        take: safePageSize,
+      }),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+
+    return {
+      data: rows,
+      meta: {
+        page: safePage,
+        pageSize: safePageSize,
+        total,
+        totalPages,
+      },
+    };
+  }
 
   async getByIdForUser(transactionId: string, userId: string) {
     const tid = BigInt(transactionId);
@@ -79,16 +143,15 @@ async listForUser(userId: string, page = 1, limit = 10) {
     return tx;
   }
 
-  async updateCategoryForUser(
+  async updateSpendCategoryForUser(
     transactionId: string,
     userId: string,
     spendCategory: string,
   ) {
-    // Validate enum value → return 400 instead of Prisma 500
     const allowed = Object.values(SpendCategory);
     if (!allowed.includes(spendCategory as SpendCategory)) {
       throw new BadRequestException(
-        `Invalid spendCategory: ${spendCategory}. Allowed: ${allowed.join(", ")}`
+        `Invalid spendCategory: ${spendCategory}. Allowed: ${allowed.join(", ")}`,
       );
     }
 
@@ -97,6 +160,7 @@ async listForUser(userId: string, page = 1, limit = 10) {
 
     const tx = await this.prisma.transaction.findUnique({
       where: { transactionId: tid },
+      select: { transactionId: true, userId: true },
     });
 
     if (!tx) throw new NotFoundException("Transaction not found");
