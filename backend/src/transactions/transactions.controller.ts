@@ -25,6 +25,8 @@ import type { ValidRow } from "./validation/transaction-csv.validator";
 import { parseCibcCsv } from "./validation/transaction-csv.parser";
 import { validateCibcRows } from "./validation/transaction-csv.validator";
 
+
+
 function requireDigits(id: string) {
   if (!/^\d+$/.test(id)) {
     throw new BadRequestException("Invalid id format. Expected numeric id.");
@@ -119,7 +121,7 @@ export class TransactionsController {
   }
 
   // GET /transactions → only my transactions
-    @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get()
   async listMine(
     @Req() req: Request,
@@ -151,21 +153,27 @@ export class TransactionsController {
     return this.transactionsService.getByIdForUser(id, user.userId);
   }
 
-    // PATCH /transactions/:id/category → update spendCategory (only if mine)
-  @UseGuards(JwtAuthGuard)
-  @Patch(":id/category")
-  async updateCategory(
-    @Param("id") id: string,
-    @Body() body: UpdateSpendCategoryDto,
-    @Req() req: Request,
-  ) {
-    requireDigits(id);
-    const user = req.user as { userId: string; email: string };
 
-    return this.transactionsService.updateSpendCategoryForUser(
-      id,
-      user.userId,
-      body.spendCategory,
-    );
+  // PATCH /transactions/:id → update category (only if transaction belongs to me)
+@UseGuards(JwtAuthGuard)
+@Patch(":id")
+async updateMine(
+  @Param("id") id: string,
+  @Body() body: { spendCategory?: string },
+  @Req() req: Request,
+) {
+  requireDigits(id);
+
+  const user = req.user as { userId: string; email: string };
+
+  if (!body?.spendCategory) {
+    throw new BadRequestException("spendCategory is required");
   }
+
+  return this.transactionsService.updateSpendCategoryForUser(
+    id,
+    user.userId,
+    body.spendCategory,
+  );
 }
+
