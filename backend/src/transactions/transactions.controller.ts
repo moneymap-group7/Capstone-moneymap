@@ -1,11 +1,14 @@
 import * as path from "path";
 import {
   BadRequestException,
+  Body,
   Controller,
   InternalServerErrorException,
   Get,
   Param,
+  Patch,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -20,6 +23,8 @@ import { TransactionsService } from "./transactions.service";
 import type { ValidRow } from "./validation/transaction-csv.validator";
 import { parseCibcCsv } from "./validation/transaction-csv.parser";
 import { validateCibcRows } from "./validation/transaction-csv.validator";
+
+
 
 function requireDigits(id: string) {
   if (!/^\d+$/.test(id)) {
@@ -108,9 +113,17 @@ export class TransactionsController {
   // GET /transactions → only my transactions
   @UseGuards(JwtAuthGuard)
   @Get()
-  async listMine(@Req() req: Request) {
+  async listMine(
+    @Req() req: Request,
+    @Query("page") page = "1",
+    @Query("limit") limit = "10",
+  ) {
     const user = req.user as { userId: string; email: string };
-    return this.transactionsService.listForUser(user.userId);
+    return this.transactionsService.listForUser(
+      user.userId,
+      Number(page),
+      Number(limit),
+    );
   }
 
   // GET /transactions/:id → only if transaction belongs to me
@@ -120,5 +133,28 @@ export class TransactionsController {
     requireDigits(id);
     const user = req.user as { userId: string; email: string };
     return this.transactionsService.getByIdForUser(id, user.userId);
+  }
+
+
+  // PATCH /transactions/:id → update category (only if transaction belongs to me)
+  @UseGuards(JwtAuthGuard)
+  @Patch(":id")
+  async updateMine(
+    @Param("id") id: string,
+    @Body() body: { spendCategory?: string },
+    @Req() req: Request,
+  ) {
+    requireDigits(id);
+    const user = req.user as { userId: string; email: string };
+
+    if (!body || !body.spendCategory) {
+      throw new BadRequestException("spendCategory is required");
+    }
+
+    return this.transactionsService.updateCategoryForUser(
+      id,
+      user.userId,
+      body.spendCategory,
+    );
   }
 }
