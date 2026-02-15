@@ -1,6 +1,6 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { TransactionSource, SpendCategory } from "@prisma/client";
+import { Prisma, SpendCategory, TransactionSource, TransactionType } from "@prisma/client";
 import type { ValidRow } from "./validation/transaction-csv.validator";
 
 
@@ -34,17 +34,73 @@ export class TransactionsService {
     return { inserted: result.count };
   }
 
-    async listForUser(userId: string, page = 1, pageSize = 20) {
+  async listForUser(
+    userId: string,
+    opts: {
+      page?: number;
+      pageSize?: number;
+      q?: string;
+      type?: string;
+      fromDate?: string;
+      toDate?: string;
+      category?: string;
+    } = {},
+  ) {
     const uid = BigInt(userId);
 
-    // safety bounds (prevents huge queries)
+    const page = opts.page ?? 1;
+    const pageSize = opts.pageSize ?? 20;
+
+    // safety bounds
     const safePage = Number.isFinite(page) && page > 0 ? page : 1;
     const safePageSize =
       Number.isFinite(pageSize) && pageSize > 0 ? Math.min(pageSize, 100) : 20;
 
     const skip = (safePage - 1) * safePageSize;
 
-    const where = { userId: uid };
+    // ---- build where (filters) ----
+    const where: Prisma.TransactionWhereInput = { userId: uid };
+
+    // q search (description)
+    const q = (opts.q || "").trim();
+    if (q) {
+      where.description = { contains: q, mode: "insensitive" };
+    }
+
+    // type filter
+    if (opts.type) {
+      const t = String(opts.type).toUpperCase();
+      if (t !== "DEBIT" && t !== "CREDIT") {
+        throw new BadRequestException("Invalid type. Use DEBIT or CREDIT.");
+      }
+      where.transactionType = t as TransactionType;
+    }
+
+    // category filter
+    if (opts.category) {
+      const c = String(opts.category).toUpperCase();
+      const allowed = Object.values(SpendCategory);
+      if (!allowed.includes(c as SpendCategory)) {
+        throw new BadRequestException("Invalid category.");
+      }
+      where.spendCategory = c as SpendCategory;
+    }
+
+    // date range filter (expects YYYY-MM-DD)
+    const isYyyyMmDd = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+    if (opts.fromDate && !isYyyyMmDd(opts.fromDate)) {
+      throw new BadRequestException("fromDate must be YYYY-MM-DD");
+    }
+    if (opts.toDate && !isYyyyMmDd(opts.toDate)) {
+      throw new BadRequestException("toDate must be YYYY-MM-DD");
+    }
+
+    if (opts.fromDate || opts.toDate) {
+      where.transactionDate = {};
+      if (opts.fromDate) where.transactionDate.gte = new Date(`${opts.fromDate}T00:00:00.000Z`);
+      if (opts.toDate) where.transactionDate.lte = new Date(`${opts.toDate}T23:59:59.999Z`);
+    }
 
     const [total, rows] = await Promise.all([
       this.prisma.transaction.count({ where }),

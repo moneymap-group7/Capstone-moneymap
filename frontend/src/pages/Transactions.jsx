@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Spinner from "../components/common/Spinner";
 import ErrorBox from "../components/common/ErrorBox";
-import { getTransactionsMock } from "../services/transactionService";
+import { getTransactions } from "../services/transactionService";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -16,9 +16,19 @@ function formatMoney(value) {
 }
 
 export default function Transactions() {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState([]);
+
+const [data, setData] = useState([]);
+const [loading, setLoading] = useState(true);
+const [errors, setErrors] = useState([]);
+
+const [page, setPage] = useState(1);
+const [pageSize, setPageSize] = useState(20);
+const [meta, setMeta] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 1 });
+
+const [q, setQ] = useState("");                 // search text
+const [typeFilter, setTypeFilter] = useState("ALL"); // ALL | DEBIT | CREDIT
+const [fromDate, setFromDate] = useState("");   // yyyy-mm-dd
+const [toDate, setToDate] = useState("");       // yyyy-mm-dd
 
   useEffect(() => {
     let alive = true;
@@ -28,14 +38,22 @@ export default function Transactions() {
         setLoading(true);
         setErrors([]);
 
-        // ✅ MOCK FETCH (no backend needed)
-        const items = await getTransactionsMock({ delayMs: 500 });
+        const result = await getTransactions({
+          page,
+          pageSize,
+          q: q.trim() || undefined,
+          type: typeFilter === "ALL" ? undefined : typeFilter,
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+        });
         if (!alive) return;
 
-        setData(items);
+        setData(result?.data || []);
+        setMeta(result?.meta || { page, pageSize, total: 0, totalPages: 1 });
+
       } catch (e) {
         if (!alive) return;
-        setErrors(["Failed to load transactions (mock)."]);
+        setErrors(["Failed to load transactions."]);
       } finally {
         if (alive) setLoading(false);
       }
@@ -45,7 +63,7 @@ export default function Transactions() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [page, pageSize, q, typeFilter, fromDate, toDate]);
 
   const rows = useMemo(() => {
     return (data || []).map((tx) => {
@@ -63,6 +81,8 @@ export default function Transactions() {
       };
     });
   }, [data]);
+
+  const filteredRows = rows;
 
   return (
     <div style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
@@ -85,12 +105,122 @@ export default function Transactions() {
           }}
           title="Count of loaded rows"
         >
-          {rows.length} items
+          {meta?.total ?? rows.length} total · {rows.length} shown on this page
         </div>
       </div>
 
-      {/* ✅ show error only if errors exist */}
+      {/* show error only if errors exist */}
       {errors.length > 0 && <ErrorBox title="Error" errors={errors} />}
+          <div
+            style={{
+              marginTop: 14,
+              padding: 12,
+              border: "1px solid #e5e7eb",
+              borderRadius: 12,
+              background: "#fff",
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <input
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search description…"
+              style={{
+                flex: "1 1 240px",
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontSize: 14,
+              }}
+            />
+
+            <select
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                padding: "10px 10px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontSize: 14,
+              }}
+              title="Type"
+            >
+              <option value="ALL">All types</option>
+              <option value="DEBIT">DEBIT</option>
+              <option value="CREDIT">CREDIT</option>
+            </select>
+
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                padding: "10px 10px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontSize: 14,
+              }}
+              title="From date"
+            />
+
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                padding: "10px 10px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontSize: 14,
+              }}
+              title="To date"
+            />
+
+            <button
+              onClick={() => {
+                setQ("");
+                setTypeFilter("ALL");
+                setFromDate("");
+                setToDate("");
+                setPage(1);
+              }}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                background: "#fff",
+                color: "#000",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+              title="Clear filters"
+            >
+              Clear
+            </button>
+        </div>
 
       <div
         style={{
@@ -108,7 +238,7 @@ export default function Transactions() {
           </div>
         ) : errors.length > 0 ? (
           <div style={{ padding: 18, color: "#6b7280" }}>Fix the errors above.</div>
-        ) : rows.length === 0 ? (
+        ) : filteredRows.length === 0 ? (
           <div style={{ padding: 18, color: "#6b7280" }}>No transactions found.</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
@@ -124,7 +254,7 @@ export default function Transactions() {
               </thead>
 
               <tbody>
-                {rows.map((tx) => (
+                {filteredRows.map((tx) => (
                   <tr key={tx.id} style={styles.tr}>
                     <td style={styles.td}>{tx.date}</td>
 
@@ -160,9 +290,83 @@ export default function Transactions() {
         )}
       </div>
 
+      <div
+        style={{
+          marginTop: 12,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ color: "#6b7280", fontSize: 13 }}>
+          Page <b>{meta.page}</b> of <b>{meta.totalPages}</b> · Total <b>{meta.total}</b>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            style={{
+              padding: "10px 10px",
+              borderRadius: 10,
+              border: "1px solid #e5e7eb",
+              background: "#fff",
+              color: "#000",
+              fontSize: 14,
+              
+            }}
+            title="Rows per page"
+          >
+            {[10, 20, 50, 100].map((n) => (
+              <option key={n} value={n}>
+                {n}/page
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1 || loading}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid #e5e7eb",
+              background: "#fff",
+              color: "#000",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Prev
+          </button>
+
+          <button
+            onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
+            disabled={page >= (meta.totalPages || 1) || loading}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid #2563eb",
+              background: "#2563eb",
+              color: "white",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+
       {/* Optional note for reviewers */}
       <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
-        Note: Transactions are currently mocked until Rudra’s Fetch API is merged.
+        Note: Transactions are now loaded from the backend with pagination.
       </div>
     </div>
   );

@@ -125,6 +125,11 @@ export class TransactionsController {
     @Req() req: Request,
     @Query("page") page?: string,
     @Query("pageSize") pageSize?: string,
+    @Query("q") q?: string,
+    @Query("type") type?: string,
+    @Query("fromDate") fromDate?: string,
+    @Query("toDate") toDate?: string,
+    @Query("category") category?: string,
   ) {
     const user = req.user as { userId: string; email: string };
 
