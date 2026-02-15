@@ -7,6 +7,37 @@ import {
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 
+type PrismaKnownError = {
+  code?: string;
+  message?: string;
+};
+
+function extractMessage(exceptionResponse: any) {
+  if (typeof exceptionResponse === "string") return exceptionResponse;
+
+  if (exceptionResponse && typeof exceptionResponse === "object") {
+    const msg = exceptionResponse.message ?? exceptionResponse.errors;
+
+    if (Array.isArray(msg)) return msg;
+    if (typeof msg === "string" && msg !== "Validation failed") return msg;
+
+    
+    const zodErrors = exceptionResponse.errors;
+    if (Array.isArray(zodErrors)) {
+      const formatted = zodErrors.map((e: any) => {
+        const p = Array.isArray(e.path) ? e.path.join(".") : e.path;
+        const m = e.message ?? "Invalid value";
+        return p ? `${p}: ${m}` : m;
+      });
+      if (formatted.length) return formatted;
+    }
+
+    return exceptionResponse;
+  }
+
+  return "Request failed";
+}
+
 @Catch()
 export class GlobalHttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
@@ -17,25 +48,15 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
     const timestamp = new Date().toISOString();
     const path = req.url;
 
-    // 1) Known Nest HttpExceptions (BadRequestException, etc.)
     if (exception instanceof HttpException) {
       const statusCode = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
-      // Nest can return string OR object
-      let message: any = "Request failed";
-      let errorText: string | undefined;
-
-      if (typeof exceptionResponse === "string") {
-        message = exceptionResponse;
-        errorText = HttpStatus[statusCode] ?? "Error";
-      } else if (typeof exceptionResponse === "object" && exceptionResponse !== null) {
-        const r: any = exceptionResponse;
-
-        // keep existing message shape if it's already an array/object
-        message = r.message ?? r;
-        errorText = r.error ?? HttpStatus[statusCode] ?? "Error";
-      }
+      const message = extractMessage(exceptionResponse);
+      const errorText =
+        typeof exceptionResponse === "object" && exceptionResponse !== null
+          ? (exceptionResponse as any).error ?? HttpStatus[statusCode] ?? "Error"
+          : HttpStatus[statusCode] ?? "Error";
 
       return res.status(statusCode).json({
         statusCode,
@@ -46,7 +67,28 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
       });
     }
 
-    // 2) Unknown errors (plain Error, runtime crash)
+    const prismaError = exception as PrismaKnownError;
+
+    if (prismaError?.code === "P2025") {
+      return res.status(HttpStatus.NOT_FOUND).json({
+        statusCode: 404,
+        error: "Not Found",
+        message: "Resource not found",
+        path,
+        timestamp,
+      });
+    }
+
+    if (prismaError?.code === "P2002") {
+      return res.status(HttpStatus.CONFLICT).json({
+        statusCode: 409,
+        error: "Conflict",
+        message: "Duplicate resource",
+        path,
+        timestamp,
+      });
+    }
+
     const msg =
       exception instanceof Error ? exception.message : "Internal server error";
 

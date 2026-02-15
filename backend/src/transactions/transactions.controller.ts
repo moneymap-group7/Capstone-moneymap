@@ -32,6 +32,15 @@ function requireDigits(id: string) {
   return id;
 }
 
+function parsePositiveInt(value: string | undefined, fallback: number, name: string) {
+  if (value === undefined) return fallback;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new BadRequestException(`${name} must be a positive integer`);
+  }
+  return n;
+}
+
 @Controller("transactions")
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
@@ -124,16 +133,14 @@ export class TransactionsController {
   ) {
     const user = req.user as { userId: string; email: string };
 
+    const p = parsePositiveInt(page, 1, "page");
+    const ps = parsePositiveInt(pageSize, 20, "pageSize");
+
     return this.transactionsService.listForUser(user.userId, {
-      page: page ? Number(page) : 1,
-      pageSize: pageSize ? Number(pageSize) : 20,
-      q,
-      type,
-      fromDate,
-      toDate,
-      category,
+    page: p,
+    pageSize: ps,
     });
-  }
+    }
 
   // GET /transactions/:id → only if transaction belongs to me
   @UseGuards(JwtAuthGuard)
