@@ -6,7 +6,12 @@ import {
 } from "@nestjs/common";
 
 import { PrismaService } from "../prisma/prisma.service";
-import { Prisma, SpendCategory, TransactionSource, TransactionType } from "@prisma/client";
+import {
+  Prisma,
+  SpendCategory,
+  TransactionSource,
+  TransactionType,
+} from "@prisma/client";
 import type { ValidRow } from "./validation/transaction-csv.validator";
 
 @Injectable()
@@ -17,20 +22,19 @@ export class TransactionsService {
     const uid = BigInt(userId);
 
     const data = rows.map((r) => ({
-
-    userId: uid,
-    transactionDate: r.transactionDate,
-    postedDate: null,
-    description: (r.label ?? "CSV transaction").slice(0, 255),
-    amount: r.amount,
-    currency: r.currency,
-    transactionType: r.transactionType,
-    source: TransactionSource.CSV,
-    spendCategory: SpendCategory.UNCATEGORIZED,
-    cardLast4: r.cardLast4 ?? null,
-    balanceAfter: null,   
+      userId: uid,
+      transactionDate: r.transactionDate,
+      postedDate: null,
+      // keep description (matches DB + UI)
+      description: (r.description ?? "CSV transaction").slice(0, 255),
+      amount: r.amount,
+      currency: r.currency,
+      transactionType: r.transactionType,
+      source: TransactionSource.CSV,
+      spendCategory: SpendCategory.UNCATEGORIZED,
+      cardLast4: r.cardLast4 ?? null,
+      balanceAfter: null,
     }));
-
 
     const result = await this.prisma.transaction.createMany({
       data,
@@ -57,23 +61,17 @@ export class TransactionsService {
     const page = opts.page ?? 1;
     const pageSize = opts.pageSize ?? 20;
 
-    // safety bounds
     const safePage = Number.isFinite(page) && page > 0 ? page : 1;
     const safePageSize =
       Number.isFinite(pageSize) && pageSize > 0 ? Math.min(pageSize, 100) : 20;
 
     const skip = (safePage - 1) * safePageSize;
 
-    // ---- build where (filters) ----
     const where: Prisma.TransactionWhereInput = { userId: uid };
 
-    // q search (description)
     const q = (opts.q || "").trim();
-    if (q) {
-      where.description = { contains: q, mode: "insensitive" };
-    }
+    if (q) where.description = { contains: q, mode: "insensitive" };
 
-    // type filter
     if (opts.type) {
       const t = String(opts.type).toUpperCase();
       if (t !== "DEBIT" && t !== "CREDIT") {
@@ -82,7 +80,6 @@ export class TransactionsService {
       where.transactionType = t as TransactionType;
     }
 
-    // category filter
     if (opts.category) {
       const c = String(opts.category).toUpperCase();
       const allowed = Object.values(SpendCategory);
@@ -92,7 +89,6 @@ export class TransactionsService {
       where.spendCategory = c as SpendCategory;
     }
 
-    // date range filter (expects YYYY-MM-DD)
     const isYyyyMmDd = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
     if (opts.fromDate && !isYyyyMmDd(opts.fromDate)) {
@@ -104,8 +100,10 @@ export class TransactionsService {
 
     if (opts.fromDate || opts.toDate) {
       where.transactionDate = {};
-      if (opts.fromDate) where.transactionDate.gte = new Date(`${opts.fromDate}T00:00:00.000Z`);
-      if (opts.toDate) where.transactionDate.lte = new Date(`${opts.toDate}T23:59:59.999Z`);
+      if (opts.fromDate)
+        where.transactionDate.gte = new Date(`${opts.fromDate}T00:00:00.000Z`);
+      if (opts.toDate)
+        where.transactionDate.lte = new Date(`${opts.toDate}T23:59:59.999Z`);
     }
 
     const [total, rows] = await Promise.all([
@@ -145,37 +143,37 @@ export class TransactionsService {
     return tx;
   }
 
-async updateSpendCategoryForUser(
-  transactionId: string,
-  userId: string,
-  spendCategory: string,
-) {
-  const allowed = Object.values(SpendCategory);
+  async updateSpendCategoryForUser(
+    transactionId: string,
+    userId: string,
+    spendCategory: string,
+  ) {
+    const allowed = Object.values(SpendCategory);
+    if (!allowed.includes(spendCategory as SpendCategory)) {
+      throw new BadRequestException(
+        `Invalid spendCategory: ${spendCategory}. Allowed: ${allowed.join(", ")}`,
+      );
+    }
 
-  if (!allowed.includes(spendCategory as SpendCategory)) {
-    throw new BadRequestException(
-      `Invalid spendCategory: ${spendCategory}. Allowed: ${allowed.join(", ")}`
-    );
+    const tid = BigInt(transactionId);
+    const uid = BigInt(userId);
+
+    const tx = await this.prisma.transaction.findUnique({
+      where: { transactionId: tid },
+      select: { transactionId: true, userId: true },
+    });
+
+    if (!tx) throw new NotFoundException("Transaction not found");
+    if (tx.userId !== uid) throw new ForbiddenException("Not allowed");
+
+    const updated = await this.prisma.transaction.update({
+      where: { transactionId: tid },
+      data: { spendCategory: spendCategory as SpendCategory },
+    });
+
+    return {
+      message: "Transaction updated successfully",
+      data: updated,
+    };
   }
-
-  const tid = BigInt(transactionId);
-  const uid = BigInt(userId);
-
-  const tx = await this.prisma.transaction.findUnique({
-    where: { transactionId: tid },
-    select: { transactionId: true, userId: true },
-  });
-
-  if (!tx) throw new NotFoundException("Transaction not found");
-  if (tx.userId !== uid) throw new ForbiddenException("Not allowed");
-
-  const updated = await this.prisma.transaction.update({
-    where: { transactionId: tid },
-    data: { spendCategory: spendCategory as SpendCategory },
-  });
-
-  return {
-    message: "Transaction updated successfully",
-    data: updated,
-  };
 }
