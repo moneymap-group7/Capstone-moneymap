@@ -136,7 +136,10 @@ export class TransactionsController {
     const p = parsePositiveInt(page, 1, "page");
     const ps = parsePositiveInt(pageSize, 20, "pageSize");
 
-    return this.transactionsService.listForUser(user.userId, p, ps);
+    return this.transactionsService.listForUser(user.userId, {
+    page: p,
+    pageSize: ps,
+    });
     }
 
   // GET /transactions/:id → only if transaction belongs to me
