@@ -2,11 +2,8 @@ import api from "./api";
 
 const LIST_ENDPOINT = "/transactions";
 const UPLOAD_CSV_ENDPOINT = "/transactions/upload-csv";
+const UPDATE_CATEGORY_ENDPOINT = (id) => `/transactions/${id}`;
 const CSV_FIELD_NAME = "file";
-
-function getToken() {
-  return localStorage.getItem("mm_access_token");
-}
 
 function normalizeAxiosError(err) {
   const status = err?.response?.status;
@@ -34,8 +31,6 @@ export async function getTransactions({
   toDate,
   category,
 } = {}) {
-  const token = getToken();
-
   const params = {
     page,
     pageSize,
@@ -47,13 +42,9 @@ export async function getTransactions({
   };
 
   try {
-    const res = await api.get(LIST_ENDPOINT, {
-      params,
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-
-    // backend expected: { data, meta }
+    const res = await api.get(LIST_ENDPOINT, { params });
     const payload = res?.data ?? {};
+
     return {
       ok: true,
       data: Array.isArray(payload.data) ? payload.data : [],
@@ -65,14 +56,12 @@ export async function getTransactions({
 }
 
 export async function uploadTransactionsCsv(file) {
-  const token = getToken();
-
   const formData = new FormData();
   formData.append(CSV_FIELD_NAME, file);
 
   try {
     const res = await api.post(UPLOAD_CSV_ENDPOINT, formData, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      headers: { "Content-Type": "multipart/form-data" },
     });
 
     return { ok: true, data: res?.data ?? null };
@@ -81,19 +70,15 @@ export async function uploadTransactionsCsv(file) {
   }
 }
 
-const MOCK = [
-  {
-    transactionId: 1,
-    transactionDate: "2026-02-01",
-    description: "UBER TRIP",
-    amount: 25.5,
-    transactionType: "DEBIT",
-    spendCategory: "Transport",
-  },
-];
+export async function updateTransactionCategory(transactionId, spendCategory) {
+  try {
+    const res = await api.patch(
+      UPDATE_CATEGORY_ENDPOINT(transactionId),
+      { spendCategory }
+    );
 
-export async function getTransactionsMock({ delayMs = 400 } = {}) {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve({ ok: true, data: MOCK, meta: { page: 1, pageSize: MOCK.length, total: MOCK.length, totalPages: 1 } }), delayMs);
-  });
+    return { ok: true, data: res?.data ?? null };
+  } catch (err) {
+    return normalizeAxiosError(err);
+  }
 }

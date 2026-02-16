@@ -1,9 +1,7 @@
-// frontend/src/pages/Transactions.jsx
-
 import { useEffect, useMemo, useState } from "react";
 import Spinner from "../components/common/Spinner";
 import ErrorBox from "../components/common/ErrorBox";
-import { getTransactions } from "../services/transactionService";
+import { getTransactions, updateTransactionCategory } from "../services/transactionService";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -17,10 +15,31 @@ function formatMoney(value) {
   return n.toFixed(2);
 }
 
+const CATEGORY_OPTIONS = [
+  { value: "FOOD_AND_DINING", label: "Food & Dining" },
+  { value: "GROCERIES", label: "Groceries" },
+  { value: "TRANSPORTATION", label: "Transportation" },
+  { value: "SHOPPING", label: "Shopping" },
+  { value: "UTILITIES", label: "Utilities" },
+  { value: "RENT", label: "Rent" },
+  { value: "ENTERTAINMENT", label: "Entertainment" },
+  { value: "HEALTH", label: "Health" },
+  { value: "EDUCATION", label: "Education" },
+  { value: "TRAVEL", label: "Travel" },
+  { value: "FEES", label: "Fees" },
+  { value: "INCOME", label: "Income" },
+  { value: "TRANSFER", label: "Transfer" },
+  { value: "OTHER", label: "Other" },
+  { value: "UNCATEGORIZED", label: "Uncategorized" },
+];
+
 export default function Transactions() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState([]);
+
+  const [saveState, setSaveState] = useState({}); // { [id]: "idle"|"saving"|"saved"|"error" }
+  const [saveError, setSaveError] = useState({}); // { [id]: string }
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -55,9 +74,6 @@ export default function Transactions() {
 
         if (!alive) return;
 
-        // Support either shape:
-        // A) { ok, status, message, data, meta }
-        // B) { data, meta } (or backend wrapper)
         if (res && res.ok === false) {
           const msgs = [
             "Failed to load transactions.",
@@ -72,7 +88,7 @@ export default function Transactions() {
           return;
         }
 
-        const payloadData = res?.data ?? [];
+        const payloadData = res?.data ?? res ?? [];
         const payloadMeta = res?.meta ?? {
           page,
           pageSize,
@@ -84,9 +100,7 @@ export default function Transactions() {
         setMeta(payloadMeta);
       } catch (e) {
         if (!alive) return;
-        setErrors([
-          "Backend not reachable. Is the server running on http://localhost:3000 ?",
-        ]);
+        setErrors(["Backend not reachable. Is the server running on http://localhost:3000 ?"]);
         setData([]);
         setMeta({ page, pageSize, total: 0, totalPages: 1 });
       } finally {
@@ -100,24 +114,59 @@ export default function Transactions() {
     };
   }, [page, pageSize, q, typeFilter, fromDate, toDate]);
 
+  async function handleCategoryChange(rowView, newCategory) {
+    const id = String(rowView.id);
+
+    setData((prev) =>
+      (prev || []).map((tx) =>
+        String(tx.transactionId) === id ? { ...tx, spendCategory: newCategory } : tx,
+      ),
+    );
+
+    setSaveState((s) => ({ ...s, [id]: "saving" }));
+    setSaveError((e) => ({ ...e, [id]: "" }));
+
+    const res = await updateTransactionCategory(id, newCategory);
+
+    if (res?.ok) {
+      setSaveState((s) => ({ ...s, [id]: "saved" }));
+      window.setTimeout(() => {
+        setSaveState((s) => ({ ...s, [id]: "idle" }));
+      }, 900);
+      return;
+    }
+
+    // revert on failure
+    setData((prev) =>
+      (prev || []).map((tx) =>
+        String(tx.transactionId) === id ? { ...tx, spendCategory: rowView.category } : tx,
+      ),
+    );
+
+    setSaveState((s) => ({ ...s, [id]: "error" }));
+    setSaveError((e) => ({ ...e, [id]: res?.message || "Failed to update category" }));
+  }
+
   const rows = useMemo(() => {
     return (data || []).map((tx) => {
       const type = tx.transactionType || "—";
       const isDebit = String(type).toUpperCase() === "DEBIT";
 
+      const id = String(tx.transactionId ?? `${tx.transactionDate}-${tx.description}-${tx.amount}`);
+
       return {
-        id: String(tx.transactionId ?? `${tx.transactionDate}-${tx.description}-${tx.amount}`),
+        id,
         date: formatDate(tx.transactionDate),
         description: tx.description ?? "—",
         amount: formatMoney(tx.amount),
         type: String(type).toUpperCase(),
-        category: tx.spendCategory ?? "—",
+        category: tx.spendCategory ?? "UNCATEGORIZED",
         isDebit,
       };
     });
   }, [data]);
 
-  const filteredRows = rows; // backend already filters; keep for future client-side filters if needed
+  const filteredRows = rows; // backend already filters
 
   return (
     <div style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
@@ -153,6 +202,7 @@ export default function Transactions() {
 
       {errors.length > 0 && <ErrorBox title="Error" errors={errors} />}
 
+      {/* Filters */}
       <div
         style={{
           marginTop: 14,
@@ -264,6 +314,7 @@ export default function Transactions() {
         </button>
       </div>
 
+      {/* Table */}
       <div
         style={{
           marginTop: 14,
@@ -289,7 +340,7 @@ export default function Transactions() {
                 width: "100%",
                 borderCollapse: "separate",
                 borderSpacing: 0,
-                minWidth: 760,
+                minWidth: 860,
               }}
             >
               <thead>
@@ -303,36 +354,74 @@ export default function Transactions() {
               </thead>
 
               <tbody>
-                {filteredRows.map((tx) => (
-                  <tr key={tx.id} style={styles.tr}>
-                    <td style={styles.td}>{tx.date}</td>
+                {filteredRows.map((tx) => {
+                  const state = saveState[tx.id] || "idle";
+                  const err = saveError[tx.id] || "";
 
-                    <td style={{ ...styles.td, maxWidth: 420 }}>
-                      <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {tx.description}
-                      </div>
-                    </td>
+                  const rowBg = state === "saved" ? "#f0fdf4" : "#fff";
+                  const selectBorder =
+                    state === "error" ? "#ef4444" : state === "saved" ? "#22c55e" : "#d1d5db";
 
-                    <td style={{ ...styles.td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          color: tx.isDebit ? "#b91c1c" : "#166534",
-                        }}
-                      >
-                        {tx.isDebit ? "-" : "+"}${tx.amount}
-                      </span>
-                    </td>
+                  return (
+                    <tr key={tx.id} style={{ ...styles.tr, background: rowBg }}>
+                      <td style={styles.td}>{tx.date}</td>
 
-                    <td style={styles.td}>
-                      <span style={styles.pill}>{tx.type}</span>
-                    </td>
+                      <td style={{ ...styles.td, maxWidth: 420 }}>
+                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {tx.description}
+                        </div>
+                      </td>
 
-                    <td style={styles.td}>
-                      <span style={{ ...styles.pill, background: "#f3f4f6" }}>{tx.category}</span>
-                    </td>
-                  </tr>
-                ))}
+                      <td style={{ ...styles.td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                        <span style={{ fontWeight: 700, color: tx.isDebit ? "#b91c1c" : "#166534" }}>
+                          {tx.isDebit ? "-" : "+"}${tx.amount}
+                        </span>
+                      </td>
+
+                      <td style={styles.td}>
+                        <span style={styles.pill}>{tx.type}</span>
+                      </td>
+
+                      <td style={styles.td}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <select
+                            value={tx.category}
+                            disabled={state === "saving"}
+                            onChange={(e) => handleCategoryChange(tx, e.target.value)}
+                            style={{ ...styles.select, borderColor: selectBorder }}
+                            title="Change category"
+                          >
+                            {CATEGORY_OPTIONS.map((c) => (
+                              <option key={c.value} value={c.value}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </select>
+
+                          {state !== "idle" && (
+                            <span
+                              style={{
+                                ...styles.badge,
+                                ...(state === "saving" ? styles.badgeSaving : {}),
+                                ...(state === "saved" ? styles.badgeSaved : {}),
+                                ...(state === "error" ? styles.badgeError : {}),
+                              }}
+                              title={state === "error" ? err : ""}
+                            >
+                              {state === "saving" ? "Saving…" : state === "saved" ? "Saved" : "Error"}
+                            </span>
+                          )}
+                        </div>
+
+                        {state === "error" && (
+                          <div style={{ marginTop: 6, fontSize: 12, color: "#b91c1c" }}>
+                            {err || "Update failed"}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -414,7 +503,7 @@ export default function Transactions() {
       </div>
 
       <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
-        Note: Transactions are loaded from the backend with pagination and filters.
+        Note: Transactions are loaded from the backend with pagination and filters. Categories can be edited inline.
       </div>
     </div>
   );
@@ -458,5 +547,37 @@ const styles = {
     background: "#fff",
     fontSize: 12,
     color: "#374151",
+  },
+  select: {
+    padding: "6px 10px",
+    borderRadius: 10,
+    border: "1px solid #d1d5db",
+    background: "#fff",
+    fontSize: 13,
+    color: "#111827",
+  },
+  badge: {
+    fontSize: 12,
+    padding: "4px 8px",
+    borderRadius: 999,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    color: "#374151",
+    whiteSpace: "nowrap",
+  },
+  badgeSaving: {
+    borderColor: "#93c5fd",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+  },
+  badgeSaved: {
+    borderColor: "#86efac",
+    background: "#f0fdf4",
+    color: "#166534",
+  },
+  badgeError: {
+    borderColor: "#fecaca",
+    background: "#fef2f2",
+    color: "#b91c1c",
   },
 };

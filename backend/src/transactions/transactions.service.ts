@@ -1,3 +1,5 @@
+// backend/src/transactions/transactions.service.ts
+
 import {
   BadRequestException,
   ForbiddenException,
@@ -12,6 +14,7 @@ import {
   TransactionSource,
   TransactionType,
 } from "@prisma/client";
+
 import type { ValidRow } from "./validation/transaction-csv.validator";
 
 @Injectable()
@@ -25,7 +28,6 @@ export class TransactionsService {
       userId: uid,
       transactionDate: r.transactionDate,
       postedDate: null,
-      // keep description (matches DB + UI)
       description: (r.description ?? "CSV transaction").slice(0, 255),
       amount: r.amount,
       currency: r.currency,
@@ -141,6 +143,14 @@ export class TransactionsService {
     if (tx.userId !== uid) throw new ForbiddenException("Not allowed");
 
     return tx;
+  }
+
+  async updateCategoryForUser(
+    transactionId: string,
+    userId: string,
+    spendCategory: SpendCategory,
+  ) {
+    return this.updateSpendCategoryForUser(transactionId, userId, spendCategory);
   }
 
   async updateSpendCategoryForUser(

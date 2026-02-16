@@ -3,19 +3,21 @@ import {
   BadRequestException,
   Body,
   Controller,
-  InternalServerErrorException,
   Get,
+  InternalServerErrorException,
   Param,
   Patch,
   Post,
   Query,
   Req,
+  UnsupportedMediaTypeException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
-  UnsupportedMediaTypeException,
+  UsePipes,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { ZodValidationPipe } from "nestjs-zod";
 import type { Request } from "express";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -23,6 +25,7 @@ import { TransactionsService } from "./transactions.service";
 import type { ValidRow } from "./validation/transaction-csv.validator";
 import { parseCibcCsv } from "./validation/transaction-csv.parser";
 import { validateCibcRows } from "./validation/transaction-csv.validator";
+import { UpdateCategoryDto } from "./dto/update-category.dto";
 
 function requireDigits(id: string) {
   if (!/^\d+$/.test(id)) {
@@ -31,11 +34,7 @@ function requireDigits(id: string) {
   return id;
 }
 
-function parsePositiveInt(
-  value: string | undefined,
-  fallback: number,
-  name: string,
-) {
+function parsePositiveInt(value: string | undefined, fallback: number, name: string) {
   if (value === undefined) return fallback;
   const n = Number(value);
   if (!Number.isInteger(n) || n <= 0) {
@@ -48,6 +47,7 @@ function parsePositiveInt(
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
+  // POST /transactions/upload-csv
   @UseGuards(JwtAuthGuard)
   @Post("upload-csv")
   @UseInterceptors(
@@ -75,10 +75,7 @@ export class TransactionsController {
       const rawRows = parseCibcCsv(file.buffer);
       const validated: ValidRow[] = validateCibcRows(rawRows);
 
-      const saved = await this.transactionsService.saveCsvRowsForUser(
-        userId,
-        validated,
-      );
+      const saved = await this.transactionsService.saveCsvRowsForUser(userId, validated);
 
       const preview = validated.slice(0, 10).map((row) => ({
         transactionDate: row.transactionDate,
@@ -103,13 +100,8 @@ export class TransactionsController {
 
       const msg = e?.message ?? "CSV upload failed";
 
-      // Expected CSV/data issues → 400
-      if (
-        msg.toLowerCase().includes("csv") ||
-        msg.toLowerCase().includes("row") ||
-        msg.toLowerCase().includes("date") ||
-        msg.toLowerCase().includes("amount")
-      ) {
+      const m = String(msg).toLowerCase();
+      if (m.includes("csv") || m.includes("row") || m.includes("date") || m.includes("amount")) {
         throw new BadRequestException(msg);
       }
 
@@ -118,7 +110,6 @@ export class TransactionsController {
     }
   }
 
-  // GET /transactions → only my transactions
   @UseGuards(JwtAuthGuard)
   @Get()
   async listMine(
@@ -147,7 +138,6 @@ export class TransactionsController {
     });
   }
 
-  // GET /transactions/:id → only if transaction belongs to me
   @UseGuards(JwtAuthGuard)
   @Get(":id")
   async getMine(@Param("id") id: string, @Req() req: Request) {
@@ -155,8 +145,20 @@ export class TransactionsController {
     const user = req.user as { userId: string; email: string };
     return this.transactionsService.getByIdForUser(id, user.userId);
   }
+)
+  @UseGuards(JwtAuthGuard)
+  @Patch(":id/category")
+  @UsePipes(ZodValidationPipe)
+  async updateCategory(
+    @Param("id") id: string,
+    @Body() dto: UpdateCategoryDto,
+    @Req() req: Request,
+  ) {
+    requireDigits(id);
+    const user = req.user as { userId: string; email: string };
+    return this.transactionsService.updateSpendCategoryForUser(id, user.userId, dto.spendCategory);
+  }
 
-  // PATCH /transactions/:id → update spendCategory (only if mine)
   @UseGuards(JwtAuthGuard)
   @Patch(":id")
   async updateMine(
@@ -171,10 +173,6 @@ export class TransactionsController {
       throw new BadRequestException("spendCategory is required");
     }
 
-    return this.transactionsService.updateSpendCategoryForUser(
-      id,
-      user.userId,
-      body.spendCategory,
-    );
+    return this.transactionsService.updateSpendCategoryForUser(id, user.userId, body.spendCategory);
   }
 }
