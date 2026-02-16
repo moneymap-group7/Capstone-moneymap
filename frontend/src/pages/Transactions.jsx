@@ -1,7 +1,9 @@
+// frontend/src/pages/Transactions.jsx
+
 import { useEffect, useMemo, useState } from "react";
 import Spinner from "../components/common/Spinner";
 import ErrorBox from "../components/common/ErrorBox";
-import { getTransactionsMock } from "../services/transactionService";
+import { getTransactions } from "../services/transactionService";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -28,14 +30,27 @@ export default function Transactions() {
         setLoading(true);
         setErrors([]);
 
-        // ✅ MOCK FETCH (no backend needed)
-        const items = await getTransactionsMock({ delayMs: 500 });
+        const res = await getTransactions();
         if (!alive) return;
 
-        setData(items);
+        if (!res.ok) {
+          const msgs = [
+            "Failed to load transactions.",
+            res.status ? `HTTP ${res.status}` : null,
+            res.message || null,
+            "Make sure you are logged in and backend is running.",
+          ].filter(Boolean);
+
+          setErrors(msgs);
+          setData([]);
+          return;
+        }
+
+        // backend returns array directly from prisma.findMany()
+        setData(Array.isArray(res.data) ? res.data : []);
       } catch (e) {
         if (!alive) return;
-        setErrors(["Failed to load transactions (mock)."]);
+        setErrors(["Backend not reachable. Is the server running on http://localhost:3000 ?"]);
       } finally {
         if (alive) setLoading(false);
       }
@@ -53,7 +68,7 @@ export default function Transactions() {
       const isDebit = String(type).toUpperCase() === "DEBIT";
 
       return {
-        id: tx.transactionId ?? `${tx.transactionDate}-${tx.description}-${tx.amount}`,
+        id: String(tx.transactionId ?? `${tx.transactionDate}-${tx.description}-${tx.amount}`),
         date: formatDate(tx.transactionDate),
         description: tx.description ?? "—",
         amount: formatMoney(tx.amount),
@@ -89,7 +104,6 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* ✅ show error only if errors exist */}
       {errors.length > 0 && <ErrorBox title="Error" errors={errors} />}
 
       <div
@@ -158,11 +172,6 @@ export default function Transactions() {
             </table>
           </div>
         )}
-      </div>
-
-      {/* Optional note for reviewers */}
-      <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
-        Note: Transactions are currently mocked until Rudra’s Fetch API is merged.
       </div>
     </div>
   );
