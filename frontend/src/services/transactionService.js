@@ -1,36 +1,28 @@
 import api from "./api";
 
-const MOCK = [
-  {
-    transactionId: 1,
-    transactionDate: "2026-02-01",
-    description: "UBER TRIP",
-    amount: 25.5,
-    transactionType: "DEBIT",
-    spendCategory: "Transport",
-  },
-  {
-    transactionId: 2,
-    transactionDate: "2026-02-02",
-    description: "MOHAWK COLLEGE",
-    amount: 1200,
-    transactionType: "DEBIT",
-    spendCategory: "Education",
-  },
-  {
-    transactionId: 3,
-    transactionDate: "2026-02-03",
-    description: "PAYROLL",
-    amount: 2100,
-    transactionType: "CREDIT",
-    spendCategory: "Income",
-  },
-];
+const LIST_ENDPOINT = "/transactions";
+const UPLOAD_CSV_ENDPOINT = "/transactions/upload-csv";
+const CSV_FIELD_NAME = "file";
 
-export async function getTransactionsMock({ delayMs = 400 } = {}) {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(MOCK), delayMs);
-  });
+function getToken() {
+  return localStorage.getItem("mm_access_token");
+}
+
+function normalizeAxiosError(err) {
+  const status = err?.response?.status;
+  const data = err?.response?.data;
+
+  const message =
+    (data && typeof data === "object" && (data.message || data.error)) ||
+    (typeof data === "string" && data) ||
+    (status ? `Request failed (${status})` : "Backend not reachable.");
+
+  const errors =
+    (data && typeof data === "object" && Array.isArray(data.errors) && data.errors) ||
+    (data && typeof data === "object" && Array.isArray(data.messages) && data.messages) ||
+    null;
+
+  return { ok: false, status, message, errors, raw: data ?? null };
 }
 
 export async function getTransactions({
@@ -42,6 +34,8 @@ export async function getTransactions({
   toDate,
   category,
 } = {}) {
+  const token = getToken();
+
   const params = {
     page,
     pageSize,
@@ -52,6 +46,54 @@ export async function getTransactions({
     ...(category ? { category } : {}),
   };
 
-  const res = await api.get("/transactions", { params });
-  return res.data; // { data, meta }
+  try {
+    const res = await api.get(LIST_ENDPOINT, {
+      params,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+
+    // backend expected: { data, meta }
+    const payload = res?.data ?? {};
+    return {
+      ok: true,
+      data: Array.isArray(payload.data) ? payload.data : [],
+      meta: payload.meta ?? { page, pageSize, total: 0, totalPages: 1 },
+    };
+  } catch (err) {
+    return normalizeAxiosError(err);
+  }
+}
+
+export async function uploadTransactionsCsv(file) {
+  const token = getToken();
+
+  const formData = new FormData();
+  formData.append(CSV_FIELD_NAME, file);
+
+  try {
+    const res = await api.post(UPLOAD_CSV_ENDPOINT, formData, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+
+    return { ok: true, data: res?.data ?? null };
+  } catch (err) {
+    return normalizeAxiosError(err);
+  }
+}
+
+const MOCK = [
+  {
+    transactionId: 1,
+    transactionDate: "2026-02-01",
+    description: "UBER TRIP",
+    amount: 25.5,
+    transactionType: "DEBIT",
+    spendCategory: "Transport",
+  },
+];
+
+export async function getTransactionsMock({ delayMs = 400 } = {}) {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve({ ok: true, data: MOCK, meta: { page: 1, pageSize: MOCK.length, total: MOCK.length, totalPages: 1 } }), delayMs);
+  });
 }

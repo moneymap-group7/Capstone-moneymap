@@ -15,7 +15,9 @@ export async function uploadStatement(file) {
 
   const contentType = res.headers.get("content-type") || "";
   const isJson = contentType.includes("application/json");
-  const data = isJson ? await res.json().catch(() => null) : await res.text().catch(() => null);
+  const data = isJson
+    ? await res.json().catch(() => null)
+    : await res.text().catch(() => null);
 
   if (res.ok) return { ok: true, data };
 

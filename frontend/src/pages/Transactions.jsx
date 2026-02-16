@@ -1,3 +1,5 @@
+// frontend/src/pages/Transactions.jsx
+
 import { useEffect, useMemo, useState } from "react";
 import Spinner from "../components/common/Spinner";
 import ErrorBox from "../components/common/ErrorBox";
@@ -16,19 +18,23 @@ function formatMoney(value) {
 }
 
 export default function Transactions() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState([]);
 
-const [data, setData] = useState([]);
-const [loading, setLoading] = useState(true);
-const [errors, setErrors] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [meta, setMeta] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 1,
+  });
 
-const [page, setPage] = useState(1);
-const [pageSize, setPageSize] = useState(20);
-const [meta, setMeta] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 1 });
-
-const [q, setQ] = useState("");                 // search text
-const [typeFilter, setTypeFilter] = useState("ALL"); // ALL | DEBIT | CREDIT
-const [fromDate, setFromDate] = useState("");   // yyyy-mm-dd
-const [toDate, setToDate] = useState("");       // yyyy-mm-dd
+  const [q, setQ] = useState(""); // search text
+  const [typeFilter, setTypeFilter] = useState("ALL"); // ALL | DEBIT | CREDIT
+  const [fromDate, setFromDate] = useState(""); // yyyy-mm-dd
+  const [toDate, setToDate] = useState(""); // yyyy-mm-dd
 
   useEffect(() => {
     let alive = true;
@@ -38,7 +44,7 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
         setLoading(true);
         setErrors([]);
 
-        const result = await getTransactions({
+        const res = await getTransactions({
           page,
           pageSize,
           q: q.trim() || undefined,
@@ -46,14 +52,43 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
           fromDate: fromDate || undefined,
           toDate: toDate || undefined,
         });
+
         if (!alive) return;
 
-        setData(result?.data || []);
-        setMeta(result?.meta || { page, pageSize, total: 0, totalPages: 1 });
+        // Support either shape:
+        // A) { ok, status, message, data, meta }
+        // B) { data, meta } (or backend wrapper)
+        if (res && res.ok === false) {
+          const msgs = [
+            "Failed to load transactions.",
+            res.status ? `HTTP ${res.status}` : null,
+            res.message || null,
+            "Make sure you are logged in and backend is running.",
+          ].filter(Boolean);
 
+          setErrors(msgs);
+          setData([]);
+          setMeta({ page, pageSize, total: 0, totalPages: 1 });
+          return;
+        }
+
+        const payloadData = res?.data ?? [];
+        const payloadMeta = res?.meta ?? {
+          page,
+          pageSize,
+          total: Array.isArray(payloadData) ? payloadData.length : 0,
+          totalPages: 1,
+        };
+
+        setData(Array.isArray(payloadData) ? payloadData : []);
+        setMeta(payloadMeta);
       } catch (e) {
         if (!alive) return;
-        setErrors(["Failed to load transactions."]);
+        setErrors([
+          "Backend not reachable. Is the server running on http://localhost:3000 ?",
+        ]);
+        setData([]);
+        setMeta({ page, pageSize, total: 0, totalPages: 1 });
       } finally {
         if (alive) setLoading(false);
       }
@@ -71,7 +106,7 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
       const isDebit = String(type).toUpperCase() === "DEBIT";
 
       return {
-        id: tx.transactionId ?? `${tx.transactionDate}-${tx.description}-${tx.amount}`,
+        id: String(tx.transactionId ?? `${tx.transactionDate}-${tx.description}-${tx.amount}`),
         date: formatDate(tx.transactionDate),
         description: tx.description ?? "—",
         amount: formatMoney(tx.amount),
@@ -82,11 +117,18 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
     });
   }, [data]);
 
-  const filteredRows = rows;
+  const filteredRows = rows; // backend already filters; keep for future client-side filters if needed
 
   return (
     <div style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
         <div>
           <h2 style={{ margin: 0, fontSize: 28 }}>Transactions</h2>
           <div style={{ marginTop: 6, color: "#6b7280", fontSize: 14 }}>
@@ -109,118 +151,118 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
         </div>
       </div>
 
-      {/* show error only if errors exist */}
       {errors.length > 0 && <ErrorBox title="Error" errors={errors} />}
-          <div
-            style={{
-              marginTop: 14,
-              padding: 12,
-              border: "1px solid #e5e7eb",
-              borderRadius: 12,
-              background: "#fff",
-              display: "flex",
-              gap: 10,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <input
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search description…"
-              style={{
-                flex: "1 1 240px",
-                padding: "10px 12px",
-                borderRadius: 10,
-                border: "1px solid #e5e7eb",
-                background: "#fff",
-                color: "#000",
-                fontSize: 14,
-              }}
-            />
 
-            <select
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
-                setPage(1);
-              }}
-              style={{
-                padding: "10px 10px",
-                borderRadius: 10,
-                border: "1px solid #e5e7eb",
-                background: "#fff",
-                color: "#000",
-                fontSize: 14,
-              }}
-              title="Type"
-            >
-              <option value="ALL">All types</option>
-              <option value="DEBIT">DEBIT</option>
-              <option value="CREDIT">CREDIT</option>
-            </select>
+      <div
+        style={{
+          marginTop: 14,
+          padding: 12,
+          border: "1px solid #e5e7eb",
+          borderRadius: 12,
+          background: "#fff",
+          display: "flex",
+          gap: 10,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <input
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Search description…"
+          style={{
+            flex: "1 1 240px",
+            padding: "10px 12px",
+            borderRadius: 10,
+            border: "1px solid #e5e7eb",
+            background: "#fff",
+            color: "#000",
+            fontSize: 14,
+          }}
+        />
 
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => {
-                setFromDate(e.target.value);
-                setPage(1);
-              }}
-              style={{
-                padding: "10px 10px",
-                borderRadius: 10,
-                border: "1px solid #e5e7eb",
-                background: "#fff",
-                color: "#000",
-                fontSize: 14,
-              }}
-              title="From date"
-            />
+        <select
+          value={typeFilter}
+          onChange={(e) => {
+            setTypeFilter(e.target.value);
+            setPage(1);
+          }}
+          style={{
+            padding: "10px 10px",
+            borderRadius: 10,
+            border: "1px solid #e5e7eb",
+            background: "#fff",
+            color: "#000",
+            fontSize: 14,
+          }}
+          title="Type"
+        >
+          <option value="ALL">All types</option>
+          <option value="DEBIT">DEBIT</option>
+          <option value="CREDIT">CREDIT</option>
+        </select>
 
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => {
-                setToDate(e.target.value);
-                setPage(1);
-              }}
-              style={{
-                padding: "10px 10px",
-                borderRadius: 10,
-                border: "1px solid #e5e7eb",
-                background: "#fff",
-                color: "#000",
-                fontSize: 14,
-              }}
-              title="To date"
-            />
+        <input
+          type="date"
+          value={fromDate}
+          onChange={(e) => {
+            setFromDate(e.target.value);
+            setPage(1);
+          }}
+          style={{
+            padding: "10px 10px",
+            borderRadius: 10,
+            border: "1px solid #e5e7eb",
+            background: "#fff",
+            color: "#000",
+            fontSize: 14,
+          }}
+          title="From date"
+        />
 
-            <button
-              onClick={() => {
-                setQ("");
-                setTypeFilter("ALL");
-                setFromDate("");
-                setToDate("");
-                setPage(1);
-              }}
-              style={{
-                padding: "10px 12px",
-                borderRadius: 10,
-                border: "1px solid #e5e7eb",
-                background: "#fff",
-                color: "#000",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-              title="Clear filters"
-            >
-              Clear
-            </button>
-        </div>
+        <input
+          type="date"
+          value={toDate}
+          onChange={(e) => {
+            setToDate(e.target.value);
+            setPage(1);
+          }}
+          style={{
+            padding: "10px 10px",
+            borderRadius: 10,
+            border: "1px solid #e5e7eb",
+            background: "#fff",
+            color: "#000",
+            fontSize: 14,
+          }}
+          title="To date"
+        />
+
+        <button
+          onClick={() => {
+            setQ("");
+            setTypeFilter("ALL");
+            setFromDate("");
+            setToDate("");
+            setPage(1);
+          }}
+          style={{
+            padding: "10px 12px",
+            borderRadius: 10,
+            border: "1px solid #e5e7eb",
+            background: "#fff",
+            color: "#000",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+          title="Clear filters"
+        >
+          Clear
+        </button>
+      </div>
 
       <div
         style={{
@@ -242,7 +284,14 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
           <div style={{ padding: 18, color: "#6b7280" }}>No transactions found.</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: 760 }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "separate",
+                borderSpacing: 0,
+                minWidth: 760,
+              }}
+            >
               <thead>
                 <tr style={{ background: "#f9fafb" }}>
                   <th style={styles.thLeft}>Date</th>
@@ -318,7 +367,6 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
               background: "#fff",
               color: "#000",
               fontSize: 14,
-              
             }}
             title="Rows per page"
           >
@@ -340,6 +388,7 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
               color: "#000",
               fontWeight: 700,
               cursor: "pointer",
+              opacity: page <= 1 || loading ? 0.6 : 1,
             }}
           >
             Prev
@@ -356,6 +405,7 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
               color: "white",
               fontWeight: 700,
               cursor: "pointer",
+              opacity: page >= (meta.totalPages || 1) || loading ? 0.6 : 1,
             }}
           >
             Next
@@ -363,10 +413,8 @@ const [toDate, setToDate] = useState("");       // yyyy-mm-dd
         </div>
       </div>
 
-
-      {/* Optional note for reviewers */}
       <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
-        Note: Transactions are now loaded from the backend with pagination.
+        Note: Transactions are loaded from the backend with pagination and filters.
       </div>
     </div>
   );
