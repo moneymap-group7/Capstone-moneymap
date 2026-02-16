@@ -1,86 +1,84 @@
-const LIST_ENDPOINT = "/api/transactions";
-const UPLOAD_CSV_ENDPOINT = "/api/transactions/upload-csv";
-const UPDATE_CATEGORY_ENDPOINT = (id) => `/api/transactions/${id}/category`;
+import api from "./api";
+
+const LIST_ENDPOINT = "/transactions";
+const UPLOAD_CSV_ENDPOINT = "/transactions/upload-csv";
+const UPDATE_CATEGORY_ENDPOINT = (id) => `/transactions/${id}`;
 const CSV_FIELD_NAME = "file";
 
-function getToken() {
-  return localStorage.getItem("mm_access_token");
-}
+function normalizeAxiosError(err) {
+  const status = err?.response?.status;
+  const data = err?.response?.data;
 
-async function readBody(res) {
-  const contentType = res.headers.get("content-type") || "";
-  const isJson = contentType.includes("application/json");
-  if (isJson) return res.json().catch(() => null);
-  return res.text().catch(() => null);
-}
-
-function normalizeError(res, data) {
   const message =
     (data && typeof data === "object" && (data.message || data.error)) ||
     (typeof data === "string" && data) ||
-    `Request failed (${res.status})`;
+    (status ? `Request failed (${status})` : "Backend not reachable.");
 
   const errors =
     (data && typeof data === "object" && Array.isArray(data.errors) && data.errors) ||
     (data && typeof data === "object" && Array.isArray(data.messages) && data.messages) ||
     null;
 
-  return { ok: false, status: res.status, message, errors, raw: data };
+  return { ok: false, status, message, errors, raw: data ?? null };
 }
 
-export async function getTransactions() {
-  const token = getToken();
+export async function getTransactions({
+  page = 1,
+  pageSize = 20,
+  q,
+  type,
+  fromDate,
+  toDate,
+  category,
+} = {}) {
+  const params = {
+    page,
+    pageSize,
+    ...(q ? { q } : {}),
+    ...(type ? { type } : {}),
+    ...(fromDate ? { fromDate } : {}),
+    ...(toDate ? { toDate } : {}),
+    ...(category ? { category } : {}),
+  };
 
-  const res = await fetch(LIST_ENDPOINT, {
-    method: "GET",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  try {
+    const res = await api.get(LIST_ENDPOINT, { params });
+    const payload = res?.data ?? {};
 
-  const data = await readBody(res);
-
-  if (res.ok) return { ok: true, data };
-
-  return normalizeError(res, data);
+    return {
+      ok: true,
+      data: Array.isArray(payload.data) ? payload.data : [],
+      meta: payload.meta ?? { page, pageSize, total: 0, totalPages: 1 },
+    };
+  } catch (err) {
+    return normalizeAxiosError(err);
+  }
 }
 
 export async function uploadTransactionsCsv(file) {
-  const token = getToken();
-
   const formData = new FormData();
   formData.append(CSV_FIELD_NAME, file);
 
-  const res = await fetch(UPLOAD_CSV_ENDPOINT, {
-    method: "POST",
-    body: formData,
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  try {
+    const res = await api.post(UPLOAD_CSV_ENDPOINT, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
-  const data = await readBody(res);
-
-  if (res.ok) return { ok: true, data };
-
-  return normalizeError(res, data);
+    return { ok: true, data: res?.data ?? null };
+  } catch (err) {
+    return normalizeAxiosError(err);
+  }
 }
 
 export async function updateTransactionCategory(transactionId, spendCategory) {
-  const token = getToken();
+  try {
+    const res = await api.patch(
+      UPDATE_CATEGORY_ENDPOINT(transactionId),
+      { spendCategory }
+    );
 
-  const res = await fetch(UPDATE_CATEGORY_ENDPOINT(transactionId), {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ spendCategory }),
-  });
-
-  const data = await readBody(res);
-
-  if (res.ok) return { ok: true, data };
-
-  return normalizeError(res, data);
+    return { ok: true, data: res?.data ?? null };
+  } catch (err) {
+    return normalizeAxiosError(err);
+  }
 }

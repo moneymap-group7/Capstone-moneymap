@@ -1,5 +1,3 @@
-// backend/src/transactions/transactions.controller.ts
-
 import * as path from "path";
 import {
   BadRequestException,
@@ -10,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UnsupportedMediaTypeException,
   UploadedFile,
@@ -33,6 +32,15 @@ function requireDigits(id: string) {
     throw new BadRequestException("Invalid id format. Expected numeric id.");
   }
   return id;
+}
+
+function parsePositiveInt(value: string | undefined, fallback: number, name: string) {
+  if (value === undefined) return fallback;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new BadRequestException(`${name} must be a positive integer`);
+  }
+  return n;
 }
 
 @Controller("transactions")
@@ -92,7 +100,6 @@ export class TransactionsController {
 
       const msg = e?.message ?? "CSV upload failed";
 
-      // Expected CSV/data issues → 400
       const m = String(msg).toLowerCase();
       if (m.includes("csv") || m.includes("row") || m.includes("date") || m.includes("amount")) {
         throw new BadRequestException(msg);
@@ -103,15 +110,34 @@ export class TransactionsController {
     }
   }
 
-  // GET /transactions → only my transactions
   @UseGuards(JwtAuthGuard)
   @Get()
-  async listMine(@Req() req: Request) {
+  async listMine(
+    @Req() req: Request,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
+    @Query("q") q?: string,
+    @Query("type") type?: string,
+    @Query("fromDate") fromDate?: string,
+    @Query("toDate") toDate?: string,
+    @Query("category") category?: string,
+  ) {
     const user = req.user as { userId: string; email: string };
-    return this.transactionsService.listForUser(user.userId);
+
+    const p = parsePositiveInt(page, 1, "page");
+    const ps = parsePositiveInt(pageSize, 20, "pageSize");
+
+    return this.transactionsService.listForUser(user.userId, {
+      page: p,
+      pageSize: ps,
+      q,
+      type,
+      fromDate,
+      toDate,
+      category,
+    });
   }
 
-  // GET /transactions/:id → only if transaction belongs to me
   @UseGuards(JwtAuthGuard)
   @Get(":id")
   async getMine(@Param("id") id: string, @Req() req: Request) {
@@ -119,14 +145,34 @@ export class TransactionsController {
     const user = req.user as { userId: string; email: string };
     return this.transactionsService.getByIdForUser(id, user.userId);
   }
-
-  // PATCH /transactions/:id/category → update spendCategory (inline edit)
+)
   @UseGuards(JwtAuthGuard)
   @Patch(":id/category")
   @UsePipes(ZodValidationPipe)
-  async updateCategory(@Param("id") id: string, @Body() dto: UpdateCategoryDto, @Req() req: Request) {
+  async updateCategory(
+    @Param("id") id: string,
+    @Body() dto: UpdateCategoryDto,
+    @Req() req: Request,
+  ) {
     requireDigits(id);
     const user = req.user as { userId: string; email: string };
-    return this.transactionsService.updateCategoryForUser(id, user.userId, dto.spendCategory);
+    return this.transactionsService.updateSpendCategoryForUser(id, user.userId, dto.spendCategory);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(":id")
+  async updateMine(
+    @Param("id") id: string,
+    @Body() body: { spendCategory?: string },
+    @Req() req: Request,
+  ) {
+    requireDigits(id);
+    const user = req.user as { userId: string; email: string };
+
+    if (!body?.spendCategory) {
+      throw new BadRequestException("spendCategory is required");
+    }
+
+    return this.transactionsService.updateSpendCategoryForUser(id, user.userId, body.spendCategory);
   }
 }
