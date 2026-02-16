@@ -1,5 +1,6 @@
 const LIST_ENDPOINT = "/api/transactions";
 const UPLOAD_CSV_ENDPOINT = "/api/transactions/upload-csv";
+const UPDATE_CATEGORY_ENDPOINT = (id) => `/api/transactions/${id}/category`;
 const CSV_FIELD_NAME = "file";
 
 function getToken() {
@@ -27,10 +28,6 @@ function normalizeError(res, data) {
   return { ok: false, status: res.status, message, errors, raw: data };
 }
 
-/**
- * GET /transactions
- * Returns { ok:true, data: Transaction[] } or { ok:false, ... }
- */
 export async function getTransactions() {
   const token = getToken();
 
@@ -48,10 +45,6 @@ export async function getTransactions() {
   return normalizeError(res, data);
 }
 
-/**
- * POST /transactions/upload-csv
- * Uploads a CSV file (field name: "file")
- */
 export async function uploadTransactionsCsv(file) {
   const token = getToken();
 
@@ -64,6 +57,25 @@ export async function uploadTransactionsCsv(file) {
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
+  });
+
+  const data = await readBody(res);
+
+  if (res.ok) return { ok: true, data };
+
+  return normalizeError(res, data);
+}
+
+export async function updateTransactionCategory(transactionId, spendCategory) {
+  const token = getToken();
+
+  const res = await fetch(UPDATE_CATEGORY_ENDPOINT(transactionId), {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ spendCategory }),
   });
 
   const data = await readBody(res);

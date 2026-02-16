@@ -1,9 +1,7 @@
-// frontend/src/pages/Transactions.jsx
-
 import { useEffect, useMemo, useState } from "react";
 import Spinner from "../components/common/Spinner";
 import ErrorBox from "../components/common/ErrorBox";
-import { getTransactions } from "../services/transactionService";
+import { getTransactions, updateTransactionCategory } from "../services/transactionService";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -17,10 +15,32 @@ function formatMoney(value) {
   return n.toFixed(2);
 }
 
+// MUST match backend Prisma enum exactly
+const CATEGORY_OPTIONS = [
+  { value: "FOOD_AND_DINING", label: "Food & Dining" },
+  { value: "GROCERIES", label: "Groceries" },
+  { value: "TRANSPORTATION", label: "Transportation" },
+  { value: "SHOPPING", label: "Shopping" },
+  { value: "UTILITIES", label: "Utilities" },
+  { value: "RENT", label: "Rent" },
+  { value: "ENTERTAINMENT", label: "Entertainment" },
+  { value: "HEALTH", label: "Health" },
+  { value: "EDUCATION", label: "Education" },
+  { value: "TRAVEL", label: "Travel" },
+  { value: "FEES", label: "Fees" },
+  { value: "INCOME", label: "Income" },
+  { value: "TRANSFER", label: "Transfer" },
+  { value: "OTHER", label: "Other" },
+  { value: "UNCATEGORIZED", label: "Uncategorized" },
+];
+
 export default function Transactions() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState([]);
+
+  const [saveState, setSaveState] = useState({}); // per row
+  const [saveError, setSaveError] = useState({});
 
   useEffect(() => {
     let alive = true;
@@ -34,46 +54,79 @@ export default function Transactions() {
         if (!alive) return;
 
         if (!res.ok) {
-          const msgs = [
+          setErrors([
             "Failed to load transactions.",
             res.status ? `HTTP ${res.status}` : null,
             res.message || null,
-            "Make sure you are logged in and backend is running.",
-          ].filter(Boolean);
-
-          setErrors(msgs);
+          ].filter(Boolean));
           setData([]);
           return;
         }
 
-        // backend returns array directly from prisma.findMany()
         setData(Array.isArray(res.data) ? res.data : []);
-      } catch (e) {
+      } catch {
         if (!alive) return;
-        setErrors(["Backend not reachable. Is the server running on http://localhost:3000 ?"]);
+        setErrors(["Backend not reachable."]);
       } finally {
         if (alive) setLoading(false);
       }
     }
 
     load();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
+  async function handleCategoryChange(tx, newCategory) {
+    const id = String(tx.transactionId);
+
+    // optimistic UI update
+    setData((prev) =>
+      prev.map((row) =>
+        String(row.transactionId) === id
+          ? { ...row, spendCategory: newCategory }
+          : row
+      )
+    );
+
+    setSaveState((s) => ({ ...s, [id]: "saving" }));
+    setSaveError((e) => ({ ...e, [id]: "" }));
+
+    const res = await updateTransactionCategory(id, newCategory);
+
+    if (res.ok) {
+      setSaveState((s) => ({ ...s, [id]: "saved" }));
+      setTimeout(() => {
+        setSaveState((s) => ({ ...s, [id]: "idle" }));
+      }, 800);
+      return;
+    }
+
+    // revert on error
+    setData((prev) =>
+      prev.map((row) =>
+        String(row.transactionId) === id
+          ? { ...row, spendCategory: tx.spendCategory }
+          : row
+      )
+    );
+
+    setSaveState((s) => ({ ...s, [id]: "error" }));
+    setSaveError((e) => ({ ...e, [id]: res.message || "Update failed" }));
+  }
+
   const rows = useMemo(() => {
-    return (data || []).map((tx) => {
+    return data.map((tx) => {
       const type = tx.transactionType || "—";
       const isDebit = String(type).toUpperCase() === "DEBIT";
 
       return {
-        id: String(tx.transactionId ?? `${tx.transactionDate}-${tx.description}-${tx.amount}`),
+        key: String(tx.transactionId),
+        transactionId: String(tx.transactionId),
         date: formatDate(tx.transactionDate),
         description: tx.description ?? "—",
         amount: formatMoney(tx.amount),
         type: String(type).toUpperCase(),
-        category: tx.spendCategory ?? "—",
+        category: tx.spendCategory ?? "UNCATEGORIZED",
         isDebit,
       };
     });
@@ -81,138 +134,103 @@ export default function Transactions() {
 
   return (
     <div style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 28 }}>Transactions</h2>
-          <div style={{ marginTop: 6, color: "#6b7280", fontSize: 14 }}>
-            View your spending and income history.
-          </div>
-        </div>
-
-        <div
-          style={{
-            padding: "6px 10px",
-            border: "1px solid #e5e7eb",
-            borderRadius: 999,
-            fontSize: 13,
-            color: "#374151",
-            background: "#fff",
-          }}
-          title="Count of loaded rows"
-        >
-          {rows.length} items
-        </div>
-      </div>
+      <h2 style={{ marginBottom: 12 }}>Transactions</h2>
 
       {errors.length > 0 && <ErrorBox title="Error" errors={errors} />}
 
-      <div
-        style={{
-          marginTop: 14,
-          border: "1px solid #e5e7eb",
-          borderRadius: 12,
-          overflow: "hidden",
-          background: "#fff",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-        }}
-      >
-        {loading ? (
-          <div style={{ padding: 16 }}>
-            <Spinner />
-          </div>
-        ) : errors.length > 0 ? (
-          <div style={{ padding: 18, color: "#6b7280" }}>Fix the errors above.</div>
-        ) : rows.length === 0 ? (
-          <div style={{ padding: 18, color: "#6b7280" }}>No transactions found.</div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: 760 }}>
-              <thead>
-                <tr style={{ background: "#f9fafb" }}>
-                  <th style={styles.thLeft}>Date</th>
-                  <th style={styles.thLeft}>Description</th>
-                  <th style={styles.thRight}>Amount (CAD)</th>
-                  <th style={styles.thLeft}>Type</th>
-                  <th style={styles.thLeft}>Category</th>
-                </tr>
-              </thead>
+      {loading ? (
+        <Spinner />
+      ) : rows.length === 0 ? (
+        <div>No transactions found.</div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f3f4f6" }}>
+                <th style={styles.th}>Date</th>
+                <th style={styles.th}>Description</th>
+                <th style={styles.thRight}>Amount</th>
+                <th style={styles.th}>Type</th>
+                <th style={styles.th}>Category</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((tx) => {
+                const state = saveState[tx.transactionId] || "idle";
 
-              <tbody>
-                {rows.map((tx) => (
-                  <tr key={tx.id} style={styles.tr}>
+                return (
+                  <tr key={tx.key}>
                     <td style={styles.td}>{tx.date}</td>
-
-                    <td style={{ ...styles.td, maxWidth: 420 }}>
-                      <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {tx.description}
-                      </div>
-                    </td>
-
-                    <td style={{ ...styles.td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          color: tx.isDebit ? "#b91c1c" : "#166534",
-                        }}
-                      >
+                    <td style={styles.td}>{tx.description}</td>
+                    <td style={{ ...styles.td, textAlign: "right" }}>
+                      <span style={{ color: tx.isDebit ? "#b91c1c" : "#166534", fontWeight: 600 }}>
                         {tx.isDebit ? "-" : "+"}${tx.amount}
                       </span>
                     </td>
+                    <td style={styles.td}>{tx.type}</td>
 
                     <td style={styles.td}>
-                      <span style={styles.pill}>{tx.type}</span>
-                    </td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <select
+                          value={tx.category}
+                          disabled={state === "saving"}
+                          onChange={(e) =>
+                            handleCategoryChange(tx, e.target.value)
+                          }
+                          style={styles.select}
+                        >
+                          {CATEGORY_OPTIONS.map((c) => (
+                            <option key={c.value} value={c.value}>
+                              {c.label}
+                            </option>
+                          ))}
+                        </select>
 
-                    <td style={styles.td}>
-                      <span style={{ ...styles.pill, background: "#f3f4f6" }}>{tx.category}</span>
+                        {state === "saving" && <span style={styles.mini}>Saving…</span>}
+                        {state === "saved" && <span style={styles.mini}>Saved ✓</span>}
+                        {state === "error" && (
+                          <span style={{ ...styles.mini, color: "#b91c1c" }}>
+                            {saveError[tx.transactionId]}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
 const styles = {
-  thLeft: {
+  th: {
     textAlign: "left",
-    padding: "12px 14px",
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#374151",
+    padding: 10,
     borderBottom: "1px solid #e5e7eb",
-    whiteSpace: "nowrap",
+    fontSize: 13,
   },
   thRight: {
     textAlign: "right",
-    padding: "12px 14px",
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#374151",
+    padding: 10,
     borderBottom: "1px solid #e5e7eb",
-    whiteSpace: "nowrap",
-  },
-  tr: {
-    background: "#fff",
+    fontSize: 13,
   },
   td: {
-    padding: "12px 14px",
+    padding: 10,
     borderBottom: "1px solid #f1f5f9",
     fontSize: 14,
-    color: "#111827",
-    verticalAlign: "middle",
-    whiteSpace: "nowrap",
   },
-  pill: {
-    display: "inline-block",
-    padding: "4px 10px",
-    borderRadius: 999,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
+  select: {
+    padding: "4px 8px",
+    borderRadius: 6,
+    border: "1px solid #d1d5db",
+    fontSize: 13,
+  },
+  mini: {
     fontSize: 12,
     color: "#374151",
   },
