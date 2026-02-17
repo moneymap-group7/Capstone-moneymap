@@ -145,7 +145,6 @@ export class TransactionsController {
     const user = req.user as { userId: string; email: string };
     return this.transactionsService.getByIdForUser(id, user.userId);
   }
-)
   @UseGuards(JwtAuthGuard)
   @Patch(":id/category")
   @UsePipes(ZodValidationPipe)
