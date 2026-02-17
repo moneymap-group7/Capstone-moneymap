@@ -9,7 +9,6 @@ import Transactions from "../pages/Transactions";
 import Categories from "../pages/Categories";
 
 import ProtectedRoute from "./ProtectedRoute";
-import Categories from '../pages/Categories';
 
 
 export default function AppRoutes() {
