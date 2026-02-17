@@ -1,9 +1,21 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+// backend/src/transactions/transactions.service.ts
+
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+
 import { PrismaService } from "../prisma/prisma.service";
-import { Prisma, SpendCategory, TransactionSource, TransactionType } from "@prisma/client";
+import {
+  Prisma,
+  SpendCategory,
+  TransactionSource,
+  TransactionType,
+} from "@prisma/client";
+
 import type { ValidRow } from "./validation/transaction-csv.validator";
-
-
 
 @Injectable()
 export class TransactionsService {
@@ -13,18 +25,18 @@ export class TransactionsService {
     const uid = BigInt(userId);
 
     const data = rows.map((r) => ({
-  userId: uid,
-  transactionDate: r.transactionDate,
-  postedDate: null,
-  description: (r.description ?? "CSV transaction").slice(0, 255),
-  amount: r.amount,
-  currency: r.currency,
-  transactionType: r.transactionType,
-  source: TransactionSource.CSV,
-  spendCategory: SpendCategory.UNCATEGORIZED,
-  cardLast4: r.cardLast4 ?? null,
-  balanceAfter: null,
-}));
+      userId: uid,
+      transactionDate: r.transactionDate,
+      postedDate: null,
+      description: (r.description ?? "CSV transaction").slice(0, 255),
+      amount: r.amount,
+      currency: r.currency,
+      transactionType: r.transactionType,
+      source: TransactionSource.CSV,
+      spendCategory: SpendCategory.UNCATEGORIZED,
+      cardLast4: r.cardLast4 ?? null,
+      balanceAfter: null,
+    }));
 
     const result = await this.prisma.transaction.createMany({
       data,
@@ -51,23 +63,17 @@ export class TransactionsService {
     const page = opts.page ?? 1;
     const pageSize = opts.pageSize ?? 20;
 
-    // safety bounds
     const safePage = Number.isFinite(page) && page > 0 ? page : 1;
     const safePageSize =
       Number.isFinite(pageSize) && pageSize > 0 ? Math.min(pageSize, 100) : 20;
 
     const skip = (safePage - 1) * safePageSize;
 
-    // ---- build where (filters) ----
     const where: Prisma.TransactionWhereInput = { userId: uid };
 
-    // q search (description)
     const q = (opts.q || "").trim();
-    if (q) {
-      where.description = { contains: q, mode: "insensitive" };
-    }
+    if (q) where.description = { contains: q, mode: "insensitive" };
 
-    // type filter
     if (opts.type) {
       const t = String(opts.type).toUpperCase();
       if (t !== "DEBIT" && t !== "CREDIT") {
@@ -76,7 +82,6 @@ export class TransactionsService {
       where.transactionType = t as TransactionType;
     }
 
-    // category filter
     if (opts.category) {
       const c = String(opts.category).toUpperCase();
       const allowed = Object.values(SpendCategory);
@@ -86,7 +91,6 @@ export class TransactionsService {
       where.spendCategory = c as SpendCategory;
     }
 
-    // date range filter (expects YYYY-MM-DD)
     const isYyyyMmDd = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
     if (opts.fromDate && !isYyyyMmDd(opts.fromDate)) {
@@ -98,8 +102,10 @@ export class TransactionsService {
 
     if (opts.fromDate || opts.toDate) {
       where.transactionDate = {};
-      if (opts.fromDate) where.transactionDate.gte = new Date(`${opts.fromDate}T00:00:00.000Z`);
-      if (opts.toDate) where.transactionDate.lte = new Date(`${opts.toDate}T23:59:59.999Z`);
+      if (opts.fromDate)
+        where.transactionDate.gte = new Date(`${opts.fromDate}T00:00:00.000Z`);
+      if (opts.toDate)
+        where.transactionDate.lte = new Date(`${opts.toDate}T23:59:59.999Z`);
     }
 
     const [total, rows] = await Promise.all([
@@ -139,11 +145,26 @@ export class TransactionsService {
     return tx;
   }
 
-   async updateSpendCategoryForUser(
+  async updateCategoryForUser(
     transactionId: string,
     userId: string,
     spendCategory: SpendCategory,
   ) {
+    return this.updateSpendCategoryForUser(transactionId, userId, spendCategory);
+  }
+
+  async updateSpendCategoryForUser(
+    transactionId: string,
+    userId: string,
+    spendCategory: string,
+  ) {
+    const allowed = Object.values(SpendCategory);
+    if (!allowed.includes(spendCategory as SpendCategory)) {
+      throw new BadRequestException(
+        `Invalid spendCategory: ${spendCategory}. Allowed: ${allowed.join(", ")}`,
+      );
+    }
+
     const tid = BigInt(transactionId);
     const uid = BigInt(userId);
 
@@ -155,9 +176,14 @@ export class TransactionsService {
     if (!tx) throw new NotFoundException("Transaction not found");
     if (tx.userId !== uid) throw new ForbiddenException("Not allowed");
 
-    return this.prisma.transaction.update({
+    const updated = await this.prisma.transaction.update({
       where: { transactionId: tid },
-      data: { spendCategory },
+      data: { spendCategory: spendCategory as SpendCategory },
     });
+
+    return {
+      message: "Transaction updated successfully",
+      data: updated,
+    };
   }
 }

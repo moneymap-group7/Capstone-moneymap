@@ -1,36 +1,25 @@
 import api from "./api";
 
-const MOCK = [
-  {
-    transactionId: 1,
-    transactionDate: "2026-02-01",
-    description: "UBER TRIP",
-    amount: 25.5,
-    transactionType: "DEBIT",
-    spendCategory: "Transport",
-  },
-  {
-    transactionId: 2,
-    transactionDate: "2026-02-02",
-    description: "MOHAWK COLLEGE",
-    amount: 1200,
-    transactionType: "DEBIT",
-    spendCategory: "Education",
-  },
-  {
-    transactionId: 3,
-    transactionDate: "2026-02-03",
-    description: "PAYROLL",
-    amount: 2100,
-    transactionType: "CREDIT",
-    spendCategory: "Income",
-  },
-];
+const LIST_ENDPOINT = "/transactions";
+const UPLOAD_CSV_ENDPOINT = "/transactions/upload-csv";
+const UPDATE_CATEGORY_ENDPOINT = (id) => `/transactions/${id}`;
+const CSV_FIELD_NAME = "file";
 
-export async function getTransactionsMock({ delayMs = 400 } = {}) {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(MOCK), delayMs);
-  });
+function normalizeAxiosError(err) {
+  const status = err?.response?.status;
+  const data = err?.response?.data;
+
+  const message =
+    (data && typeof data === "object" && (data.message || data.error)) ||
+    (typeof data === "string" && data) ||
+    (status ? `Request failed (${status})` : "Backend not reachable.");
+
+  const errors =
+    (data && typeof data === "object" && Array.isArray(data.errors) && data.errors) ||
+    (data && typeof data === "object" && Array.isArray(data.messages) && data.messages) ||
+    null;
+
+  return { ok: false, status, message, errors, raw: data ?? null };
 }
 
 export async function getTransactions({
@@ -52,6 +41,44 @@ export async function getTransactions({
     ...(category ? { category } : {}),
   };
 
-  const res = await api.get("/transactions", { params });
-  return res.data; // { data, meta }
+  try {
+    const res = await api.get(LIST_ENDPOINT, { params });
+    const payload = res?.data ?? {};
+
+    return {
+      ok: true,
+      data: Array.isArray(payload.data) ? payload.data : [],
+      meta: payload.meta ?? { page, pageSize, total: 0, totalPages: 1 },
+    };
+  } catch (err) {
+    return normalizeAxiosError(err);
+  }
+}
+
+export async function uploadTransactionsCsv(file) {
+  const formData = new FormData();
+  formData.append(CSV_FIELD_NAME, file);
+
+  try {
+    const res = await api.post(UPLOAD_CSV_ENDPOINT, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return { ok: true, data: res?.data ?? null };
+  } catch (err) {
+    return normalizeAxiosError(err);
+  }
+}
+
+export async function updateTransactionCategory(transactionId, spendCategory) {
+  try {
+    const res = await api.patch(
+      UPDATE_CATEGORY_ENDPOINT(transactionId),
+      { spendCategory }
+    );
+
+    return { ok: true, data: res?.data ?? null };
+  } catch (err) {
+    return normalizeAxiosError(err);
+  }
 }
