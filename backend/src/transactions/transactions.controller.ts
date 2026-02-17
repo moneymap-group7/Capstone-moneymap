@@ -1,11 +1,14 @@
 import * as path from "path";
 import {
   BadRequestException,
+  Body,
   Controller,
   InternalServerErrorException,
   Get,
   Param,
+  Patch,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -17,6 +20,7 @@ import type { Request } from "express";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { TransactionsService } from "./transactions.service";
+import { UpdateSpendCategoryDto } from "./dto/update-spend-category.dto";
 import type { ValidRow } from "./validation/transaction-csv.validator";
 import { parseCibcCsv } from "./validation/transaction-csv.parser";
 import { validateCibcRows } from "./validation/transaction-csv.validator";
@@ -26,6 +30,15 @@ function requireDigits(id: string) {
     throw new BadRequestException("Invalid id format. Expected numeric id.");
   }
   return id;
+}
+
+function parsePositiveInt(value: string | undefined, fallback: number, name: string) {
+  if (value === undefined) return fallback;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new BadRequestException(`${name} must be a positive integer`);
+  }
+  return n;
 }
 
 @Controller("transactions")
@@ -106,12 +119,28 @@ export class TransactionsController {
   }
 
   // GET /transactions → only my transactions
-  @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard)
   @Get()
-  async listMine(@Req() req: Request) {
+  async listMine(
+    @Req() req: Request,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
+    @Query("q") q?: string,
+    @Query("type") type?: string,
+    @Query("fromDate") fromDate?: string,
+    @Query("toDate") toDate?: string,
+    @Query("category") category?: string,
+  ) {
     const user = req.user as { userId: string; email: string };
-    return this.transactionsService.listForUser(user.userId);
-  }
+
+    const p = parsePositiveInt(page, 1, "page");
+    const ps = parsePositiveInt(pageSize, 20, "pageSize");
+
+    return this.transactionsService.listForUser(user.userId, {
+    page: p,
+    pageSize: ps,
+    });
+    }
 
   // GET /transactions/:id → only if transaction belongs to me
   @UseGuards(JwtAuthGuard)
@@ -120,5 +149,23 @@ export class TransactionsController {
     requireDigits(id);
     const user = req.user as { userId: string; email: string };
     return this.transactionsService.getByIdForUser(id, user.userId);
+  }
+
+    // PATCH /transactions/:id/category → update spendCategory (only if mine)
+  @UseGuards(JwtAuthGuard)
+  @Patch(":id/category")
+  async updateCategory(
+    @Param("id") id: string,
+    @Body() body: UpdateSpendCategoryDto,
+    @Req() req: Request,
+  ) {
+    requireDigits(id);
+    const user = req.user as { userId: string; email: string };
+
+    return this.transactionsService.updateSpendCategoryForUser(
+      id,
+      user.userId,
+      body.spendCategory,
+    );
   }
 }

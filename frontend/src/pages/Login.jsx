@@ -38,28 +38,21 @@ export default function Login() {
         password,
       });
 
-      // TEMP (until backend returns JWT): treat successful response as logged-in
-      localStorage.setItem("mm_access_token", "dev-session");
-      navigate("/dashboard");
-      return;
-
-
       // Support multiple possible backend response shapes
       const token =
-        res?.data?.data?.accessToken || // contract: { success, data: { accessToken } }
-        res?.data?.accessToken ||       // common: { accessToken }
-        res?.data?.token ||             // sometimes: { token }
-        res?.data?.data?.token;         // sometimes nested
+        res?.data?.accessToken ||       // your backend: { accessToken: "..." }
+        res?.data?.data?.accessToken || // nested: { data: { accessToken } }
+        res?.data?.token ||             // alt: { token }
+        res?.data?.data?.token;         // alt nested
 
       if (!token) {
         setError("Login succeeded but token was missing in response.");
         return;
       }
 
-
       localStorage.setItem("mm_access_token", token);
 
-      const user = res?.data?.data?.user || res?.data?.user;
+      const user = res?.data?.user || res?.data?.data?.user;
       if (user) localStorage.setItem("mm_user", JSON.stringify(user));
 
       navigate("/dashboard");
