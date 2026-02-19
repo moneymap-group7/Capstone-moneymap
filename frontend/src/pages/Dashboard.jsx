@@ -1,52 +1,37 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const [name, setName] = useState("");
-
-  useEffect(() => {
-    // Optional: show user name if you stored it during login
-    // (safe even if not stored)
-    try {
-      const raw = localStorage.getItem("mm_user");
-      if (raw) {
-        const user = JSON.parse(raw);
-        setName(user?.name || "");
-      }
-    } catch {
-      // ignore parse errors
-    }
-  }, []);
-
-  function handleLogout() {
-    localStorage.removeItem("mm_access_token");
-    localStorage.removeItem("mm_user");
-    navigate("/login");
-  }
-
   return (
-    <main style={{ padding: 24 }}>
-      <h1>Dashboard</h1>
+    <div style={{ padding: 24 }}>
+      <h1 style={{ fontSize: 42, marginBottom: 12 }}>Dashboard</h1>
 
-      <p style={{ marginTop: 8 }}>
-        ✅ You are logged in{ name ? `, ${name}` : "" }.
+      <p style={{ color: "#4b5563", marginBottom: 32 }}>
+        Manage your finances and navigate through your tools.
       </p>
 
-      <div style={{ marginTop: 16, padding: 12, border: "1px solid #ddd", borderRadius: 8, maxWidth: 520 }}>
-        <h3 style={{ marginTop: 0 }}>Sprint 1 Placeholder</h3>
-        <ul style={{ marginBottom: 0 }}>
-          <li>Protected route is working (you can see this page only with a token).</li>
-          <li>Next sprint: charts + transactions + budgets.</li>
-        </ul>
-      </div>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <Link to="/upload">
+          <button style={buttonStyle}>Upload Statement</button>
+        </Link>
 
-      <button
-        onClick={handleLogout}
-        style={{ marginTop: 18, padding: "8px 12px", cursor: "pointer" }}
-      >
-        Logout
-      </button>
-    </main>
+        <Link to="/transactions">
+          <button style={buttonStyle}>View Transactions</button>
+        </Link>
+
+        <Link to="/categories">
+          <button style={buttonStyle}>Manage Categories</button>
+        </Link>
+      </div>
+    </div>
   );
 }
+
+const buttonStyle = {
+  padding: "12px 20px",
+  borderRadius: 8,
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  fontWeight: 600,
+  cursor: "pointer",
+};

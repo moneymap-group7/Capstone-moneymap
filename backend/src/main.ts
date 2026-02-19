@@ -1,10 +1,20 @@
 import 'dotenv/config';
 
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { GlobalHttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { ZodValidationPipe } from "nestjs-zod";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+    app.useGlobalPipes(new ZodValidationPipe());
+  
+  app.useGlobalFilters(new GlobalHttpExceptionFilter());
+
 
    app.enableCors({
     origin: "http://localhost:5173",

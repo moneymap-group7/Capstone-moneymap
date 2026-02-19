@@ -1,12 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 
+
 export default function Navbar() {
   const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem("mm_access_token");
 
   function handleLogout() {
     localStorage.removeItem("mm_access_token");
-    localStorage.removeItem("mm_user"); // optional, if stored
+    localStorage.removeItem("mm_user"); 
     navigate("/login");
   }
 
@@ -26,12 +27,14 @@ export default function Navbar() {
         <>
           <Link to="/login">Login</Link>
           <Link to="/register">Register</Link>
+           <Link to="/categories">Categories</Link>
         </>
       )}
 
       {isLoggedIn && (
         <>
           <Link to="/dashboard">Dashboard</Link>
+          <Link to="/upload"></Link>
           <button
             onClick={handleLogout}
             style={{
