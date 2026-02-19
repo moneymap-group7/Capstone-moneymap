@@ -25,6 +25,24 @@ export class AnalyticsController {
     return this.analyticsService.getSummary(userId, startDate, endDate);
   }
 
+
+    @Get("by-category")
+  @UseGuards(JwtAuthGuard)
+  async byCategory(
+    @Req() req: Request,
+    @Query("start") start?: string,
+    @Query("end") end?: string,
+  ) {
+    const userId = (req as any)?.user?.userId;
+
+    const endDate = end ? new Date(end) : new Date();
+    const startDate = start
+      ? new Date(start)
+      : new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    return this.analyticsService.getByCategory(userId, startDate, endDate);
+  }
+
     @Get("monthly")
   @UseGuards(JwtAuthGuard)
   async monthly(
