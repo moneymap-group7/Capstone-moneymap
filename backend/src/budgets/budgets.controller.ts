@@ -1,35 +1,44 @@
-import { Body, Controller,Delete, Get, Param, Patch,Post } from '@nestjs/common';
-import { BudgetsService } from './budgets.service';
-import { UpdateBudgetDto } from './dto/update-budget.dto';
-import { CreateBudgetDto } from './dto/create-budget.dto';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from "@nestjs/common";
+import { BudgetsService } from "./budgets.service";
+import { UpdateBudgetDto } from "./dto/update-budget.dto";
+import { CreateBudgetDto } from "./dto/create-budget.dto";
 
-@Controller('budgets')
+@Controller("budgets")
 export class BudgetsController {
   constructor(private readonly budgetsService: BudgetsService) {}
 
-  private readonly userId = BigInt(1);
-  
+   private readonly userId = BigInt(1);
+
   @Post()
   create(@Body() dto: CreateBudgetDto) {
     return this.budgetsService.create(this.userId, dto);
   }
-     @Get()
+
+  @Get()
   findAll() {
     return this.budgetsService.findAll(this.userId);
   }
-  @Get(':id')
-  findOne(@Param('id') id: string) {
+
+  @Get(":id")
+  findOne(@Param("id") id: string) {
     return this.budgetsService.findOne(this.userId, BigInt(id));
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateBudgetDto) {
-    return this.budgetsService.update(BigInt(id), dto);
-  }
-    @Delete(':id')
-
-  remove(@Param('id') id: string) {
-    return this.budgetsService.remove(BigInt(id));
-  }
+  @Patch(":id")
+  update(@Param("id") id: string, @Body() dto: UpdateBudgetDto) {
+    return this.budgetsService.update(this.userId, BigInt(id), dto);
   }
 
+  @Delete(":id")
+  remove(@Param("id") id: string) {
+    return this.budgetsService.remove(this.userId, BigInt(id));
+  }
+}
