@@ -11,6 +11,26 @@ export type AggregationSummary = {
   byCategory: Array<{ spendCategory: SpendCategory; total: string }>;
 };
 
+export type MonthlyPoint = {
+  month: string;
+  income: string;
+  expense: string;
+  net: string;
+};
+
+export type MonthlyCategoryPoint = {
+  month: string;
+  spendCategory: SpendCategory;
+  total: string;
+};
+
+export type AggregationMonthly = {
+  startDate: string;
+  endDate: string;
+  monthly: MonthlyPoint[];
+  byCategoryMonthly?: MonthlyCategoryPoint[];
+};
+
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -38,6 +58,33 @@ export class AnalyticsService {
 
     return fromCents(result);
   }
+
+  private monthKey(d: Date): string {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+  }
+
+  private monthStartUTC(year: number, month1to12: number): Date {
+    return new Date(Date.UTC(year, month1to12 - 1, 1, 0, 0, 0));
+  }
+
+  private nextMonthStartUTC(d: Date): Date {
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1, 0, 0, 0));
+  }
+
+  private listMonths(start: Date, end: Date): string[] {
+    const months: string[] = [];
+    let cursor = this.monthStartUTC(start.getUTCFullYear(), start.getUTCMonth() + 1);
+    const endMonthStart = this.monthStartUTC(end.getUTCFullYear(), end.getUTCMonth() + 1);
+
+    while (cursor <= endMonthStart) {
+      months.push(this.monthKey(cursor));
+      cursor = this.nextMonthStartUTC(cursor);
+    }
+    return months;
+  }
+
 
   async getSummary(
     userId: string | number | bigint,
@@ -98,4 +145,78 @@ export class AnalyticsService {
       byCategory,
     };
   }
+
+   async getMonthlySummary(
+    userId: string | number | bigint,
+    startDate: Date,
+    endDate: Date,
+    opts?: { includeCategoryMonthly?: boolean },
+  ): Promise<AggregationMonthly> {
+    const uid = this.toBigInt(userId);
+
+    const months = this.listMonths(startDate, endDate);
+
+    const tx = await this.prisma.transaction.findMany({
+      where: {
+        userId: uid,
+        transactionDate: { gte: startDate, lte: endDate },
+      },
+      select: {
+        transactionDate: true,
+        amount: true,
+        transactionType: true,
+        spendCategory: true,
+      },
+    });
+
+    const incomeCents: Record<string, number> = Object.fromEntries(months.map((m) => [m, 0]));
+    const expenseCents: Record<string, number> = Object.fromEntries(months.map((m) => [m, 0]));
+    const catMonthlyCents: Record<string, number> = {};
+
+    const toCents = (s: string) => Math.round(Number(s) * 100);
+    const fromCents = (c: number) => (c / 100).toFixed(2);
+
+    for (const row of tx) {
+      const m = this.monthKey(row.transactionDate);
+      const amtStr = this.decToString(row.amount);
+      const centsAbs = Math.abs(toCents(amtStr));
+
+      if (row.transactionType === "CREDIT") {
+        if (incomeCents[m] !== undefined) incomeCents[m] += centsAbs;
+      } else {
+        if (expenseCents[m] !== undefined) expenseCents[m] += centsAbs;
+
+        if (opts?.includeCategoryMonthly) {
+          const key = `${m}::${row.spendCategory}`;
+          catMonthlyCents[key] = (catMonthlyCents[key] ?? 0) + centsAbs;
+        }
+      }
+    }
+
+    const monthly: MonthlyPoint[] = months.map((m) => {
+      const income = fromCents(incomeCents[m] ?? 0);
+      const expense = fromCents(expenseCents[m] ?? 0);
+      const net = fromCents((incomeCents[m] ?? 0) - (expenseCents[m] ?? 0));
+      return { month: m, income, expense, net };
+    });
+
+    const byCategoryMonthly = opts?.includeCategoryMonthly
+      ? Object.entries(catMonthlyCents).map(([k, cents]) => {
+          const [month, spendCategory] = k.split("::");
+          return {
+            month,
+            spendCategory: spendCategory as SpendCategory,
+            total: fromCents(cents),
+          };
+        })
+      : undefined;
+
+    return {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      monthly,
+      byCategoryMonthly,
+    };
+  }
+
 }

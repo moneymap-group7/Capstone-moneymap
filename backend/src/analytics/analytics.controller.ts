@@ -24,4 +24,27 @@ export class AnalyticsController {
 
     return this.analyticsService.getSummary(userId, startDate, endDate);
   }
+
+    @Get("monthly")
+  @UseGuards(JwtAuthGuard)
+  async monthly(
+    @Req() req: Request,
+    @Query("start") start?: string,
+    @Query("end") end?: string,
+    @Query("includeCategoryMonthly") includeCategoryMonthly?: string,
+  ) {
+    const userId = (req as any)?.user?.userId;
+
+    const endDate = end ? new Date(end) : new Date();
+    const startDate = start
+      ? new Date(start)
+      : new Date(endDate.getTime() - 180 * 24 * 60 * 60 * 1000); // default 6 months
+
+    const include = includeCategoryMonthly === "true";
+
+    return this.analyticsService.getMonthlySummary(userId, startDate, endDate, {
+      includeCategoryMonthly: include,
+    });
+  }
+
 }
