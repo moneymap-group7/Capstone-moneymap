@@ -21,6 +21,12 @@ export default function Dashboard() {
         <Link to="/categories">
           <button style={buttonStyle}>Manage Categories</button>
         </Link>
+        
+        <Link to="/budget">
+          <button style={buttonStyle}>Manage Budgets</button>
+        </Link>
+
+        
       </div>
     </div>
   );
