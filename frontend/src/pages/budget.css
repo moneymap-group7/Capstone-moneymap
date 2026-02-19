@@ -1,0 +1,187 @@
+.budgetPage {
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.budgetHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.budgetTitle {
+  font-size: 40px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.budgetSub {
+  margin: 6px 0 0;
+  opacity: 0.8;
+}
+
+.budgetActions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.92);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: rgba(255,255,255,0.10);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 980px) {
+  .grid {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.card {
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  overflow: hidden;
+}
+
+.cardHead {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.cardTitle {
+  margin: 0;
+  font-weight: 700;
+}
+
+.cardDesc {
+  margin: 6px 0 0;
+  opacity: 0.8;
+  font-size: 14px;
+}
+
+.cardBody {
+  padding: 16px;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 900px) {
+  .summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.kpiLabel {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.kpiValue {
+  font-size: 26px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.tableHead, .row {
+  display: grid;
+  grid-template-columns: 1.6fr 0.8fr 0.8fr 1.2fr 0.6fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.tableHead {
+  font-size: 12px;
+  opacity: 0.75;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.row {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.num {
+  text-align: right;
+}
+
+.progressWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressBar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: rgba(255,255,255,0.85);
+}
+
+.progressFill.over {
+  background: #ef4444;
+}
+
+.badge {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.alertItem {
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.03);
+}
+
+.alertTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.alertTitle {
+  font-weight: 700;
+}
+
+.alertSeverity {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.alertDetail {
+  margin-top: 6px;
+  opacity: 0.85;
+  font-size: 14px;
+}
