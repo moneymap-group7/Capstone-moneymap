@@ -1,20 +1,49 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Query } from "@nestjs/common";
 import { UtilizationService } from "./utilization.service";
-import type { UtilizationInput } from "./utilization.types";
 
 @Controller("budgets/utilization")
 export class UtilizationController {
-  constructor(private readonly utilization: UtilizationService) {}
+  constructor(private readonly utilizationService: UtilizationService) {}
+
+  // TODO replace with JWT later
+  private readonly userId = BigInt(1);
+
+  @Get()
+  async utilization(
+    @Query("start") startStr: string,
+    @Query("end") endStr: string
+  ) {
+    const start = new Date(`${startStr}T00:00:00.000Z`);
+    const end = new Date(`${endStr}T23:59:59.999Z`);
+
+    const data = await this.utilizationService.getUtilizationForRange(
+      this.userId,
+      start,
+      end
+    );
+
+    return { data };
+  }
+
+  @Get("compare")
+  async compare(
+    @Query("start") startStr: string,
+    @Query("end") endStr: string
+  ) {
+    const start = new Date(`${startStr}T00:00:00.000Z`);
+    const end = new Date(`${endStr}T23:59:59.999Z`);
+
+    const data = await this.utilizationService.compareRanges(
+      this.userId,
+      start,
+      end
+    );
+
+    return { data };
+  }
 
   @Get("mock")
   mock() {
-    const mockInputs: UtilizationInput[] = [
-      { spendCategory: "GROCERIES", budgetLimit: 400, currentSpend: 120 },
-      { spendCategory: "RENT", budgetLimit: 1200, currentSpend: 1200 },
-      { spendCategory: "ENTERTAINMENT", budgetLimit: 150, currentSpend: 190 },
-      { spendCategory: "TRANSPORTATION", budgetLimit: 0, currentSpend: 50 },
-    ];
-
-    return { data: this.utilization.calculateRows(mockInputs) };
+    return { message: "Mock endpoint still available" };
   }
 }
