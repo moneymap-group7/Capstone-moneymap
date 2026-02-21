@@ -48,13 +48,14 @@ export class UtilizationController {
 
     if (start > end) throw new BadRequestException("start must be <= end");
 
-    const data = await this.utilizationService.getUtilizationForRange(
-      this.userId,
-      start,
-      end
-    );
+    const { rows, alerts } =
+      await this.utilizationService.getUtilizationWithAlertsForRange(
+        this.userId,
+        start,
+        end
+      );
 
-    return { data };
+    return { data: rows, alerts };
   }
 
   @Get("compare")
