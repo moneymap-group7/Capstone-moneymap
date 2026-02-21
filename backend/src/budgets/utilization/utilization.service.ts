@@ -1,60 +1,32 @@
-  import type {
-    BudgetUtilizationRow,
-    UtilizationInput,
-  } from "./utilization.types";
-  import { AlertsService } from "../../common/alerts/alerts.service";
-  import { Injectable } from "@nestjs/common";
-  import type { BudgetAlert } from "../../common/alerts/alert.types";
 import { Injectable } from "@nestjs/common";
+import { SpendCategory, TransactionType } from "@prisma/client";
+
 import { PrismaService } from "../../prisma/prisma.service";
-import { TransactionType } from "@prisma/client";
+import { AlertsService } from "../../common/alerts/alerts.service";
+import type { BudgetAlert } from "../../common/alerts/alert.types";
 import type { BudgetUtilizationRow, UtilizationInput } from "./utilization.types";
 
-  function round2(n: number) {
-    return Math.round((n + Number.EPSILON) * 100) / 100;
-  }
+function round2(n: number) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
 
 @Injectable()
 export class UtilizationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly alertsService: AlertsService
+  ) {}
 
+  calculateRow(input: UtilizationInput): BudgetUtilizationRow {
+    const budgetLimit = Number(input.budgetLimit);
+    const currentSpend = Number(input.currentSpend);
 
-  @Injectable()
-  export class UtilizationService {
-
-    constructor(private readonly alertsService: AlertsService) {}
-
-    calculateRow(input: UtilizationInput): BudgetUtilizationRow {
-      const budgetLimit = Number(input.budgetLimit);
-      const currentSpend = Number(input.currentSpend);
-
-      const safeBudget = Number.isFinite(budgetLimit) ? budgetLimit : 0;
-      const safeSpend = Number.isFinite(currentSpend) ? currentSpend : 0;
-
-      const remainingAmount = round2(safeBudget - safeSpend);
-
-      const utilizationPercent =
-        safeBudget > 0 ? round2((safeSpend / safeBudget) * 100) : 0;
-
-      return {
-        spendCategory: input.spendCategory,
-        budgetLimit: round2(safeBudget),
-        currentSpend: round2(safeSpend),
-        utilizationPercent,
-        remainingAmount,
-      };
-    }
-    
-      calculateRows(inputs: UtilizationInput[]): { rows: BudgetUtilizationRow[]; alerts: BudgetAlert[] } {
-        const rows = inputs.map((x) => this.calculateRow(x));
-        const alerts = this.alertsService.evaluateAlerts(rows);
-        return { rows, alerts };  
-      }
-  }
-    const utilizationPercent =
-      safeBudget > 0 ? round2((safeSpend / safeBudget) * 100) : 0;
+    const safeBudget = Number.isFinite(budgetLimit) ? budgetLimit : 0;
+    const safeSpend = Number.isFinite(currentSpend) ? currentSpend : 0;
 
     const remainingAmount = round2(safeBudget - safeSpend);
+    const utilizationPercent =
+      safeBudget > 0 ? round2((safeSpend / safeBudget) * 100) : 0;
 
     return {
       spendCategory: input.spendCategory,
@@ -65,8 +37,15 @@ export class UtilizationService {
     };
   }
 
-  calculateRows(inputs: UtilizationInput[]): BudgetUtilizationRow[] {
-    return inputs.map((x) => this.calculateRow(x));
+  /**
+   * For UI mock/testing: returns both rows + evaluated alerts.
+   */
+  calculateRows(
+    inputs: UtilizationInput[]
+  ): { rows: BudgetUtilizationRow[]; alerts: BudgetAlert[] } {
+    const rows = inputs.map((x) => this.calculateRow(x));
+    const alerts = this.alertsService.evaluateAlerts(rows);
+    return { rows, alerts };
   }
 
   private buildRow(
@@ -74,11 +53,7 @@ export class UtilizationService {
     budgetLimit: number,
     currentSpend: number
   ): BudgetUtilizationRow {
-    return this.calculateRow({
-      spendCategory,
-      budgetLimit,
-      currentSpend,
-    });
+    return this.calculateRow({ spendCategory, budgetLimit, currentSpend });
   }
 
   async getUtilizationForRange(
@@ -98,13 +73,18 @@ export class UtilizationService {
         spendCategory: true,
         amount: true,
       },
+    });
+
     const spendAgg = await this.prisma.transaction.groupBy({
       by: ["spendCategory"],
       where: {
         userId,
         transactionDate: { gte: start, lte: end },
         transactionType: TransactionType.DEBIT,
-        NOT: [{ spendCategory: "INCOME" }, { spendCategory: "TRANSFER" }],
+        NOT: [
+          { spendCategory: SpendCategory.INCOME },
+          { spendCategory: SpendCategory.TRANSFER },
+        ],
       },
       _sum: { amount: true },
     });
@@ -112,6 +92,7 @@ export class UtilizationService {
     const spendMap = new Map<string, number>();
     for (const row of spendAgg) {
       const raw = row._sum.amount ? Number(row._sum.amount) : 0;
+      // debit amounts might be negative depending on ingestion; keep spend positive
       spendMap.set(String(row.spendCategory), Math.abs(raw));
     }
 
@@ -133,9 +114,11 @@ export class UtilizationService {
 
     const prevEnd = new Date(start);
     prevEnd.setUTCDate(prevEnd.getUTCDate() - 1);
+    prevEnd.setUTCHours(23, 59, 59, 999);
 
     const prevStart = new Date(prevEnd);
     prevStart.setUTCDate(prevStart.getUTCDate() - (days - 1));
+    prevStart.setUTCHours(0, 0, 0, 0);
 
     const current = await this.getUtilizationForRange(userId, start, end);
     const previous = await this.getUtilizationForRange(userId, prevStart, prevEnd);
