@@ -1,4 +1,5 @@
 import type { AlertSeverity } from "./alert.types";
+import type { SpendCategory } from "@prisma/client";
 
 export type ThresholdRule = {
   severity: AlertSeverity;
@@ -16,3 +17,9 @@ export const SEVERITY_RANK: Record<AlertSeverity, number> = {
   NEAR_LIMIT: 2,
   CRITICAL: 3,
 };
+
+export const DEFAULT_IGNORED_CATEGORIES: SpendCategory[] = [
+  "INCOME",
+  "TRANSFER",
+  "UNCATEGORIZED",
+];
