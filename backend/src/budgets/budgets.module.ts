@@ -9,7 +9,7 @@ import { UtilizationService } from "./utilization/utilization.service";
 
 @Module({
   imports: [PrismaModule],
-  controllers: [UtilizationController, BudgetsController],
+  controllers: [BudgetsController, UtilizationController],
   providers: [BudgetsService, UtilizationService],
   exports: [BudgetsService, UtilizationService],
 })
