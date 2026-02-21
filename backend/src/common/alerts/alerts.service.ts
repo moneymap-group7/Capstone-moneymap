@@ -1,7 +1,6 @@
 import {
   BudgetUtilizationRow,
   BudgetAlert,
-  AlertSeverity,
 } from "./alert.types";
 
 import {
@@ -9,6 +8,9 @@ import {
   SEVERITY_RANK,
 } from "./thresholds";
 
+import { Injectable } from "@nestjs/common";
+
+@Injectable()
 export class AlertsService {
   evaluateAlerts(
     rows: BudgetUtilizationRow[]
@@ -58,8 +60,8 @@ export class AlertsService {
         currentPercent: utilizationPercent,
         budgetLimit,
         currentSpend,
-        remainingAmount: remaining.toFixed(2),
-        exceededAmount: exceeded.toFixed(2),
+        remainingAmount: Math.round(remaining * 100) / 100,
+        exceededAmount: Math.round(exceeded * 100) / 100,
         message:
           spend > budget
             ? `${spendCategory} exceeded budget by ${exceeded.toFixed(
