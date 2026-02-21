@@ -24,7 +24,7 @@ export class UtilizationService {
     const safeBudget = Number.isFinite(budgetLimit) ? budgetLimit : 0;
     const safeSpend = Number.isFinite(currentSpend) ? currentSpend : 0;
 
-    const remainingAmount = round2(safeBudget - safeSpend);
+    const remainingAmount = round2(Math.max(safeBudget - safeSpend, 0));
     const utilizationPercent =
       safeBudget > 0 ? round2((safeSpend / safeBudget) * 100) : 0;
 
@@ -37,6 +37,15 @@ export class UtilizationService {
     };
   }
 
+  async getUtilizationWithAlertsForRange(
+  userId: bigint,
+  start: Date,
+  end: Date
+): Promise<{ rows: BudgetUtilizationRow[]; alerts: BudgetAlert[] }> {
+  const rows = await this.getUtilizationForRange(userId, start, end);
+  const alerts = this.alertsService.evaluateAlerts(rows);
+  return { rows, alerts };
+}
   /**
    * For UI mock/testing: returns both rows + evaluated alerts.
    */
