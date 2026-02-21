@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  ParseIntPipe,
 } from "@nestjs/common";
 import { BudgetsService } from "./budgets.service";
 import { UpdateBudgetDto } from "./dto/update-budget.dto";
@@ -15,7 +16,7 @@ import { CreateBudgetDto } from "./dto/create-budget.dto";
 export class BudgetsController {
   constructor(private readonly budgetsService: BudgetsService) {}
 
-   private readonly userId = BigInt(1);
+  private readonly userId = BigInt(1);
 
   @Post()
   create(@Body() dto: CreateBudgetDto) {
@@ -28,17 +29,20 @@ export class BudgetsController {
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
+  findOne(@Param("id", ParseIntPipe) id: number) {
     return this.budgetsService.findOne(this.userId, BigInt(id));
   }
 
   @Patch(":id")
-  update(@Param("id") id: string, @Body() dto: UpdateBudgetDto) {
+  update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateBudgetDto
+  ) {
     return this.budgetsService.update(this.userId, BigInt(id), dto);
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string) {
+  remove(@Param("id", ParseIntPipe) id: number) {
     return this.budgetsService.remove(this.userId, BigInt(id));
   }
 }

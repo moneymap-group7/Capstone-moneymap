@@ -5,7 +5,6 @@ import { UtilizationService } from "./utilization.service";
 export class UtilizationController {
   constructor(private readonly utilizationService: UtilizationService) {}
 
-  // TODO replace with JWT later
   private readonly userId = BigInt(1);
 
   @Get()
