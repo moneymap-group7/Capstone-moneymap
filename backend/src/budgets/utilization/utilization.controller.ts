@@ -66,6 +66,8 @@ export class UtilizationController {
       { spendCategory: "TRANSPORTATION", budgetLimit: 0, currentSpend: 50 },
     ];
 
+    const { rows, alerts } = this.utilization.calculateRows(mockInputs);
+    return { data: rows, alerts };
     return { data: this.utilizationService.calculateRows(mockInputs) };
   }
 }
