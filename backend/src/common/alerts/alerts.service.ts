@@ -5,11 +5,12 @@ import {
   BudgetUtilizationRow,
   BudgetAlert,
 } from "./alert.types";
-
+import type { ThresholdRule } from "./thresholds";
 import {
   DEFAULT_THRESHOLD_RULES,
   SEVERITY_RANK,
   DEFAULT_IGNORED_CATEGORIES,
+  normalizeRules,
 } from "./thresholds";
 
 function round2(n: number) {
@@ -27,13 +28,13 @@ export class AlertsService {
   evaluateAlerts(
     rows: BudgetUtilizationRow[],
     opts?: {
-      rules?: typeof DEFAULT_THRESHOLD_RULES;
+      rules?: ThresholdRule[];
       ignoredCategories?: SpendCategory[];
     }
   ): BudgetAlert[] {
     const alerts: BudgetAlert[] = [];
 
-    const rules = opts?.rules ?? DEFAULT_THRESHOLD_RULES;
+    const rules = normalizeRules(opts?.rules ?? DEFAULT_THRESHOLD_RULES);
     const ignored = new Set<SpendCategory>(opts?.ignoredCategories ?? DEFAULT_IGNORED_CATEGORIES);
 
     for (const row of rows) {
@@ -42,17 +43,16 @@ export class AlertsService {
       if (ignored.has(spendCategory)) continue;
 
       const budget = safeNumber(row.budgetLimit, 0);
-      const spend = safeNumber(row.currentSpend, 0);
-      const pct = round2(safeNumber(row.utilizationPercent, 0));
+      const spendRaw = safeNumber(row.currentSpend, 0);
+      const spend = Math.abs(spendRaw);
+      const pctRaw = safeNumber(row.utilizationPercent, 0);
+      const pct = round2(pctRaw);
 
-      // No budget → no alert
       if (budget <= 0) continue;
-
-      // If spend is 0 or negative (refunds), skip alerts
-      if (spend <= 0) continue;
+      if (spend === 0) continue;
 
       // Find triggered thresholds
-      const triggered = rules.filter((r) => pct >= r.percent);
+      const triggered = rules.filter((r) => pctRaw >= r.percent);
       if (triggered.length === 0) continue;
 
       // Pick highest severity (stable selection)
