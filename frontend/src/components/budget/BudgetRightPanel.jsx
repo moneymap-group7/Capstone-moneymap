@@ -10,15 +10,33 @@ export default function BudgetRightPanel({ alerts = [] }) {
         {alerts.length === 0 ? (
           <div style={{ opacity: 0.8 }}>No alerts.</div>
         ) : (
-          alerts.map((a, idx) => (
-            <div key={idx} className="alertItem">
-              <div className="alertTop">
-                <div className="alertTitle">{a.title}</div>
-                <div className="alertSeverity">{a.severity}</div>
+          alerts
+            .slice()
+            .sort((a, b) => {
+              const rank = { CRITICAL: 3, NEAR_LIMIT: 2, WARNING: 1 };
+              return (rank[b?.severity] || 0) - (rank[a?.severity] || 0);
+            })
+            .map((a, idx) => (
+              <div key={`${a.spendCategory}-${idx}`} className="alertItem">
+                <div className="alertTop">
+                  <div className="alertTitle">{a.spendCategory}</div>
+
+                  <span className={`severityBadge sev-${String(a.severity || "").toLowerCase()}`}>
+                    {a.severity}
+                  </span>
+                </div>
+
+                <div className="alertDetail">{a.message}</div>
+
+                <div className="alertMeta">
+                  <span>{Number(a.currentPercent || 0).toFixed(2)}%</span>
+                  <span>•</span>
+                  <span>Limit: ${Number(a.budgetLimit || 0).toFixed(2)}</span>
+                  <span>•</span>
+                  <span>Spent: ${Number(a.currentSpend || 0).toFixed(2)}</span>
+                </div>
               </div>
-              <div className="alertDetail">{a.detail}</div>
-            </div>
-          ))
+            ))
         )}
       </div>
     </div>
