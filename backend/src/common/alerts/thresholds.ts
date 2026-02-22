@@ -7,9 +7,9 @@ export type ThresholdRule = {
 };
 
 export const DEFAULT_THRESHOLD_RULES: ThresholdRule[] = [
-  { severity: "WARNING", percent: 80 },
-  { severity: "NEAR_LIMIT", percent: 90 }, // optional
-  { severity: "CRITICAL", percent: 100 },
+  { severity: "WARNING", percent: 80},
+  { severity: "NEAR_LIMIT", percent: 90},//optional
+  { severity: "CRITICAL", percent: 100},
 ];
 
 export const SEVERITY_RANK: Record<AlertSeverity, number> = {

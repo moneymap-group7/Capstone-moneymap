@@ -35,7 +35,13 @@ async function fetchUtilization({ start, end }) {
   const url = `/api/budgets/utilization?start=${start}&end=${end}`;
 
   const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    method: "GET",
+    cache: "no-store",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
   });
 
   const data = await res.json().catch(() => null);
