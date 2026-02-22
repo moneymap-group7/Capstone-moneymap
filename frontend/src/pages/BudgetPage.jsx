@@ -1,6 +1,8 @@
+// frontend/src/pages/BudgetPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import BudgetTable from "../components/budget/BudgetTable";
 import BudgetRightPanel from "../components/budget/BudgetRightPanel";
+import BudgetEditModal from "../components/budget/BudgetEditModal";
 import "./budget.css";
 
 function money(n) {
@@ -45,8 +47,7 @@ async function fetchUtilization({ start, end }) {
     throw new Error(msg);
   }
 
-  // expected: { data: [...], alerts: [...] }
-  return data;
+  return data; // { data: [...], alerts: [...] }
 }
 
 export default function BudgetPage() {
@@ -58,13 +59,18 @@ export default function BudgetPage() {
 
   const monthEnd = useMemo(() => {
     // last day of month: day 0 of next month
-    return new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0));
+    return new Date(
+      Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0)
+    );
   }, [monthStart]);
 
-  const [rows, setRows] = useState([]);     // backend utilization rows
+  const [rows, setRows] = useState([]); // backend utilization rows
   const [alerts, setAlerts] = useState([]); // backend alerts
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Modal state
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -96,18 +102,18 @@ export default function BudgetPage() {
     };
   }, [monthStart, monthEnd]);
 
-  // Map backend row shape -> your BudgetTable row shape
+  // Map backend row shape -> BudgetTable row shape
   const tableRows = useMemo(() => {
     return rows.map((r) => ({
       category: r.spendCategory,
       limit: Number(r.budgetLimit) || 0,
       spent: Number(r.currentSpend) || 0,
-      utilizationPercent: Number(r.utilizationPercent) || 0, // optional if your table wants it later
-      remainingAmount: Number(r.remainingAmount) || 0,       // optional
+      utilizationPercent: Number(r.utilizationPercent) || 0,
+      remainingAmount: Number(r.remainingAmount) || 0,
     }));
   }, [rows]);
 
-  // Compute totals for the KPI cards
+  // Compute totals for KPI cards
   const totals = useMemo(() => {
     const totalBudget = tableRows.reduce((sum, r) => sum + (Number(r.limit) || 0), 0);
     const totalSpent = tableRows.reduce((sum, r) => sum + (Number(r.spent) || 0), 0);
@@ -133,22 +139,24 @@ export default function BudgetPage() {
           <p className="budgetSub">{monthLabel}</p>
         </div>
 
-       <div className="budgetActions">
-         <button className="btn" onClick={goPrev}>
-           ← Prev
-         </button>
-         <button className="btn" onClick={goNext}>
-           Next →
-         </button>
-         <button className="btn">
-           Add / Edit Budgets
-         </button>
-       </div>
+        <div className="budgetActions">
+          <button className="btn" onClick={goPrev} disabled={loading}>
+            ← Prev
+          </button>
+          <button className="btn" onClick={goNext} disabled={loading}>
+            Next →
+          </button>
+
+          {/* Enable click: opens modal */}
+          <button className="btn" onClick={() => setEditOpen(true)}>
+            Add / Edit Budgets
+          </button>
+        </div>
       </div>
 
       {error ? (
         <div className="card" style={{ marginBottom: 12 }}>
-          <div className="cardBody" style={{ color: "red" }}>
+          <div className="cardBody" style={{ color: "#dc2626" }}>
             {error}
           </div>
         </div>
@@ -158,18 +166,14 @@ export default function BudgetPage() {
         <div className="card">
           <div className="cardBody">
             <div className="kpiLabel">Total Budget</div>
-            <div className="kpiValue">
-              {loading ? "…" : money(totals.totalBudget)}
-            </div>
+            <div className="kpiValue">{loading ? "…" : money(totals.totalBudget)}</div>
           </div>
         </div>
 
         <div className="card">
           <div className="cardBody">
             <div className="kpiLabel">Total Spent</div>
-            <div className="kpiValue">
-              {loading ? "…" : money(totals.totalSpent)}
-            </div>
+            <div className="kpiValue">{loading ? "…" : money(totals.totalSpent)}</div>
           </div>
         </div>
 
@@ -196,6 +200,20 @@ export default function BudgetPage() {
 
         <BudgetRightPanel alerts={alerts} />
       </div>
+
+      {/* Modal */}
+      <BudgetEditModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        monthStart={monthStart}
+        monthEnd={monthEnd}
+        existingRows={rows}
+        onSaved={() => {
+          setEditOpen(false);
+          // Trigger refresh for current month by resetting state to same value
+          setMonthStart((d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)));
+        }}
+      />
     </div>
   );
 }

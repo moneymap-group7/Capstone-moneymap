@@ -1,7 +1,12 @@
+/* frontend/src/pages/budget.css
+   Theme-safe: readable on white + dark backgrounds
+*/
+
 .budgetPage {
   padding: 24px;
   max-width: 1100px;
   margin: 0 auto;
+  color: #111827;
 }
 
 .budgetHeader {
@@ -28,17 +33,23 @@
   gap: 10px;
 }
 
+/* Buttons */
 .btn {
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.92);
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #111827;
   padding: 10px 14px;
   cursor: pointer;
 }
 
 .btn:hover {
-  background: rgba(255,255,255,0.10);
+  background: #e5e7eb;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .grid {
@@ -53,16 +64,17 @@
   }
 }
 
+/* Cards */
 .card {
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid #e5e7eb;
   border-radius: 16px;
-  background: rgba(255,255,255,0.04);
+  background: #ffffff;
   overflow: hidden;
 }
 
 .cardHead {
   padding: 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.10);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .cardTitle {
@@ -104,7 +116,8 @@
   margin-top: 6px;
 }
 
-.tableHead, .row {
+.tableHead,
+.row {
   display: grid;
   grid-template-columns: 1.6fr 0.8fr 0.8fr 1.2fr 0.6fr;
   gap: 10px;
@@ -115,12 +128,12 @@
   font-size: 12px;
   opacity: 0.75;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.10);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .row {
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .row:last-child {
@@ -140,29 +153,35 @@
 .progressBar {
   height: 8px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.10);
+  background: #e5e7eb;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: rgba(255,255,255,0.85);
-}
-
-.progressFill.over {
-  background: #ef4444;
+  background: #9ca3af; /* fallback */
 }
 
 .badge {
   font-size: 12px;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
+/* Utilization color coding */
+.badge--ok { color: #16a34a; }
+.badge--warn { color: #d97706; }
+.badge--danger { color: #dc2626; }
+
+.progressFill--ok { background: #16a34a; }
+.progressFill--warn { background: #d97706; }
+.progressFill--danger { background: #dc2626; }
+
+/* Alerts */
 .alertItem {
   padding: 12px;
-  border: 1px solid rgba(255,255,255,0.10);
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
-  background: rgba(255,255,255,0.03);
+  background: #ffffff;
 }
 
 .alertTop {
@@ -184,4 +203,141 @@
   margin-top: 6px;
   opacity: 0.85;
   font-size: 14px;
+}
+
+/* ===== Modal styles (Add/Edit Budgets) ===== */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+}
+
+.modalCard {
+  width: 100%;
+  max-width: 620px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modalTitle {
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.modalSub {
+  opacity: 0.75;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.modalError {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.modalGrid {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.modalRow {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 12px;
+  align-items: center;
+}
+
+.modalCat {
+  font-weight: 600;
+}
+
+.modalInput {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+/* ===== Dark mode override ===== */
+@media (prefers-color-scheme: dark) {
+  .budgetPage {
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .btn {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .card {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .cardHead {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .tableHead {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .progressBar {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .alertItem {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .modalCard {
+    background: #0b0f19;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .modalInput {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.92);
+  }
 }
