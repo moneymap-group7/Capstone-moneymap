@@ -43,6 +43,18 @@ export type AggregationByCategory = {
   items: CategoryAggItem[];
 };
 
+export type AggregationContractRow = {
+  spendCategory: SpendCategory;
+  spent: string; // "123.45"
+};
+
+export type AggregationContractResponse = {
+  range: { start: string; end: string };
+  totals: { totalSpent: string; transactionCount: number };
+  rows: AggregationContractRow[];
+};
+
+
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -191,7 +203,36 @@ export class AnalyticsService {
     };
   }
 
-  
+  async getAggregation(
+  userId: string | number | bigint,
+  startDate: Date,
+  endDate: Date,
+): Promise<AggregationContractResponse> {
+  const byCat = await this.getByCategory(userId, startDate, endDate);
+
+  const rows = byCat.items.map((it) => ({
+    spendCategory: it.spendCategory,
+    spent: Number(it.total).toFixed(2),
+  }));
+
+  const totalSpent = rows.reduce((sum, r) => sum + Number(r.spent), 0);
+
+  const transactionCount = byCat.items.reduce((sum, it) => sum + it.count, 0);
+
+  return {
+    range: {
+      start: startDate.toISOString().slice(0, 10),
+      end: endDate.toISOString().slice(0, 10),
+    },
+    totals: {
+      totalSpent: totalSpent.toFixed(2),
+      transactionCount,
+    },
+    rows,
+  };
+}
+
+
    async getMonthlySummary(
     userId: string | number | bigint,
     startDate: Date,
