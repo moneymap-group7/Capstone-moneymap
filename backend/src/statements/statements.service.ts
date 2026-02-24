@@ -39,9 +39,19 @@ export class StatementsService {
       // 3) Parse rows (CIBC)
       const parsed = this.cibcCsvParser.parse(buffer);
 
-      console.log("CIBC parsed rows:", parsed.length);
-      console.log("CIBC sample row:", parsed[0]);
+      if (process.env.NODE_ENV !== "production") {
+        console.info("CIBC parsed rows:", parsed.length);
+        if (parsed.length > 0) console.info("CIBC sample row:", parsed[0]);
+      }
 
+      if (!parsed || parsed.length === 0) {
+        return {
+          ...base,
+          status: StatementStatus.COMPLETED,
+          message: "Statement processed successfully (no transactions found).",
+          details: { transactionsInserted: 0 },
+        };
+      }
       // 4) Save to DB
       const userIdBigInt = BigInt(params.userId);
 
