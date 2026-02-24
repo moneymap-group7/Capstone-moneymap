@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { SpendCategory } from "@prisma/client";
 
@@ -17,7 +18,9 @@ import { CreateBudgetDto } from "./dto/create-budget.dto";
 
 import { UtilizationService } from "./utilization/utilization.service";
 import type { UtilizationInput } from "./utilization/utilization.types";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 
+@UseGuards(JwtAuthGuard)
 @Controller("budgets")
 export class BudgetsController {
   constructor(
