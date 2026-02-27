@@ -1,6 +1,6 @@
 import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { CibcCsvParserService } from "../parsing/csv/cibc-csv-parser.service";
+import { CsvIngestionService } from "../parsing/csv/csv-ingestion.service";
 import { StatementStatus, StatusResponse } from "./statement-status";
 import * as fs from "fs";
 import * as path from "path";
@@ -9,7 +9,7 @@ import * as path from "path";
 export class StatementsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cibcCsvParser: CibcCsvParserService,
+    private readonly csvIngestionService: CsvIngestionService
   ) {}
 
   async processUploadedStatement(params: {
@@ -24,7 +24,13 @@ export class StatementsService {
       status: StatementStatus.UPLOADED,
       message: "File stored. Starting parsing.",
       statement: { ...params },
+      details: {
+        bank: null,
+        transactionsInserted: 0,
+      },
     };
+
+    let detectedBank: string | null = null;
 
     try {
       // 1) Ensure CSV
@@ -32,35 +38,44 @@ export class StatementsService {
         throw new UnprocessableEntityException("Only CSV statements are supported.");
       }
 
-      // 2) Read file from disk (you used diskStorage)
+      // 2) Read file from disk (diskStorage)
       const absPath = path.join(process.cwd(), params.relativePath);
       const buffer = fs.readFileSync(absPath);
 
-      // 3) Parse rows (CIBC)
-      const parsed = this.cibcCsvParser.parse(buffer);
+      // 3) Parse rows (auto-detect bank)
+      const { bank, rows } = this.csvIngestionService.parse(buffer);
+      detectedBank = bank ?? null;
 
+      const parsed = rows ?? [];
+
+      // Safe debug logging (no sample transaction rows)
       if (process.env.NODE_ENV !== "production") {
-        console.info("CIBC parsed rows:", parsed.length);
-        if (parsed.length > 0) console.info("CIBC sample row:", parsed[0]);
+        console.info(`[CSV] ${detectedBank} rows parsed: ${parsed.length}`);
       }
 
-      if (!parsed || parsed.length === 0) {
+      // If no transactions, still return the detected bank
+      if (parsed.length === 0) {
         return {
           ...base,
           status: StatementStatus.COMPLETED,
           message: "Statement processed successfully (no transactions found).",
-          details: { transactionsInserted: 0 },
+          details: {
+            bank: detectedBank,
+            transactionsInserted: 0,
+          },
         };
       }
+
       // 4) Save to DB
       const userIdBigInt = BigInt(params.userId);
 
       const result = await this.prisma.transaction.createMany({
-        data: parsed.map((t) => ({
+        data: parsed.map((t: any) => ({
           userId: userIdBigInt,
           transactionDate: t.transactionDate,
           description: t.description,
-          amount: t.amount, // Decimal string ok
+          // Ensure Prisma required field is never undefined
+          amount: Number(t.amount ?? t.deposits ?? t.withdrawals ?? 0),
           currency: t.currency ?? "CAD",
           transactionType: t.transactionType,
           source: t.source,
@@ -74,13 +89,20 @@ export class StatementsService {
         ...base,
         status: StatementStatus.COMPLETED,
         message: "Statement processed successfully.",
-        details: { transactionsInserted: result.count },
+        details: {
+          bank: detectedBank,
+          transactionsInserted: result.count,
+        },
       };
     } catch (e: any) {
       return {
         ...base,
         status: StatementStatus.FAILED,
         message: e?.message ?? "Processing failed.",
+        details: {
+          bank: detectedBank,
+          transactionsInserted: 0,
+        },
       };
     }
   }
