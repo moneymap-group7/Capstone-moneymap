@@ -9,10 +9,15 @@ export class BudgetsService {
 
   async create(userId: bigint, dto: CreateBudgetDto) {
     return this.prisma.budget.create({
-      data: {
+     data: {
         userId,
-        ...dto,
-      },
+        name: dto.name,
+        amount: dto.amount,
+        spendCategory: dto.spendCategory,           // REQUIRED now
+        startDate: new Date(dto.startDate),         // if dto is string
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+        isActive: dto.isActive ?? true,
+    }
     });
   }
 
