@@ -9,8 +9,10 @@ import {
   Post,
   Query,
   UseGuards,
+  Req,
 } from "@nestjs/common";
 import { SpendCategory } from "@prisma/client";
+import type { Request } from "express";
 
 import { BudgetsService } from "./budgets.service";
 import { UpdateBudgetDto } from "./dto/update-budget.dto";
@@ -28,10 +30,21 @@ export class BudgetsController {
     private readonly utilizationService: UtilizationService
   ) {}
 
-  // TODO: Replace with real userId from JWT once auth guard is wired
-  private readonly userId = BigInt(1);
-
   // ---------- helpers ----------
+  private getUserId(req: Request): bigint {
+    const u: any = (req as any).user;
+
+    if (!u?.userId) {
+      throw new BadRequestException("Missing userId in JWT payload");
+    }
+
+    try {
+      return BigInt(u.userId); // JwtStrategy returns userId as string
+    } catch {
+      throw new BadRequestException("Invalid userId in JWT payload");
+    }
+  }
+
   private parseBigIntParam(value: string, paramName = "id"): bigint {
     if (!/^\d+$/.test(value)) {
       throw new BadRequestException(`${paramName} must be a valid integer`);
@@ -71,7 +84,13 @@ export class BudgetsController {
 
   // ---------- utilization endpoints (MUST be before :id) ----------
   @Get("utilization")
-  async utilization(@Query("start") startStr: string, @Query("end") endStr: string) {
+  async utilization(
+    @Req() req: Request,
+    @Query("start") startStr: string,
+    @Query("end") endStr: string
+  ) {
+    const userId = this.getUserId(req);
+
     const startDate = this.parseDateParam(startStr, "start");
     const endDate = this.parseDateParam(endStr, "end");
 
@@ -82,7 +101,7 @@ export class BudgetsController {
 
     const { rows, alerts } =
       await this.utilizationService.getUtilizationWithAlertsForRange(
-        this.userId,
+        userId,
         start,
         end
       );
@@ -91,7 +110,13 @@ export class BudgetsController {
   }
 
   @Get("utilization/compare")
-  async compare(@Query("start") startStr: string, @Query("end") endStr: string) {
+  async compare(
+    @Req() req: Request,
+    @Query("start") startStr: string,
+    @Query("end") endStr: string
+  ) {
+    const userId = this.getUserId(req);
+
     const startDate = this.parseDateParam(startStr, "start");
     const endDate = this.parseDateParam(endStr, "end");
 
@@ -100,7 +125,7 @@ export class BudgetsController {
 
     if (start > end) throw new BadRequestException("start must be <= end");
 
-    const data = await this.utilizationService.compareRanges(this.userId, start, end);
+    const data = await this.utilizationService.compareRanges(userId, start, end);
     return { data };
   }
 
@@ -119,30 +144,35 @@ export class BudgetsController {
 
   // ---------- budgets CRUD ----------
   @Post()
-  create(@Body() dto: CreateBudgetDto) {
-    return this.budgetsService.create(this.userId, dto);
+  create(@Req() req: Request, @Body() dto: CreateBudgetDto) {
+    const userId = this.getUserId(req);
+    return this.budgetsService.create(userId, dto);
   }
 
   @Get()
-  findAll() {
-    return this.budgetsService.findAll(this.userId);
+  findAll(@Req() req: Request) {
+    const userId = this.getUserId(req);
+    return this.budgetsService.findAll(userId);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
+  findOne(@Req() req: Request, @Param("id") id: string) {
+    const userId = this.getUserId(req);
     const budgetId = this.parseBigIntParam(id, "id");
-    return this.budgetsService.findOne(this.userId, budgetId);
+    return this.budgetsService.findOne(userId, budgetId);
   }
 
   @Patch(":id")
-  update(@Param("id") id: string, @Body() dto: UpdateBudgetDto) {
+  update(@Req() req: Request, @Param("id") id: string, @Body() dto: UpdateBudgetDto) {
+    const userId = this.getUserId(req);
     const budgetId = this.parseBigIntParam(id, "id");
-    return this.budgetsService.update(this.userId, budgetId, dto);
+    return this.budgetsService.update(userId, budgetId, dto);
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string) {
+  remove(@Req() req: Request, @Param("id") id: string) {
+    const userId = this.getUserId(req);
     const budgetId = this.parseBigIntParam(id, "id");
-    return this.budgetsService.remove(this.userId, budgetId);
+    return this.budgetsService.remove(userId, budgetId);
   }
 }
