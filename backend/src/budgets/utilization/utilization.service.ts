@@ -76,7 +76,7 @@ export class UtilizationService {
         isActive: true,
         startDate: { lte: end },
         OR: [{ endDate: null }, { endDate: { gte: start } }],
-        spendCategory: { not: null },
+       
       },
       select: {
         spendCategory: true,
