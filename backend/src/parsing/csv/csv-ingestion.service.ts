@@ -5,6 +5,8 @@ import { BankId } from "./bank-id.types";
 import { CibcCsvParserService } from "./cibc-csv-parser.service";
 import { RbcCsvParserService } from "./rbc-csv-parser.service";
 import { TdCsvParserService } from "./td-csv-parser.service";
+import { BmoCsvParserService } from "./bmo-csv-parser.service";
+
 
 @Injectable()
 export class CsvIngestionService {
@@ -12,7 +14,8 @@ export class CsvIngestionService {
     private readonly detector: BankDetectService,
     private readonly cibc: CibcCsvParserService,
     private readonly rbc: RbcCsvParserService,
-    private readonly td: TdCsvParserService
+    private readonly td: TdCsvParserService,
+    private readonly bmo: BmoCsvParserService 
   ) {}
 
   /**
@@ -30,6 +33,8 @@ export class CsvIngestionService {
         return { bank, rows: this.rbc.parse(csvText) };   
       case "TD":
         return { bank, rows: this.td.parse(csvText) };   
+      case "BMO":
+        return { bank, rows: this.bmo.parse(csvText) };
       default:
         throw new Error(
           "Unsupported bank CSV format. Please upload a CIBC, RBC, or TD statement export."
