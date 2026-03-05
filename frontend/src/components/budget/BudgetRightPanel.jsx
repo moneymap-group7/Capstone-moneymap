@@ -10,17 +10,6 @@ export default function BudgetRightPanel({ alerts = [] }) {
         {alerts.length === 0 ? (
           <div style={{ opacity: 0.8 }}>No alerts.</div>
         ) : (
-<<<<<<< HEAD
-          alerts.map((a, idx) => (
-            <div key={idx} className="alertItem">
-              <div className="alertTop">
-                <div className="alertTitle">{a.title}</div>
-                <div className="alertSeverity">{a.severity}</div>
-              </div>
-              <div className="alertDetail">{a.detail}</div>
-            </div>
-          ))
-=======
           alerts
             .slice()
             .sort((a, b) => {
@@ -28,16 +17,18 @@ export default function BudgetRightPanel({ alerts = [] }) {
               return (rank[b?.severity] || 0) - (rank[a?.severity] || 0);
             })
             .map((a, idx) => (
-              <div key={`${a.spendCategory}-${idx}`} className="alertItem">
+              <div key={`${a.spendCategory || "alert"}-${idx}`} className="alertItem">
                 <div className="alertTop">
-                  <div className="alertTitle">{a.spendCategory}</div>
+                  <div className="alertTitle">{a.spendCategory || a.title || "Alert"}</div>
 
-                  <span className={`severityBadge sev-${String(a.severity || "").toLowerCase()}`}>
+                  <span
+                    className={`severityBadge sev-${String(a.severity || "").toLowerCase()}`}
+                  >
                     {a.severity}
                   </span>
                 </div>
 
-                <div className="alertDetail">{a.message}</div>
+                <div className="alertDetail">{a.message || a.detail || ""}</div>
 
                 <div className="alertMeta">
                   <span>{Number(a.currentPercent || 0).toFixed(2)}%</span>
@@ -48,7 +39,6 @@ export default function BudgetRightPanel({ alerts = [] }) {
                 </div>
               </div>
             ))
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
         )}
       </div>
     </div>

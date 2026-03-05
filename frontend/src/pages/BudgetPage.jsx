@@ -1,32 +1,3 @@
-<<<<<<< HEAD
-import BudgetHeader from "../components/budget/BudgetHeader";
-import BudgetSummaryCards from "../components/budget/BudgetSummaryCards";
-import BudgetTable from "../components/budget/BudgetTable";
-import BudgetRightPanel from "../components/budget/BudgetRightPanel";
-import "./budget.css";
-
-const mock = {
-  monthLabel: "February 2026",
-  totals: { totalBudget: 2500, totalSpent: 1620, utilizationPercent: 64.8 },
-  rows: [
-    { category: "RENT", limit: 1200, spent: 1200 },
-    { category: "GROCERIES", limit: 400, spent: 260 },
-    { category: "TRANSPORTATION", limit: 250, spent: 190 },
-    { category: "ENTERTAINMENT", limit: 150, spent: 220 },
-    { category: "OTHER", limit: 500, spent: 250 },
-  ],
-  alerts: [
-    { severity: "HIGH", title: "Entertainment over budget", detail: "Spent $220 of $150" },
-    { severity: "MEDIUM", title: "Rent at 100%", detail: "Spent $1200 of $1200" },
-  ],
-};
-
-function money(n) {
-  return `$${Number(n).toFixed(0)}`;
-}
-
-export default function BudgetPage() {
-=======
 // frontend/src/pages/BudgetPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import BudgetTable from "../components/budget/BudgetTable";
@@ -60,7 +31,7 @@ function monthLabelFromRange(startDate) {
 async function fetchUtilization({ start, end }) {
   const token = getToken();
 
-  // If your frontend proxy is NOT set up, replace `/api` with `http://localhost:3000`
+  // If your Vite proxy is NOT set up, replace `/api` with `http://localhost:3000`
   const url = `/api/budgets/utilization?start=${start}&end=${end}`;
 
   const res = await fetch(url, {
@@ -82,7 +53,8 @@ async function fetchUtilization({ start, end }) {
     throw new Error(msg);
   }
 
-  return data; // { data: [...], alerts: [...] }
+  // expected: { data: [...], alerts?: [...] }
+  return data;
 }
 
 export default function BudgetPage() {
@@ -94,9 +66,7 @@ export default function BudgetPage() {
 
   const monthEnd = useMemo(() => {
     // last day of month: day 0 of next month
-    return new Date(
-      Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0)
-    );
+    return new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0));
   }, [monthStart]);
 
   const [rows, setRows] = useState([]); // backend utilization rows
@@ -166,24 +136,11 @@ export default function BudgetPage() {
     setMonthStart((d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)));
   };
 
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
   return (
     <div className="budgetPage">
       <div className="budgetHeader">
         <div>
           <h1 className="budgetTitle">Budget</h1>
-<<<<<<< HEAD
-          <p className="budgetSub">{mock.monthLabel}</p>
-        </div>
-
-        <div className="budgetActions">
-          <button className="btn">Prev</button>
-          <button className="btn">Next</button>
-          <button className="btn">Add / Edit Budgets</button>
-        </div>
-      </div>
-
-=======
           <p className="budgetSub">{monthLabel}</p>
         </div>
 
@@ -195,7 +152,6 @@ export default function BudgetPage() {
             Next →
           </button>
 
-          {/* Enable click: opens modal */}
           <button className="btn" onClick={() => setEditOpen(true)}>
             Add / Edit Budgets
           </button>
@@ -210,40 +166,27 @@ export default function BudgetPage() {
         </div>
       ) : null}
 
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
       <div className="summary">
         <div className="card">
           <div className="cardBody">
             <div className="kpiLabel">Total Budget</div>
-<<<<<<< HEAD
-            <div className="kpiValue">{money(mock.totals.totalBudget)}</div>
-=======
             <div className="kpiValue">{loading ? "…" : money(totals.totalBudget)}</div>
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
           </div>
         </div>
 
         <div className="card">
           <div className="cardBody">
             <div className="kpiLabel">Total Spent</div>
-<<<<<<< HEAD
-            <div className="kpiValue">{money(mock.totals.totalSpent)}</div>
-=======
             <div className="kpiValue">{loading ? "…" : money(totals.totalSpent)}</div>
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
           </div>
         </div>
 
         <div className="card">
           <div className="cardBody">
             <div className="kpiLabel">Utilization</div>
-<<<<<<< HEAD
-            <div className="kpiValue">{mock.totals.utilizationPercent.toFixed(1)}%</div>
-=======
             <div className="kpiValue">
               {loading ? "…" : `${totals.utilizationPercent.toFixed(1)}%`}
             </div>
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
           </div>
         </div>
       </div>
@@ -255,14 +198,6 @@ export default function BudgetPage() {
             <p className="cardDesc">Set limits and monitor utilization per category.</p>
           </div>
           <div className="cardBody">
-<<<<<<< HEAD
-            <BudgetTable rows={mock.rows} />
-          </div>
-        </div>
-
-        <BudgetRightPanel alerts={mock.alerts} />
-      </div>
-=======
             <BudgetTable rows={tableRows} />
           </div>
         </div>
@@ -270,7 +205,6 @@ export default function BudgetPage() {
         <BudgetRightPanel alerts={alerts} />
       </div>
 
-      {/* Modal */}
       <BudgetEditModal
         open={editOpen}
         onClose={() => setEditOpen(false)}
@@ -279,11 +213,10 @@ export default function BudgetPage() {
         existingRows={rows}
         onSaved={() => {
           setEditOpen(false);
-          // Trigger refresh for current month by resetting state to same value
+          // refresh current month
           setMonthStart((d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)));
         }}
       />
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
     </div>
   );
 }

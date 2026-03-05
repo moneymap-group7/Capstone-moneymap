@@ -4,15 +4,12 @@ function money(n) {
   return `$${Number(n).toFixed(0)}`;
 }
 
-<<<<<<< HEAD
-=======
 function getUtilClass(utilization) {
   if (utilization >= 100) return "danger";
   if (utilization >= 75) return "warn";
   return "ok";
 }
 
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 export default function BudgetRow({ row }) {
   if (!row) return null;
 
@@ -21,12 +18,8 @@ export default function BudgetRow({ row }) {
   const utilization = limit > 0 ? (spent / limit) * 100 : 0;
 
   const width = Math.max(0, Math.min(100, utilization));
-<<<<<<< HEAD
-  const over = utilization > 100;
-=======
   const over = utilization >= 100;
   const utilClass = getUtilClass(utilization);
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 
   return (
     <div className="row">
@@ -35,14 +28,6 @@ export default function BudgetRow({ row }) {
       <div className="num">{money(spent)}</div>
 
       <div className="progressWrap">
-<<<<<<< HEAD
-        <div className="badge">
-          {utilization.toFixed(0)}% • {over ? "Over" : "OK"}
-        </div>
-        <div className="progressBar">
-          <div
-            className={`progressFill ${over ? "over" : ""}`}
-=======
         <div className={`badge badge--${utilClass}`}>
           {utilization.toFixed(0)}% • {over ? "Over" : "OK"}
         </div>
@@ -50,7 +35,6 @@ export default function BudgetRow({ row }) {
         <div className="progressBar">
           <div
             className={`progressFill progressFill--${utilClass}`}
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
             style={{ width: `${width}%` }}
           />
         </div>
