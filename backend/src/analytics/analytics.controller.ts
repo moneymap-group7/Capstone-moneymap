@@ -46,6 +46,25 @@ export class AnalyticsController {
     return this.analyticsService.getByCategory(userId, startDate, endDate);
   }
 
+  @Get("aggregation")
+@UseGuards(JwtAuthGuard)
+async aggregation(
+  @Req() req: Request,
+  @Query("start") start?: string,
+  @Query("end") end?: string,
+) {
+  const userId = (req as any)?.user?.userId;
+  if (!userId) throw new UnauthorizedException();
+
+  const { startDate, endDate } = parseDateRange(
+    { ...(req.query as any), start, end },
+    { daysBack: 30 },
+  );
+
+  return this.analyticsService.getAggregation(userId, startDate, endDate);
+}
+
+
   @Get("monthly")
   @UseGuards(JwtAuthGuard)
   async monthly(

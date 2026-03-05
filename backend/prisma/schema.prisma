@@ -51,7 +51,7 @@ model Budget {
   userId        BigInt
   name          String         @db.VarChar(100)
   amount        Decimal        @db.Decimal(12, 2)
-  spendCategory SpendCategory?
+  spendCategory SpendCategory
   startDate     DateTime
   endDate       DateTime?
   isActive      Boolean        @default(true)
@@ -62,6 +62,8 @@ model Budget {
   @@index([userId])
   @@index([spendCategory])
   @@index([startDate])
+
+  @@unique([userId, spendCategory, startDate])
   @@map("budgets")
 }
 
