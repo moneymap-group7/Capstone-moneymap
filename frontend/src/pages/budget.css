@@ -1,18 +1,12 @@
-<<<<<<< HEAD
-=======
 /* frontend/src/pages/budget.css
    Theme-safe: readable on white + dark backgrounds
 */
 
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 .budgetPage {
   padding: 24px;
   max-width: 1100px;
   margin: 0 auto;
-<<<<<<< HEAD
-=======
   color: #111827;
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 }
 
 .budgetHeader {
@@ -39,35 +33,23 @@
   gap: 10px;
 }
 
-<<<<<<< HEAD
-.btn {
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.92);
-=======
 /* Buttons */
 .btn {
   border-radius: 10px;
   border: 1px solid #d1d5db;
   background: #f3f4f6;
   color: #111827;
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
   padding: 10px 14px;
   cursor: pointer;
 }
 
 .btn:hover {
-<<<<<<< HEAD
-  background: rgba(255,255,255,0.10);
-=======
   background: #e5e7eb;
 }
 
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 }
 
 .grid {
@@ -82,28 +64,17 @@
   }
 }
 
-<<<<<<< HEAD
-.card {
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 16px;
-  background: rgba(255,255,255,0.04);
-=======
 /* Cards */
 .card {
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   background: #ffffff;
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
   overflow: hidden;
 }
 
 .cardHead {
   padding: 16px;
-<<<<<<< HEAD
-  border-bottom: 1px solid rgba(255,255,255,0.10);
-=======
   border-bottom: 1px solid #e5e7eb;
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 }
 
 .cardTitle {
@@ -145,12 +116,8 @@
   margin-top: 6px;
 }
 
-<<<<<<< HEAD
-.tableHead, .row {
-=======
 .tableHead,
 .row {
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
   display: grid;
   grid-template-columns: 1.6fr 0.8fr 0.8fr 1.2fr 0.6fr;
   gap: 10px;
@@ -161,20 +128,12 @@
   font-size: 12px;
   opacity: 0.75;
   padding: 10px 0;
-<<<<<<< HEAD
-  border-bottom: 1px solid rgba(255,255,255,0.10);
-=======
   border-bottom: 1px solid #e5e7eb;
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 }
 
 .row {
   padding: 12px 0;
-<<<<<<< HEAD
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-=======
   border-bottom: 1px solid #e5e7eb;
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 }
 
 .row:last-child {
@@ -194,39 +153,17 @@
 .progressBar {
   height: 8px;
   border-radius: 999px;
-<<<<<<< HEAD
-  background: rgba(255,255,255,0.10);
-=======
   background: #e5e7eb;
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-<<<<<<< HEAD
-  background: rgba(255,255,255,0.85);
-}
-
-.progressFill.over {
-  background: #ef4444;
-=======
   background: #9ca3af; /* fallback */
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 }
 
 .badge {
   font-size: 12px;
-<<<<<<< HEAD
-  opacity: 0.8;
-}
-
-.alertItem {
-  padding: 12px;
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 12px;
-  background: rgba(255,255,255,0.03);
-=======
   opacity: 0.9;
 }
 
@@ -245,7 +182,6 @@
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   background: #ffffff;
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 }
 
 .alertTop {
@@ -267,8 +203,6 @@
   margin-top: 6px;
   opacity: 0.85;
   font-size: 14px;
-<<<<<<< HEAD
-=======
 }
 
 .severityBadge {
@@ -438,5 +372,4 @@
     border-color: rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.92);
   }
->>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 }
