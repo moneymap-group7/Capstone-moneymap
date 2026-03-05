@@ -1,4 +1,3 @@
-// frontend/src/pages/BudgetPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import BudgetTable from "../components/budget/BudgetTable";
 import BudgetRightPanel from "../components/budget/BudgetRightPanel";
@@ -30,8 +29,6 @@ function monthLabelFromRange(startDate) {
 
 async function fetchUtilization({ start, end }) {
   const token = getToken();
-
-  // If your Vite proxy is NOT set up, replace `/api` with `http://localhost:3000`
   const url = `/api/budgets/utilization?start=${start}&end=${end}`;
 
   const res = await fetch(url, {
@@ -50,31 +47,27 @@ async function fetchUtilization({ start, end }) {
     const msg =
       (data && typeof data === "object" && data.message) ||
       `Request failed (${res.status})`;
-    throw new Error(msg);
+    throw new Error(Array.isArray(msg) ? msg.join(", ") : msg);
   }
 
-  // expected: { data: [...], alerts?: [...] }
   return data;
 }
 
 export default function BudgetPage() {
-  // Month navigation (UTC-safe)
   const [monthStart, setMonthStart] = useState(() => {
     const now = new Date();
     return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   });
 
   const monthEnd = useMemo(() => {
-    // last day of month: day 0 of next month
     return new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0));
   }, [monthStart]);
 
-  const [rows, setRows] = useState([]); // backend utilization rows
-  const [alerts, setAlerts] = useState([]); // backend alerts
+  const [rows, setRows] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Modal state
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
@@ -107,7 +100,6 @@ export default function BudgetPage() {
     };
   }, [monthStart, monthEnd]);
 
-  // Map backend row shape -> BudgetTable row shape
   const tableRows = useMemo(() => {
     return rows.map((r) => ({
       category: r.spendCategory,
@@ -118,7 +110,6 @@ export default function BudgetPage() {
     }));
   }, [rows]);
 
-  // Compute totals for KPI cards
   const totals = useMemo(() => {
     const totalBudget = tableRows.reduce((sum, r) => sum + (Number(r.limit) || 0), 0);
     const totalSpent = tableRows.reduce((sum, r) => sum + (Number(r.spent) || 0), 0);
@@ -136,6 +127,8 @@ export default function BudgetPage() {
     setMonthStart((d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)));
   };
 
+  const openEdit = () => setEditOpen(true);
+
   return (
     <div className="budgetPage">
       <div className="budgetHeader">
@@ -152,7 +145,7 @@ export default function BudgetPage() {
             Next →
           </button>
 
-          <button className="btn" onClick={() => setEditOpen(true)}>
+          <button className="btn" onClick={openEdit}>
             Add / Edit Budgets
           </button>
         </div>
@@ -198,7 +191,7 @@ export default function BudgetPage() {
             <p className="cardDesc">Set limits and monitor utilization per category.</p>
           </div>
           <div className="cardBody">
-            <BudgetTable rows={tableRows} />
+            <BudgetTable rows={tableRows} onEdit={openEdit} />
           </div>
         </div>
 
