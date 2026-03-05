@@ -14,12 +14,14 @@ import {
   TransactionSource,
   TransactionType,
 } from "@prisma/client";
-
+import { AutoCategorizeService } from "../common/categorization/auto-categorize.service";
 import type { ValidRow } from "./validation/transaction-csv.validator";
 
 @Injectable()
 export class TransactionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    private readonly autoCategorize: AutoCategorizeService
+  ) {}
 
   async saveCsvRowsForUser(userId: string, rows: ValidRow[]) {
     const uid = BigInt(userId);
@@ -33,7 +35,7 @@ export class TransactionsService {
       currency: r.currency,
       transactionType: r.transactionType,
       source: TransactionSource.CSV,
-      spendCategory: SpendCategory.UNCATEGORIZED,
+      spendCategory: this.autoCategorize.categorize({ description: r.description }),
       cardLast4: r.cardLast4 ?? null,
       balanceAfter: null,
     }));
