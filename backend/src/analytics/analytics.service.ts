@@ -76,12 +76,36 @@ export class AnalyticsService {
     return typeof userId === "bigint" ? userId : BigInt(userId);
   }
 
-    private normalizeMerchant(raw: unknown): string {
-    const s = typeof raw === "string" ? raw : "";
-    const trimmed = s.trim().replace(/\s+/g, " ");
-    if (!trimmed) return "UNKNOWN";
-    return trimmed.toUpperCase();
-  }
+  private normalizeMerchant(raw: unknown): string {
+  let v = (typeof raw === "string" ? raw : "")
+    .trim()
+    .replace(/\s+/g, " ");
+
+  if (!v) return "UNKNOWN";
+
+  v = v.toUpperCase();
+
+  // Remove masked card patterns like ******5569 or *1234
+  v = v.replace(/\*{2,}\d{2,}/g, " ");
+  v = v.replace(/\*\d{2,}/g, " ");
+
+  v = v.replace(/[.,#]/g, " ");
+
+  v = v.replace(/\b(ON|QC|BC|AB|MB|SK|NS|NB|NL|PE|CA|CANADA)\b/g, " ");
+
+  v = v.replace(/\s+/g, " ").trim();
+
+  const parts = v.split(" ").filter(Boolean);
+  if (parts.length === 0) return "UNKNOWN";
+
+  const keep = parts.slice(0, 2).join(" ");
+
+  if (keep.startsWith("WALMART")) return "WALMART";
+  if (keep.startsWith("UBER")) return "UBER";
+  if (keep.startsWith("ROGERS")) return "ROGERS";
+
+  return keep;
+}
 
   private decToString(v: any): string {
     if (!v) return "0";
@@ -240,11 +264,14 @@ export class AnalyticsService {
       },
       select: {
         amount: true,
-        description: true as any,
+        description: true,
       },
     });
 
-    const toCents = (s: string) => Math.round(Number(s) * 100);
+    const toCents = (s: string) => {
+      const n = Number(s);
+      return Number.isFinite(n) ? Math.round(n * 100) : 0;
+    };
 
     const map = new Map<string, { cents: number; count: number }>();
 
