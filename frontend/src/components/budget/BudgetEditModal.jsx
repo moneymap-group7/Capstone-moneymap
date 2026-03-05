@@ -41,7 +41,9 @@ export default function BudgetEditModal({
   const initial = useMemo(() => {
     const map = new Map();
     for (const r of existingRows) {
-      if (r?.spendCategory) map.set(r.spendCategory, Number(r.budgetLimit) || 0);
+      const category = r?.spendCategory ?? r?.name;
+      const amount = r?.budgetLimit ?? r?.amount;
+      if (category) map.set(category, Number(amount) || 0);
     }
     const obj = {};
     for (const c of CATEGORIES) obj[c] = map.get(c) ?? 0;
@@ -59,9 +61,8 @@ export default function BudgetEditModal({
 
   if (!open) return null;
 
-  // These are the month range strings your utilization endpoint uses
-  const start = toYmd(monthStart); // "YYYY-MM-DD"
-  const end = toYmd(monthEnd);     // "YYYY-MM-DD"
+  const start = toYmd(monthStart);
+  const end = toYmd(monthEnd);
 
   const handleChange = (cat, value) => {
     const n = Number(value);
@@ -70,7 +71,7 @@ export default function BudgetEditModal({
 
   const normalizeYmd = (v) => {
     if (!v) return "";
-    if (typeof v === "string") return v.slice(0, 10); // ISO -> YYYY-MM-DD
+    if (typeof v === "string") return v.slice(0, 10);
     return "";
   };
 
@@ -81,11 +82,14 @@ export default function BudgetEditModal({
     const token = getToken();
 
     const itemsToSave = Object.entries(limits)
-      .map(([name, amount]) => ({ name, amount: Number(amount) }))
+      .map(([category, amount]) => ({
+        category,
+        amount: Number(amount),
+      }))
       .filter((x) => Number.isFinite(x.amount) && x.amount > 0);
 
     try {
-      // 1) Load existing budgets so we can PATCH instead of creating duplicates
+      // Load existing budgets to PATCH (avoid duplicates)
       const listRes = await fetch("/api/budgets", {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
@@ -97,60 +101,48 @@ export default function BudgetEditModal({
 
       const existingArr = Array.isArray(existing) ? existing : [];
 
-      // 2) Upsert each category budget (POST if missing, PATCH if exists)
       for (const item of itemsToSave) {
         const match = existingArr.find((b) => {
-          const bName = b?.name;
+          const bCategory = b?.name ?? b?.spendCategory;
           const bStart = normalizeYmd(b?.startDate);
-          return bName === item.name && bStart === start;
+          return bCategory === item.category && bStart === start;
         });
 
-        // IMPORTANT: Prisma expects ISO DateTime for DateTime fields
+        // Send BOTH fields for compatibility:
+        // - Some backend DTOs expect `name`
+        // - Some parts of the app use `spendCategory`
         const payload = {
-          name: item.name,
+          name: item.category,
+          spendCategory: item.category,
           amount: item.amount,
           startDate: `${start}T00:00:00.000Z`,
           endDate: `${end}T23:59:59.999Z`,
         };
 
-        if (match?.budgetId) {
-          const res = await fetch(`/api/budgets/${match.budgetId}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify(payload),
-          });
+        const url = match?.budgetId ? `/api/budgets/${match.budgetId}` : "/api/budgets";
+        const method = match?.budgetId ? "PATCH" : "POST";
 
-          const data = await res.json().catch(() => null);
-          if (!res.ok) {
-            const msg =
-              (data && typeof data === "object" && data.message) ||
-              `Update failed (${res.status})`;
-            throw new Error(msg);
-          }
-        } else {
-          const res = await fetch("/api/budgets", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify(payload),
-          });
+        const res = await fetch(url, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(payload),
+        });
 
-          const data = await res.json().catch(() => null);
-          if (!res.ok) {
-            const msg =
-              (data && typeof data === "object" && data.message) ||
-              `Create failed (${res.status})`;
-            throw new Error(msg);
-          }
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          const msg =
+            (data && typeof data === "object" && data.message) ||
+            `${method} failed (${res.status})`;
+          throw new Error(Array.isArray(msg) ? msg.join(", ") : msg);
         }
       }
 
       onSaved?.();
+      onClose?.();
     } catch (e) {
       setError(e?.message || "Save failed");
     } finally {
