@@ -11,6 +11,10 @@ export class BudgetsService {
     return this.prisma.budget.create({
      data: {
         userId,
+<<<<<<< HEAD
+        ...dto,
+      },
+=======
         name: dto.name,
         amount: dto.amount,
         spendCategory: dto.spendCategory,           // REQUIRED now
@@ -18,6 +22,7 @@ export class BudgetsService {
         endDate: dto.endDate ? new Date(dto.endDate) : null,
         isActive: dto.isActive ?? true,
     }
+>>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
     });
   }
 

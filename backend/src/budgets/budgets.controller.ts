@@ -1,5 +1,8 @@
 import {
+<<<<<<< HEAD
+=======
   BadRequestException,
+>>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
   Body,
   Controller,
   Delete,
@@ -7,6 +10,14 @@ import {
   Param,
   Patch,
   Post,
+<<<<<<< HEAD
+  ParseIntPipe,
+} from "@nestjs/common";
+import { BudgetsService } from "./budgets.service";
+import { UpdateBudgetDto } from "./dto/update-budget.dto";
+import { CreateBudgetDto } from "./dto/create-budget.dto";
+
+=======
   Query,
   UseGuards,
   Req,
@@ -23,6 +34,7 @@ import type { UtilizationInput } from "./utilization/utilization.types";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 
 @UseGuards(JwtAuthGuard)
+>>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 @Controller("budgets")
 export class BudgetsController {
   constructor(
@@ -30,6 +42,36 @@ export class BudgetsController {
     private readonly utilizationService: UtilizationService
   ) {}
 
+<<<<<<< HEAD
+  private readonly userId = BigInt(1);
+
+  @Post()
+  create(@Body() dto: CreateBudgetDto) {
+    return this.budgetsService.create(this.userId, dto);
+  }
+
+  @Get()
+  findAll() {
+    return this.budgetsService.findAll(this.userId);
+  }
+
+  @Get(":id")
+  findOne(@Param("id", ParseIntPipe) id: number) {
+    return this.budgetsService.findOne(this.userId, BigInt(id));
+  }
+
+  @Patch(":id")
+  update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() dto: UpdateBudgetDto
+  ) {
+    return this.budgetsService.update(this.userId, BigInt(id), dto);
+  }
+
+  @Delete(":id")
+  remove(@Param("id", ParseIntPipe) id: number) {
+    return this.budgetsService.remove(this.userId, BigInt(id));
+=======
   // ---------- helpers ----------
   private getUserId(req: Request): bigint {
     const u: any = (req as any).user;
@@ -174,5 +216,6 @@ export class BudgetsController {
     const userId = this.getUserId(req);
     const budgetId = this.parseBigIntParam(id, "id");
     return this.budgetsService.remove(userId, budgetId);
+>>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
   }
 }

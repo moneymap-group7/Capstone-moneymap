@@ -1,12 +1,52 @@
+<<<<<<< HEAD
+import { Controller, Get, Query } from "@nestjs/common";
+import { UtilizationService } from "./utilization.service";
+=======
 import { BadRequestException, Controller, Get, Query } from "@nestjs/common";
 import { SpendCategory } from "@prisma/client";
 import { UtilizationService } from "./utilization.service";
 import type { UtilizationInput } from "./utilization.types";
+>>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
 
 @Controller("budgets/utilization")
 export class UtilizationController {
   constructor(private readonly utilizationService: UtilizationService) {}
 
+<<<<<<< HEAD
+  private readonly userId = BigInt(1);
+
+  @Get()
+  async utilization(
+    @Query("start") startStr: string,
+    @Query("end") endStr: string
+  ) {
+    const start = new Date(`${startStr}T00:00:00.000Z`);
+    const end = new Date(`${endStr}T23:59:59.999Z`);
+
+    const data = await this.utilizationService.getUtilizationForRange(
+      this.userId,
+      start,
+      end
+    );
+
+    return { data };
+  }
+
+  @Get("compare")
+  async compare(
+    @Query("start") startStr: string,
+    @Query("end") endStr: string
+  ) {
+    const start = new Date(`${startStr}T00:00:00.000Z`);
+    const end = new Date(`${endStr}T23:59:59.999Z`);
+
+    const data = await this.utilizationService.compareRanges(
+      this.userId,
+      start,
+      end
+    );
+
+=======
   // TODO: Replace with real userId from JWT once auth guard is wired
   private readonly userId = BigInt(1);
 
@@ -69,11 +109,15 @@ export class UtilizationController {
     if (start > end) throw new BadRequestException("start must be <= end");
 
     const data = await this.utilizationService.compareRanges(this.userId, start, end);
+>>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
     return { data };
   }
 
   @Get("mock")
   mock() {
+<<<<<<< HEAD
+    return { message: "Mock endpoint still available" };
+=======
     const mockInputs: UtilizationInput[] = [
       { spendCategory: SpendCategory.GROCERIES, budgetLimit: 400, currentSpend: 120 },
       { spendCategory: SpendCategory.RENT, budgetLimit: 1200, currentSpend: 1200 },
@@ -83,5 +127,6 @@ export class UtilizationController {
 
     const { rows, alerts } = this.utilizationService.calculateRows(mockInputs);
     return { data: rows, alerts };
+>>>>>>> f4f7c53be921385c9c832f42bd2eff0a702db8a0
   }
 }
