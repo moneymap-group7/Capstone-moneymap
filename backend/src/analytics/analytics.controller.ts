@@ -46,6 +46,29 @@ export class AnalyticsController {
     return this.analyticsService.getByCategory(userId, startDate, endDate);
   }
 
+    @Get("top-merchants")
+  @UseGuards(JwtAuthGuard)
+  async topMerchants(
+    @Req() req: Request,
+    @Query("start") start?: string,
+    @Query("end") end?: string,
+    @Query("limit") limit?: string,
+  ) {
+    const userId = (req as any)?.user?.userId;
+    if (!userId) throw new UnauthorizedException();
+
+    const { startDate, endDate } = parseDateRange(
+      { ...(req.query as any), start, end },
+      { daysBack: 30 },
+    );
+
+    const lim = Math.min(Math.max(Number(limit ?? 10) || 10, 1), 50);
+
+    return this.analyticsService.getTopMerchants(userId, startDate, endDate, {
+      limit: lim,
+    });
+  }
+
   @Get("aggregation")
 @UseGuards(JwtAuthGuard)
 async aggregation(

@@ -11,6 +11,19 @@ export type AggregationSummary = {
   byCategory: Array<{ spendCategory: SpendCategory; total: string }>;
 };
 
+export type TopMerchantItem = {
+  merchant: string;
+  total: string; // "123.45"
+  count: number;
+};
+
+export type TopMerchantsResponse = {
+  startDate: string;
+  endDate: string;
+  limit: number;
+  items: TopMerchantItem[];
+};
+
 export type MonthlyPoint = {
   month: string;
   income: string;
@@ -61,6 +74,13 @@ export class AnalyticsService {
 
   private toBigInt(userId: string | number | bigint): bigint {
     return typeof userId === "bigint" ? userId : BigInt(userId);
+  }
+
+    private normalizeMerchant(raw: unknown): string {
+    const s = typeof raw === "string" ? raw : "";
+    const trimmed = s.trim().replace(/\s+/g, " ");
+    if (!trimmed) return "UNKNOWN";
+    return trimmed.toUpperCase();
   }
 
   private decToString(v: any): string {
@@ -199,6 +219,66 @@ export class AnalyticsService {
     return {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
+      items,
+    };
+  }
+
+    async getTopMerchants(
+    userId: string | number | bigint,
+    startDate: Date,
+    endDate: Date,
+    opts?: { limit?: number },
+  ): Promise<TopMerchantsResponse> {
+    const uid = this.toBigInt(userId);
+    const limit = Math.min(Math.max(opts?.limit ?? 10, 1), 50);
+
+      const tx = await this.prisma.transaction.findMany({
+      where: {
+        userId: uid,
+        transactionDate: { gte: startDate, lte: endDate },
+        transactionType: "DEBIT",
+      },
+      select: {
+        amount: true,
+        description: true as any,
+      },
+    });
+
+    const toCents = (s: string) => Math.round(Number(s) * 100);
+
+    const map = new Map<string, { cents: number; count: number }>();
+
+    for (const row of tx as any[]) {
+      const amtStr = this.decToString(row.amount);
+      const centsAbs = Math.abs(toCents(amtStr));
+
+      const merchantRaw =
+        row.description;
+
+      const merchant = this.normalizeMerchant(merchantRaw);
+
+      const prev = map.get(merchant);
+      if (prev) {
+        prev.cents += centsAbs;
+        prev.count += 1;
+      } else {
+        map.set(merchant, { cents: centsAbs, count: 1 });
+      }
+    }
+
+    const items: TopMerchantItem[] = Array.from(map.entries())
+      .map(([merchant, v]) => ({
+        merchant,
+        total: (v.cents / 100).toFixed(2),
+        count: v.count,
+      }))
+      .sort((a, b) => Number(b.total) - Number(a.total))
+      .slice(0, limit);
+
+    return {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      limit,
       items,
     };
   }
