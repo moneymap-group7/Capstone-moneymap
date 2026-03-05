@@ -2,6 +2,9 @@ import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CsvIngestionService } from "../parsing/csv/csv-ingestion.service";
 import { StatementStatus, StatusResponse } from "./statement-status";
+import {  isIngestionError } from "../parsing/csv/ingestion-errors";
+import type { IngestionErrorCode } from "../parsing/csv/ingestion-errors";
+import { HttpException } from "@nestjs/common";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -95,13 +98,40 @@ export class StatementsService {
         },
       };
     } catch (e: any) {
+      // Default message
+      let message = e?.message ?? "Processing failed.";
+      let errorCode: IngestionErrorCode | null = null;
+      let extra: Record<string, any> = {};
+
+      // If our ingestion layer threw a typed error
+      if (isIngestionError(e)) {
+        errorCode = e.code;
+        if (e.bank) detectedBank = e.bank;
+        if (e.details) extra = e.details;
+      }
+
+      // If a Nest HttpException was thrown (e.g., validateCibcRows throws BadRequestException)
+      if (e instanceof HttpException) {
+        const resp: any = e.getResponse?.();
+        // If validator threw an object like { message, totalErrors, errors }
+        if (resp && typeof resp === "object") {
+          // keep message stable but not huge
+          message = resp.message ?? message;
+          if (!errorCode) errorCode = "VALIDATION_FAILED";
+          if (resp.errors) extra.errors = resp.errors;
+          if (resp.totalErrors) extra.totalErrors = resp.totalErrors;
+        }
+      }
+
       return {
         ...base,
         status: StatementStatus.FAILED,
-        message: e?.message ?? "Processing failed.",
+        message,
         details: {
           bank: detectedBank,
           transactionsInserted: 0,
+          errorCode,
+          ...extra,
         },
       };
     }
