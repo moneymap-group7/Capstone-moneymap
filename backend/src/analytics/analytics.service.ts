@@ -11,6 +11,22 @@ export type AggregationSummary = {
   byCategory: Array<{ spendCategory: SpendCategory; total: string }>;
 };
 
+export type RecurringItem = {
+  merchant: string;
+  cadence: "MONTHLY" | "WEEKLY" | "UNKNOWN";
+  occurrences: number;
+  avgAmount: string;        
+  lastDate: string;         // ISO
+  nextEstimatedDate?: string; // ISO 
+};
+
+export type RecurringResponse = {
+  startDate: string;
+  endDate: string;
+  months: number;
+  items: RecurringItem[];
+};
+
 export type TopMerchantItem = {
   merchant: string;
   total: string; // "123.45"
@@ -246,6 +262,130 @@ export class AnalyticsService {
       items,
     };
   }
+
+  async getRecurring(
+  userId: string | number | bigint,
+  startDate: Date,
+  endDate: Date,
+  opts?: { months?: number },
+): Promise<RecurringResponse> {
+  const uid = this.toBigInt(userId);
+  const months = opts?.months ?? 6;
+
+  // Pull only the fields we need
+  const tx = await this.prisma.transaction.findMany({
+    where: {
+      userId: uid,
+      transactionDate: { gte: startDate, lte: endDate },
+      transactionType: "DEBIT",
+    },
+    select: {
+      transactionDate: true,
+      amount: true,
+      description: true,
+    },
+    orderBy: { transactionDate: "asc" },
+  });
+
+  const toCents = (s: string) => {
+    const n = Number(s);
+    return Number.isFinite(n) ? Math.round(n * 100) : 0;
+  };
+  const fromCents = (c: number) => (c / 100).toFixed(2);
+
+  // Group by normalized merchant
+  const groups = new Map<string, { dates: Date[]; cents: number[] }>();
+
+  for (const row of tx) {
+    const merchant = this.normalizeMerchant(row.description);
+    const centsAbs = Math.abs(toCents(this.decToString(row.amount)));
+
+    const g = groups.get(merchant);
+    if (g) {
+      g.dates.push(row.transactionDate);
+      g.cents.push(centsAbs);
+    } else {
+      groups.set(merchant, { dates: [row.transactionDate], cents: [centsAbs] });
+    }
+  }
+
+  function median(nums: number[]) {
+    if (nums.length === 0) return 0;
+    const a = [...nums].sort((x, y) => x - y);
+    const mid = Math.floor(a.length / 2);
+    return a.length % 2 ? a[mid] : Math.round((a[mid - 1] + a[mid]) / 2);
+  }
+
+  function medianGapDays(dates: Date[]) {
+    if (dates.length < 2) return 0;
+    const gaps: number[] = [];
+    for (let i = 1; i < dates.length; i++) {
+      const diffMs = dates[i].getTime() - dates[i - 1].getTime();
+      gaps.push(Math.round(diffMs / (24 * 60 * 60 * 1000)));
+    }
+    return median(gaps);
+  }
+
+  function classifyCadence(medGap: number): "MONTHLY" | "WEEKLY" | "UNKNOWN" {
+    if (medGap >= 27 && medGap <= 35) return "MONTHLY";
+    if (medGap >= 6 && medGap <= 8) return "WEEKLY";
+    return "UNKNOWN";
+  }
+
+  const items: RecurringItem[] = [];
+
+  for (const [merchant, g] of groups.entries()) {
+    const occurrences = g.dates.length;
+    if (occurrences < 3) continue; 
+
+    const medCents = median(g.cents);
+
+    const tol = Math.max(Math.round(medCents * 0.05), 500);
+
+    const withinTol = g.cents.filter((c) => Math.abs(c - medCents) <= tol).length;
+    if (withinTol / occurrences < 0.8) continue;
+
+    const medGap = medianGapDays(g.dates);
+    const cadence = classifyCadence(medGap);
+
+    const lastDate = g.dates[g.dates.length - 1];
+    const avgCents = Math.round(g.cents.reduce((s, c) => s + c, 0) / occurrences);
+
+    // Predict next date from median cadence
+    const nextEstimatedDate =
+      cadence === "MONTHLY"
+        ? new Date(Date.UTC(
+            lastDate.getUTCFullYear(),
+            lastDate.getUTCMonth() + 1,
+            lastDate.getUTCDate(),
+            0, 0, 0,
+          ))
+        : cadence === "WEEKLY"
+          ? new Date(lastDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+          : undefined;
+
+    items.push({
+      merchant,
+      cadence,
+      occurrences,
+      avgAmount: fromCents(avgCents),
+      lastDate: lastDate.toISOString(),
+      nextEstimatedDate: nextEstimatedDate?.toISOString(),
+    });
+  }
+
+  items.sort((a, b) => {
+    if (b.occurrences !== a.occurrences) return b.occurrences - a.occurrences;
+    return Number(b.avgAmount) - Number(a.avgAmount);
+  });
+
+  return {
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    months,
+    items,
+  };
+}
 
     async getTopMerchants(
     userId: string | number | bigint,
