@@ -5,6 +5,7 @@ import { StatementStatus, StatusResponse } from "./statement-status";
 import {  isIngestionError } from "../parsing/csv/ingestion-errors";
 import type { IngestionErrorCode } from "../parsing/csv/ingestion-errors";
 import { HttpException } from "@nestjs/common";
+import { AutoCategorizeService } from "../common/categorization/auto-categorize.service";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -12,7 +13,8 @@ import * as path from "path";
 export class StatementsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly csvIngestionService: CsvIngestionService
+    private readonly csvIngestionService: CsvIngestionService,
+    private readonly autoCategorize: AutoCategorizeService
   ) {}
 
   async processUploadedStatement(params: {
@@ -50,6 +52,7 @@ export class StatementsService {
       detectedBank = bank ?? null;
 
       const parsed = rows ?? [];
+      const categorized = this.autoCategorize.applyToTransactions(parsed);
 
       // Safe debug logging (no sample transaction rows)
       if (process.env.NODE_ENV !== "production") {
@@ -73,7 +76,7 @@ export class StatementsService {
       const userIdBigInt = BigInt(params.userId);
 
       const result = await this.prisma.transaction.createMany({
-        data: parsed.map((t: any) => ({
+        data: categorized.map((t: any) => ({
           userId: userIdBigInt,
           transactionDate: t.transactionDate,
           description: t.description,
