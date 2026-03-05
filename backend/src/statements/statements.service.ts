@@ -6,6 +6,7 @@ import {  isIngestionError } from "../parsing/csv/ingestion-errors";
 import type { IngestionErrorCode } from "../parsing/csv/ingestion-errors";
 import { HttpException } from "@nestjs/common";
 import { AutoCategorizeService } from "../common/categorization/auto-categorize.service";
+import { TransactionSource, TransactionType } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -76,55 +77,85 @@ export class StatementsService {
       const userIdBigInt = BigInt(params.userId);
 
       const result = await this.prisma.transaction.createMany({
-        data: categorized.map((t: any) => ({
+      data: categorized.map((t: any) => {
+        // amount: prefer explicit amount, else deposits - withdrawals
+        const rawAmount =
+          t.amount != null
+            ? Number(t.amount)
+            : Number(t.deposits ?? 0) - Number(t.withdrawals ?? 0);
+
+        const amount = Number.isFinite(rawAmount) ? rawAmount : 0;
+
+        // date: ensure Date object
+        const txDate =
+          t.transactionDate instanceof Date
+            ? t.transactionDate
+            : new Date(t.transactionDate);
+
+        if (isNaN(txDate.getTime())) {
+          throw new UnprocessableEntityException(
+            `Invalid transactionDate: ${t.transactionDate}`
+          );
+        }
+
+        // tx type: use provided if valid, else derive from sign
+        const txType: TransactionType =
+          t.transactionType === TransactionType.DEBIT ||
+          t.transactionType === TransactionType.CREDIT
+            ? t.transactionType
+            : amount < 0
+              ? TransactionType.DEBIT
+              : TransactionType.CREDIT;
+
+        return {
           userId: userIdBigInt,
-          transactionDate: t.transactionDate,
-          description: t.description,
-          // Ensure Prisma required field is never undefined
-          amount: Number(t.amount ?? t.deposits ?? t.withdrawals ?? 0),
+          transactionDate: txDate,
+          description: String(t.description ?? "").slice(0, 255),
+          amount,
           currency: t.currency ?? "CAD",
-          transactionType: t.transactionType,
-          source: t.source,
+          transactionType: txType,
+          source: t.source ?? TransactionSource.CSV,
           spendCategory: t.spendCategory,
           cardLast4: t.cardLast4 ?? null,
           balanceAfter: t.balanceAfter ?? null,
-        })),
-      });
+        };
+      }),
+    });
 
-      return {
-        ...base,
-        status: StatementStatus.COMPLETED,
-        message: "Statement processed successfully.",
-        details: {
-          bank: detectedBank,
-          transactionsInserted: result.count,
-        },
-      };
-    } catch (e: any) {
-      // Default message
-      let message = e?.message ?? "Processing failed.";
-      let errorCode: IngestionErrorCode | null = null;
-      let extra: Record<string, any> = {};
+          return {
+            ...base,
+            status: StatementStatus.COMPLETED,
+            message: "Statement processed successfully.",
+            details: {
+              bank: detectedBank,
+              transactionsInserted: result.count,
+            },
+          };
+        } catch (e: any) {
+          // Default message
+          let message = e?.message ?? "Processing failed.";
+          let errorCode: IngestionErrorCode | null = null;
+          let extra: Record<string, any> = {};
 
-      // If our ingestion layer threw a typed error
-      if (isIngestionError(e)) {
-        errorCode = e.code;
-        if (e.bank) detectedBank = e.bank;
-        if (e.details) extra = e.details;
-      }
+          // If our ingestion layer threw a typed error
+          if (isIngestionError(e)) {
+            errorCode = e.code;
+            if (e.bank) detectedBank = e.bank;
+            if (e.details) extra = e.details;
+          }
 
-      // If a Nest HttpException was thrown (e.g., validateCibcRows throws BadRequestException)
-      if (e instanceof HttpException) {
-        const resp: any = e.getResponse?.();
-        // If validator threw an object like { message, totalErrors, errors }
-        if (resp && typeof resp === "object") {
-          // keep message stable but not huge
-          message = resp.message ?? message;
-          if (!errorCode) errorCode = "VALIDATION_FAILED";
-          if (resp.errors) extra.errors = resp.errors;
-          if (resp.totalErrors) extra.totalErrors = resp.totalErrors;
-        }
-      }
+          // If a Nest HttpException was thrown (e.g., validateCibcRows throws BadRequestException)
+          if (e instanceof HttpException) {
+            const resp: any = e.getResponse?.();
+            // If validator threw an object like { message, totalErrors, errors }
+            if (resp && typeof resp === "object") {
+              // keep message stable but not huge
+              message = resp.message ?? message;
+              if (!errorCode) errorCode = "VALIDATION_FAILED";
+              if (resp.errors) extra.errors = resp.errors;
+              if (resp.totalErrors) extra.totalErrors = resp.totalErrors;
+            }
+          }
 
       return {
         ...base,
