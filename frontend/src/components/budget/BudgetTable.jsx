@@ -1,6 +1,6 @@
 import BudgetRow from "./BudgetRow";
 
-export default function BudgetTable({ rows = [] }) {
+export default function BudgetTable({ rows = [], onEdit }) {
   return (
     <div>
       <div className="tableHead">
@@ -11,7 +11,7 @@ export default function BudgetTable({ rows = [] }) {
         <div className="num">Edit</div>
       </div>
 
-      {rows.map((r) => (r ? <BudgetRow key={r.category} row={r} /> : null))}
+      {rows.map((r) => (r ? <BudgetRow key={r.category} row={r} onEdit={onEdit} /> : null))}
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import ProgressBar from "./ProgressBar";
 
 function money(n) {
-  return `$${Number(n).toFixed(0)}`;
+  const num = Number(n);
+  if (!Number.isFinite(num)) return "$0";
+  return `$${num.toFixed(0)}`;
 }
 
 function getUtilClass(utilization) {
@@ -10,7 +12,7 @@ function getUtilClass(utilization) {
   return "ok";
 }
 
-export default function BudgetRow({ row }) {
+export default function BudgetRow({ row, onEdit }) {
   if (!row) return null;
 
   const limit = Number(row.limit ?? 0);
@@ -38,10 +40,16 @@ export default function BudgetRow({ row }) {
             style={{ width: `${width}%` }}
           />
         </div>
+
+        {/* If you want to use ProgressBar component instead:
+            <ProgressBar value={width} variant={utilClass} />
+        */}
       </div>
 
       <div className="num">
-        <button className="btn">Edit</button>
+        <button type="button" className="btn" onClick={() => onEdit?.(row)}>
+          Edit
+        </button>
       </div>
     </div>
   );
