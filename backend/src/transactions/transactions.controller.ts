@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UnsupportedMediaTypeException,
   UploadedFile,
   UseGuards,
@@ -18,7 +19,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ZodValidationPipe } from "nestjs-zod";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { TransactionsService } from "./transactions.service";
@@ -139,6 +140,34 @@ export class TransactionsController {
       cardLast4,
     });
   }
+
+    @UseGuards(JwtAuthGuard)
+  @Get("export/csv")
+  async exportCsv(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query("month") month?: string,
+    @Query("category") category?: string,
+  ) {
+    const user = req.user as { userId: string; email: string };
+    const userId = user?.userId;
+
+    if (!userId) {
+      throw new BadRequestException("Missing authenticated user.");
+    }
+
+    const csv = await this.transactionsService.exportTransactionsCsv(userId, {
+      month,
+      category,
+    });
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", 'attachment; filename="transactions.csv"');
+
+    return res.send(csv);
+  }
+
+
 
   @UseGuards(JwtAuthGuard)
   @Get(":id")
