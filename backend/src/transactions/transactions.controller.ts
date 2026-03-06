@@ -121,6 +121,7 @@ export class TransactionsController {
     @Query("fromDate") fromDate?: string,
     @Query("toDate") toDate?: string,
     @Query("category") category?: string,
+    @Query("cardLast4") cardLast4?: string,
   ) {
     const user = req.user as { userId: string; email: string };
 
@@ -135,6 +136,7 @@ export class TransactionsController {
       fromDate,
       toDate,
       category,
+      cardLast4,
     });
   }
 
