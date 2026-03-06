@@ -27,6 +27,7 @@ import type { ValidRow } from "./validation/transaction-csv.validator";
 import { parseCibcCsv } from "./validation/transaction-csv.parser";
 import { validateCibcRows } from "./validation/transaction-csv.validator";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
+import { bulkUpdateCategorySchema, type BulkUpdateCategoryDto } from "./dto/bulk-update-category.dto";
 
 function requireDigits(id: string) {
   if (!/^\d+$/.test(id)) {
@@ -188,6 +189,22 @@ export class TransactionsController {
     const user = req.user as { userId: string; email: string };
     return this.transactionsService.updateSpendCategoryForUser(id, user.userId, dto.spendCategory);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch("bulk-category")
+  @UsePipes(new ZodValidationPipe(bulkUpdateCategorySchema))
+  async bulkUpdateCategory(
+    @Body() dto: BulkUpdateCategoryDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as { userId: string; email: string };
+    return this.transactionsService.bulkUpdateCategoryForUser(
+      dto.transactionIds,
+      user.userId,
+      dto.spendCategory,
+    );
+  }
+
 
   @UseGuards(JwtAuthGuard)
   @Patch(":id")

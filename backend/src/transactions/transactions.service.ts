@@ -290,6 +290,45 @@ export class TransactionsService {
     };
   }
 
+
+  async bulkUpdateCategoryForUser(
+    transactionIds: string[],
+    userId: string,
+    spendCategory: string,
+  ) {
+    const allowed = Object.values(SpendCategory);
+    if (!allowed.includes(spendCategory as SpendCategory)) {
+      throw new BadRequestException(
+        `Invalid spendCategory: ${spendCategory}. Allowed: ${allowed.join(", ")}`,
+      );
+    }
+
+    const uniqueIds = [...new Set(transactionIds)];
+
+    if (!uniqueIds.length) {
+      throw new BadRequestException("At least one transactionId is required");
+    }
+
+    const uid = BigInt(userId);
+
+    const result = await this.prisma.transaction.updateMany({
+      where: {
+        userId: uid,
+        transactionId: {
+          in: uniqueIds.map((id) => BigInt(id)),
+        },
+      },
+      data: {
+        spendCategory: spendCategory as SpendCategory,
+      },
+    });
+
+    return {
+      message: "Transactions updated successfully",
+      updatedCount: result.count,
+    };
+  }
+  
     private escapeCsvValue(value: string): string {
     const safe = String(value).replace(/"/g, '""');
     return `"${safe}"`;
