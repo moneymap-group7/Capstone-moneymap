@@ -156,6 +156,84 @@ export class TransactionsService {
     };
   }
 
+    async exportTransactionsCsv(
+    userId: string,
+    filters: { month?: string; category?: string } = {},
+  ): Promise<string> {
+    const uid = BigInt(userId);
+
+    const where: Prisma.TransactionWhereInput = {
+      userId: uid,
+    };
+
+    if (filters.category) {
+      const c = String(filters.category).toUpperCase();
+      const allowed = Object.values(SpendCategory);
+
+      if (!allowed.includes(c as SpendCategory)) {
+        throw new BadRequestException("Invalid category.");
+      }
+
+      where.spendCategory = c as SpendCategory;
+    }
+
+    if (filters.month) {
+      const month = String(filters.month).trim();
+
+      if (!/^\d{4}-\d{2}$/.test(month)) {
+        throw new BadRequestException("month must be in YYYY-MM format");
+      }
+
+      const start = new Date(`${month}-01T00:00:00.000Z`);
+      const end = new Date(start);
+      end.setUTCMonth(end.getUTCMonth() + 1);
+
+      where.transactionDate = {
+        gte: start,
+        lt: end,
+      };
+    }
+
+    const rows = await this.prisma.transaction.findMany({
+      where,
+      orderBy: { transactionDate: "desc" },
+    });
+
+    const headers = [
+      "transactionId",
+      "transactionDate",
+      "postedDate",
+      "description",
+      "amount",
+      "currency",
+      "transactionType",
+      "spendCategory",
+      "source",
+      "balanceAfter",
+      "cardLast4",
+      "createdAt",
+      "updatedAt",
+    ];
+
+    const csvRows = rows.map((t) => [
+      this.escapeCsvValue(t.transactionId.toString()),
+      this.escapeCsvValue(t.transactionDate ? t.transactionDate.toISOString() : ""),
+      this.escapeCsvValue(t.postedDate ? t.postedDate.toISOString() : ""),
+      this.escapeCsvValue(t.description ?? ""),
+      this.escapeCsvValue(t.amount?.toString() ?? ""),
+      this.escapeCsvValue(t.currency ?? ""),
+      this.escapeCsvValue(t.transactionType ?? ""),
+      this.escapeCsvValue(t.spendCategory ?? ""),
+      this.escapeCsvValue(t.source ?? ""),
+      this.escapeCsvValue(t.balanceAfter?.toString() ?? ""),
+      this.escapeCsvValue(t.cardLast4 ?? ""),
+      this.escapeCsvValue(t.createdAt ? t.createdAt.toISOString() : ""),
+      this.escapeCsvValue(t.updatedAt ? t.updatedAt.toISOString() : ""),
+    ]);
+
+    return [headers.join(","), ...csvRows.map((row) => row.join(","))].join("\n");
+  }
+
   async getByIdForUser(transactionId: string, userId: string) {
     const tid = BigInt(transactionId);
     const uid = BigInt(userId);
@@ -211,4 +289,10 @@ export class TransactionsService {
       data: updated,
     };
   }
+
+    private escapeCsvValue(value: string): string {
+    const safe = String(value).replace(/"/g, '""');
+    return `"${safe}"`;
+  }
+
 }
