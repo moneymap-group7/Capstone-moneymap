@@ -100,6 +100,7 @@ export class AnalyticsService {
   if (!v) return "UNKNOWN";
 
   v = v.toUpperCase();
+  v = v.replace(/-/g, "");
 
   // Remove masked card patterns like ******5569 or *1234
   v = v.replace(/\*{2,}\d{2,}/g, " ");
@@ -347,6 +348,8 @@ export class AnalyticsService {
 
     const medGap = medianGapDays(g.dates);
     const cadence = classifyCadence(medGap);
+
+    if (cadence === "UNKNOWN") continue;
 
     const lastDate = g.dates[g.dates.length - 1];
     const avgCents = Math.round(g.cents.reduce((s, c) => s + c, 0) / occurrences);
