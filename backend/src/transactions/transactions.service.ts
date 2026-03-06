@@ -14,39 +14,53 @@ import {
   TransactionSource,
   TransactionType,
 } from "@prisma/client";
-import { AutoCategorizeService } from "../common/categorization/auto-categorize.service";
+import { CategoryResolverService } from "../common/categorization/category-resolver/category-resolver.service";
 import type { ValidRow } from "./validation/transaction-csv.validator";
 
 @Injectable()
 export class TransactionsService {
-  constructor(private readonly prisma: PrismaService,
-    private readonly autoCategorize: AutoCategorizeService
-  ) {}
+  constructor(
+  private readonly prisma: PrismaService,
+  private readonly categoryResolver: CategoryResolverService,
+) {}
 
   async saveCsvRowsForUser(userId: string, rows: ValidRow[]) {
-    const uid = BigInt(userId);
+  const uid = BigInt(userId);
 
-    const data = rows.map((r) => ({
-      userId: uid,
-      transactionDate: r.transactionDate,
-      postedDate: null,
-      description: (r.description ?? "CSV transaction").slice(0, 255),
-      amount: r.amount,
-      currency: r.currency,
-      transactionType: r.transactionType,
-      source: TransactionSource.CSV,
-      spendCategory: this.autoCategorize.categorize({ description: r.description }),
-      cardLast4: r.cardLast4 ?? null,
-      balanceAfter: null,
-    }));
+  const data = await Promise.all(
+    rows.map(async (r) => {
+      const description = (r.description ?? "CSV transaction").slice(0, 255);
 
-    const result = await this.prisma.transaction.createMany({
-      data,
-      skipDuplicates: false,
-    });
+      const spendCategory = await this.categoryResolver.resolve({
+        userId: uid,
+        description,
+        amount: new Prisma.Decimal(r.amount),
+        transactionType: r.transactionType,
+      });
 
-    return { inserted: result.count };
-  }
+      return {
+        userId: uid,
+        transactionDate: r.transactionDate,
+        postedDate: null,
+        description,
+        amount: r.amount,
+        currency: r.currency,
+        transactionType: r.transactionType,
+        source: TransactionSource.CSV,
+        spendCategory,
+        cardLast4: r.cardLast4 ?? null,
+        balanceAfter: null,
+      };
+    }),
+  );
+
+  const result = await this.prisma.transaction.createMany({
+    data,
+    skipDuplicates: false,
+  });
+
+  return { inserted: result.count };
+}
 
   async listForUser(
     userId: string,

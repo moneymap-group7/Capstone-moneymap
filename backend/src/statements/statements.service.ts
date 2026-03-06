@@ -5,8 +5,8 @@ import { StatementStatus, StatusResponse } from "./statement-status";
 import {  isIngestionError } from "../parsing/csv/ingestion-errors";
 import type { IngestionErrorCode } from "../parsing/csv/ingestion-errors";
 import { HttpException } from "@nestjs/common";
-import { AutoCategorizeService } from "../common/categorization/auto-categorize.service";
-import { TransactionSource, TransactionType } from "@prisma/client";
+import { CategoryResolverService } from "../common/categorization/category-resolver/category-resolver.service";
+import { Prisma, TransactionSource, TransactionType } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -15,7 +15,7 @@ export class StatementsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly csvIngestionService: CsvIngestionService,
-    private readonly autoCategorize: AutoCategorizeService
+    private readonly categoryResolver: CategoryResolverService
   ) {}
 
   async processUploadedStatement(params: {
@@ -53,7 +53,50 @@ export class StatementsService {
       detectedBank = bank ?? null;
 
       const parsed = rows ?? [];
-      const categorized = this.autoCategorize.applyToTransactions(parsed);
+      const userIdBigInt = BigInt(params.userId);
+
+const categorized = await Promise.all(
+  parsed.map(async (t: any) => {
+    const rawAmount =
+      t.amount != null
+        ? Number(t.amount)
+        : Number(t.deposits ?? 0) - Number(t.withdrawals ?? 0);
+
+    const amount = Number.isFinite(rawAmount) ? rawAmount : 0;
+
+    const txType: TransactionType =
+      t.transactionType === TransactionType.DEBIT ||
+      t.transactionType === TransactionType.CREDIT
+        ? t.transactionType
+        : amount < 0
+          ? TransactionType.DEBIT
+          : TransactionType.CREDIT;
+
+    const current = t.spendCategory;
+    const shouldSet =
+      !current || String(current) === "UNCATEGORIZED";
+
+    if (!shouldSet) {
+      return {
+        ...t,
+        spendCategory: current,
+      };
+    }
+
+    const spendCategory = await this.categoryResolver.resolve({
+      userId: userIdBigInt,
+      description: String(t.description ?? ""),
+      amount: new Prisma.Decimal(amount),
+      transactionType: txType,
+    });
+
+    return {
+      ...t,
+      spendCategory,
+      transactionType: txType,
+    };
+  }),
+);
 
       // Safe debug logging (no sample transaction rows)
       if (process.env.NODE_ENV !== "production") {
@@ -73,8 +116,7 @@ export class StatementsService {
         };
       }
 
-      // 4) Save to DB
-      const userIdBigInt = BigInt(params.userId);
+      
 
       const result = await this.prisma.transaction.createMany({
       data: categorized.map((t: any) => {
