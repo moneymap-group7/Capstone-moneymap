@@ -58,6 +58,7 @@ export class TransactionsService {
       fromDate?: string;
       toDate?: string;
       category?: string;
+      cardLast4?: string;
     } = {},
   ) {
     const uid = BigInt(userId);
@@ -91,6 +92,14 @@ export class TransactionsService {
         throw new BadRequestException("Invalid category.");
       }
       where.spendCategory = c as SpendCategory;
+    }
+
+    if (opts.cardLast4) {
+      const v = String(opts.cardLast4).trim();
+      if (!/^\d{4}$/.test(v)) {
+        throw new BadRequestException("cardLast4 must be exactly 4 digits.");
+      }
+      where.cardLast4 = v;
     }
 
     const isYyyyMmDd = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
