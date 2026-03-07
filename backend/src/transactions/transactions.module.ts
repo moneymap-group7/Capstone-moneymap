@@ -6,10 +6,6 @@ import { CommonModule } from "../common/common.module";
 
 @Module({
   imports: [PrismaModule, CommonModule],
-import { CommonModule } from "../common/common.module";
-
-@Module({
-  imports: [PrismaModule, CommonModule],
   controllers: [TransactionsController],
   providers: [TransactionsService],
 })

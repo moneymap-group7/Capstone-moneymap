@@ -11,7 +11,6 @@ import {
   Query,
   Req,
   Res,
-  Res,
   UnsupportedMediaTypeException,
   UploadedFile,
   UseGuards,
@@ -21,7 +20,6 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ZodValidationPipe } from "nestjs-zod";
 import type { Request, Response } from "express";
-import type { Request, Response } from "express";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { TransactionsService } from "./transactions.service";
@@ -29,7 +27,6 @@ import type { ValidRow } from "./validation/transaction-csv.validator";
 import { parseCibcCsv } from "./validation/transaction-csv.parser";
 import { validateCibcRows } from "./validation/transaction-csv.validator";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
-import { bulkUpdateCategorySchema, type BulkUpdateCategoryDto } from "./dto/bulk-update-category.dto";
 import { bulkUpdateCategorySchema, type BulkUpdateCategoryDto } from "./dto/bulk-update-category.dto";
 
 function requireDigits(id: string) {
@@ -126,7 +123,6 @@ export class TransactionsController {
     @Query("fromDate") fromDate?: string,
     @Query("toDate") toDate?: string,
     @Query("category") category?: string,
-    @Query("cardLast4") cardLast4?: string,
     @Query("cardLast4") cardLast4?: string,
   ) {
     const user = req.user as { userId: string; email: string };
