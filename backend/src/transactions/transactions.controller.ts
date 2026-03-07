@@ -10,10 +10,7 @@ import {
   Post,
   Query,
   Req,
-<<<<<<< HEAD
   Res,
-=======
->>>>>>> origin/main
   UnsupportedMediaTypeException,
   UploadedFile,
   UseGuards,
@@ -22,11 +19,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ZodValidationPipe } from "nestjs-zod";
-<<<<<<< HEAD
 import type { Request, Response } from "express";
-=======
-import type { Request } from "express";
->>>>>>> origin/main
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { TransactionsService } from "./transactions.service";
@@ -34,10 +27,7 @@ import type { ValidRow } from "./validation/transaction-csv.validator";
 import { parseCibcCsv } from "./validation/transaction-csv.parser";
 import { validateCibcRows } from "./validation/transaction-csv.validator";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
-<<<<<<< HEAD
 import { bulkUpdateCategorySchema, type BulkUpdateCategoryDto } from "./dto/bulk-update-category.dto";
-=======
->>>>>>> origin/main
 
 function requireDigits(id: string) {
   if (!/^\d+$/.test(id)) {
@@ -133,10 +123,7 @@ export class TransactionsController {
     @Query("fromDate") fromDate?: string,
     @Query("toDate") toDate?: string,
     @Query("category") category?: string,
-<<<<<<< HEAD
     @Query("cardLast4") cardLast4?: string,
-=======
->>>>>>> origin/main
   ) {
     const user = req.user as { userId: string; email: string };
 
@@ -151,7 +138,6 @@ export class TransactionsController {
       fromDate,
       toDate,
       category,
-<<<<<<< HEAD
       cardLast4,
     });
   }
@@ -184,11 +170,6 @@ export class TransactionsController {
 
 
 
-=======
-    });
-  }
-
->>>>>>> origin/main
   @UseGuards(JwtAuthGuard)
   @Get(":id")
   async getMine(@Param("id") id: string, @Req() req: Request) {
@@ -210,7 +191,6 @@ export class TransactionsController {
   }
 
   @UseGuards(JwtAuthGuard)
-<<<<<<< HEAD
   @Patch("bulk-category")
   @UsePipes(new ZodValidationPipe(bulkUpdateCategorySchema))
   async bulkUpdateCategory(
@@ -227,8 +207,6 @@ export class TransactionsController {
 
 
   @UseGuards(JwtAuthGuard)
-=======
->>>>>>> origin/main
   @Patch(":id")
   async updateMine(
     @Param("id") id: string,
