@@ -15,6 +15,7 @@ import {
   TransactionType,
 } from "@prisma/client";
 import { CategoryResolverService } from "../common/categorization/category-resolver/category-resolver.service";
+import { CategoryResolverService } from "../common/categorization/category-resolver/category-resolver.service";
 import type { ValidRow } from "./validation/transaction-csv.validator";
 
 @Injectable()
@@ -72,6 +73,7 @@ export class TransactionsService {
       fromDate?: string;
       toDate?: string;
       category?: string;
+      cardLast4?: string;
       cardLast4?: string;
     } = {},
   ) {
