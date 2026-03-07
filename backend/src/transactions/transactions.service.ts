@@ -14,11 +14,59 @@ import {
   TransactionSource,
   TransactionType,
 } from "@prisma/client";
+<<<<<<< HEAD
+import { CategoryResolverService } from "../common/categorization/category-resolver/category-resolver.service";
+=======
 
+>>>>>>> origin/main
 import type { ValidRow } from "./validation/transaction-csv.validator";
 
 @Injectable()
 export class TransactionsService {
+<<<<<<< HEAD
+  constructor(
+  private readonly prisma: PrismaService,
+  private readonly categoryResolver: CategoryResolverService,
+) {}
+
+  async saveCsvRowsForUser(userId: string, rows: ValidRow[]) {
+  const uid = BigInt(userId);
+
+  const data = await Promise.all(
+    rows.map(async (r) => {
+      const description = (r.description ?? "CSV transaction").slice(0, 255);
+
+      const spendCategory = await this.categoryResolver.resolve({
+        userId: uid,
+        description,
+        amount: new Prisma.Decimal(r.amount),
+        transactionType: r.transactionType,
+      });
+
+      return {
+        userId: uid,
+        transactionDate: r.transactionDate,
+        postedDate: null,
+        description,
+        amount: r.amount,
+        currency: r.currency,
+        transactionType: r.transactionType,
+        source: TransactionSource.CSV,
+        spendCategory,
+        cardLast4: r.cardLast4 ?? null,
+        balanceAfter: null,
+      };
+    }),
+  );
+
+  const result = await this.prisma.transaction.createMany({
+    data,
+    skipDuplicates: false,
+  });
+
+  return { inserted: result.count };
+}
+=======
   constructor(private readonly prisma: PrismaService) {}
 
   async saveCsvRowsForUser(userId: string, rows: ValidRow[]) {
@@ -45,6 +93,7 @@ export class TransactionsService {
 
     return { inserted: result.count };
   }
+>>>>>>> origin/main
 
   async listForUser(
     userId: string,
@@ -56,6 +105,10 @@ export class TransactionsService {
       fromDate?: string;
       toDate?: string;
       category?: string;
+<<<<<<< HEAD
+      cardLast4?: string;
+=======
+>>>>>>> origin/main
     } = {},
   ) {
     const uid = BigInt(userId);
@@ -91,6 +144,17 @@ export class TransactionsService {
       where.spendCategory = c as SpendCategory;
     }
 
+<<<<<<< HEAD
+    if (opts.cardLast4) {
+      const v = String(opts.cardLast4).trim();
+      if (!/^\d{4}$/.test(v)) {
+        throw new BadRequestException("cardLast4 must be exactly 4 digits.");
+      }
+      where.cardLast4 = v;
+    }
+
+=======
+>>>>>>> origin/main
     const isYyyyMmDd = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
     if (opts.fromDate && !isYyyyMmDd(opts.fromDate)) {
@@ -131,6 +195,87 @@ export class TransactionsService {
     };
   }
 
+<<<<<<< HEAD
+    async exportTransactionsCsv(
+    userId: string,
+    filters: { month?: string; category?: string } = {},
+  ): Promise<string> {
+    const uid = BigInt(userId);
+
+    const where: Prisma.TransactionWhereInput = {
+      userId: uid,
+    };
+
+    if (filters.category) {
+      const c = String(filters.category).toUpperCase();
+      const allowed = Object.values(SpendCategory);
+
+      if (!allowed.includes(c as SpendCategory)) {
+        throw new BadRequestException("Invalid category.");
+      }
+
+      where.spendCategory = c as SpendCategory;
+    }
+
+    if (filters.month) {
+      const month = String(filters.month).trim();
+
+      if (!/^\d{4}-\d{2}$/.test(month)) {
+        throw new BadRequestException("month must be in YYYY-MM format");
+      }
+
+      const start = new Date(`${month}-01T00:00:00.000Z`);
+      const end = new Date(start);
+      end.setUTCMonth(end.getUTCMonth() + 1);
+
+      where.transactionDate = {
+        gte: start,
+        lt: end,
+      };
+    }
+
+    const rows = await this.prisma.transaction.findMany({
+      where,
+      orderBy: { transactionDate: "desc" },
+    });
+
+    const headers = [
+      "transactionId",
+      "transactionDate",
+      "postedDate",
+      "description",
+      "amount",
+      "currency",
+      "transactionType",
+      "spendCategory",
+      "source",
+      "balanceAfter",
+      "cardLast4",
+      "createdAt",
+      "updatedAt",
+    ];
+
+    const csvRows = rows.map((t) => [
+      this.escapeCsvValue(t.transactionId.toString()),
+      this.escapeCsvValue(t.transactionDate ? t.transactionDate.toISOString() : ""),
+      this.escapeCsvValue(t.postedDate ? t.postedDate.toISOString() : ""),
+      this.escapeCsvValue(t.description ?? ""),
+      this.escapeCsvValue(t.amount?.toString() ?? ""),
+      this.escapeCsvValue(t.currency ?? ""),
+      this.escapeCsvValue(t.transactionType ?? ""),
+      this.escapeCsvValue(t.spendCategory ?? ""),
+      this.escapeCsvValue(t.source ?? ""),
+      this.escapeCsvValue(t.balanceAfter?.toString() ?? ""),
+      this.escapeCsvValue(t.cardLast4 ?? ""),
+      this.escapeCsvValue(t.createdAt ? t.createdAt.toISOString() : ""),
+      this.escapeCsvValue(t.updatedAt ? t.updatedAt.toISOString() : ""),
+    ]);
+
+    return [headers.join(","), ...csvRows.map((row) => row.join(","))].join("\n");
+  }
+
+=======
+>>>>>>> origin/main
   async getByIdForUser(transactionId: string, userId: string) {
     const tid = BigInt(transactionId);
     const uid = BigInt(userId);
@@ -186,4 +331,52 @@ export class TransactionsService {
       data: updated,
     };
   }
+<<<<<<< HEAD
+
+
+  async bulkUpdateCategoryForUser(
+    transactionIds: string[],
+    userId: string,
+    spendCategory: string,
+  ) {
+    const allowed = Object.values(SpendCategory);
+    if (!allowed.includes(spendCategory as SpendCategory)) {
+      throw new BadRequestException(
+        `Invalid spendCategory: ${spendCategory}. Allowed: ${allowed.join(", ")}`,
+      );
+    }
+
+    const uniqueIds = [...new Set(transactionIds)];
+
+    if (!uniqueIds.length) {
+      throw new BadRequestException("At least one transactionId is required");
+    }
+
+    const uid = BigInt(userId);
+
+    const result = await this.prisma.transaction.updateMany({
+      where: {
+        userId: uid,
+        transactionId: {
+          in: uniqueIds.map((id) => BigInt(id)),
+        },
+      },
+      data: {
+        spendCategory: spendCategory as SpendCategory,
+      },
+    });
+
+    return {
+      message: "Transactions updated successfully",
+      updatedCount: result.count,
+    };
+  }
+  
+    private escapeCsvValue(value: string): string {
+    const safe = String(value).replace(/"/g, '""');
+    return `"${safe}"`;
+  }
+
+=======
+>>>>>>> origin/main
 }
