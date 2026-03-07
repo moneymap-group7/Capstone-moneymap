@@ -6,7 +6,8 @@ const httpClient = axios.create({
 
 httpClient.interceptors.request.use((config) => {
   const token =
-    localStorage.getItem("token") ||
+    localStorage.getItem("mm_access_token") ||
+    localStorage.getItem("token") ||    
     localStorage.getItem("accessToken") ||
     localStorage.getItem("jwt");
 
