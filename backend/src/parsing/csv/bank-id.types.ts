@@ -1,1 +1,0 @@
-export type BankId = "CIBC" | "RBC" | "TD" | "BMO" | "UNKNOWN";
