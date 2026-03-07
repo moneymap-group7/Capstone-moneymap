@@ -14,16 +14,11 @@ import {
   TransactionSource,
   TransactionType,
 } from "@prisma/client";
-<<<<<<< HEAD
 import { CategoryResolverService } from "../common/categorization/category-resolver/category-resolver.service";
-=======
-
->>>>>>> origin/main
 import type { ValidRow } from "./validation/transaction-csv.validator";
 
 @Injectable()
 export class TransactionsService {
-<<<<<<< HEAD
   constructor(
   private readonly prisma: PrismaService,
   private readonly categoryResolver: CategoryResolverService,
@@ -66,34 +61,6 @@ export class TransactionsService {
 
   return { inserted: result.count };
 }
-=======
-  constructor(private readonly prisma: PrismaService) {}
-
-  async saveCsvRowsForUser(userId: string, rows: ValidRow[]) {
-    const uid = BigInt(userId);
-
-    const data = rows.map((r) => ({
-      userId: uid,
-      transactionDate: r.transactionDate,
-      postedDate: null,
-      description: (r.description ?? "CSV transaction").slice(0, 255),
-      amount: r.amount,
-      currency: r.currency,
-      transactionType: r.transactionType,
-      source: TransactionSource.CSV,
-      spendCategory: SpendCategory.UNCATEGORIZED,
-      cardLast4: r.cardLast4 ?? null,
-      balanceAfter: null,
-    }));
-
-    const result = await this.prisma.transaction.createMany({
-      data,
-      skipDuplicates: false,
-    });
-
-    return { inserted: result.count };
-  }
->>>>>>> origin/main
 
   async listForUser(
     userId: string,
@@ -105,10 +72,7 @@ export class TransactionsService {
       fromDate?: string;
       toDate?: string;
       category?: string;
-<<<<<<< HEAD
       cardLast4?: string;
-=======
->>>>>>> origin/main
     } = {},
   ) {
     const uid = BigInt(userId);
@@ -144,7 +108,6 @@ export class TransactionsService {
       where.spendCategory = c as SpendCategory;
     }
 
-<<<<<<< HEAD
     if (opts.cardLast4) {
       const v = String(opts.cardLast4).trim();
       if (!/^\d{4}$/.test(v)) {
@@ -153,8 +116,6 @@ export class TransactionsService {
       where.cardLast4 = v;
     }
 
-=======
->>>>>>> origin/main
     const isYyyyMmDd = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
     if (opts.fromDate && !isYyyyMmDd(opts.fromDate)) {
@@ -195,7 +156,6 @@ export class TransactionsService {
     };
   }
 
-<<<<<<< HEAD
     async exportTransactionsCsv(
     userId: string,
     filters: { month?: string; category?: string } = {},
@@ -274,8 +234,6 @@ export class TransactionsService {
     return [headers.join(","), ...csvRows.map((row) => row.join(","))].join("\n");
   }
 
-=======
->>>>>>> origin/main
   async getByIdForUser(transactionId: string, userId: string) {
     const tid = BigInt(transactionId);
     const uid = BigInt(userId);
@@ -331,7 +289,6 @@ export class TransactionsService {
       data: updated,
     };
   }
-<<<<<<< HEAD
 
 
   async bulkUpdateCategoryForUser(
@@ -377,6 +334,4 @@ export class TransactionsService {
     return `"${safe}"`;
   }
 
-=======
->>>>>>> origin/main
 }
