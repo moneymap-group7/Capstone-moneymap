@@ -21,11 +21,6 @@ export default function Dashboard() {
         <Link to="/categories">
           <button style={buttonStyle}>Manage Categories</button>
         </Link>
-<<<<<<< HEAD
-        
-        
-=======
->>>>>>> origin/main
       </div>
     </div>
   );

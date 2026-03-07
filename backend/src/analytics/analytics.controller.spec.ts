@@ -1,25 +1,18 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { AnalyticsController } from "./analytics.controller";
-import { AnalyticsService } from "./analytics.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { AnalyticsController } from './analytics.controller';
 
-describe("AnalyticsController", () => {
+describe('AnalyticsController', () => {
   let controller: AnalyticsController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AnalyticsController],
-      providers: [
-        {
-          provide: AnalyticsService,
-          useValue: {}, // minimal mock for "should be defined"
-        },
-      ],
     }).compile();
 
     controller = module.get<AnalyticsController>(AnalyticsController);
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 });
