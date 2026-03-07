@@ -7,9 +7,12 @@ import Dashboard from "../pages/Dashboard";
 import UploadStatement from "../pages/UploadStatement";
 import Transactions from "../pages/Transactions";
 import Categories from "../pages/Categories";
+<<<<<<< HEAD
 import BudgetPage from "../pages/BudgetPage";
 import InsightsPage from "../pages/InsightsPage";
 import RulesPage from "../pages/RulesPage";
+=======
+>>>>>>> origin/main
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -28,9 +31,12 @@ export default function AppRoutes() {
         <Route path="/upload" element={<UploadStatement />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/categories" element={<Categories />} />
+<<<<<<< HEAD
         <Route path="/budget" element={<BudgetPage />} /> 
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/rules" element={<RulesPage />} />
+=======
+>>>>>>> origin/main
       </Route>
 
       {/* Fallback */}

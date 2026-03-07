@@ -38,7 +38,10 @@ export default function Login() {
         password,
       });
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main
       // Support multiple possible backend response shapes
       const token =
         res?.data?.accessToken ||       // your backend: { accessToken: "..." }
@@ -53,6 +56,7 @@ export default function Login() {
 
       localStorage.setItem("mm_access_token", token);
 
+<<<<<<< HEAD
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         const userId = payload.sub || payload.userId || payload.id;
@@ -63,6 +67,10 @@ export default function Login() {
       } catch (e) {
         console.error("Failed to decode token", e);
       }
+=======
+      const user = res?.data?.user || res?.data?.data?.user;
+      if (user) localStorage.setItem("mm_user", JSON.stringify(user));
+>>>>>>> origin/main
 
       navigate("/dashboard");
     } catch (err) {
