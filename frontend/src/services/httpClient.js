@@ -1,12 +1,13 @@
 import axios from "axios";
 
 const httpClient = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 httpClient.interceptors.request.use((config) => {
   const token =
-    localStorage.getItem("token") ||
+    localStorage.getItem("mm_access_token") ||
+    localStorage.getItem("token") ||    
     localStorage.getItem("accessToken") ||
     localStorage.getItem("jwt");
 

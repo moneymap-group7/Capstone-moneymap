@@ -11,6 +11,35 @@ export type AggregationSummary = {
   byCategory: Array<{ spendCategory: SpendCategory; total: string }>;
 };
 
+export type RecurringItem = {
+  merchant: string;
+  cadence: "MONTHLY" | "WEEKLY" | "UNKNOWN";
+  occurrences: number;
+  avgAmount: string;        
+  lastDate: string;         // ISO
+  nextEstimatedDate?: string; // ISO 
+};
+
+export type RecurringResponse = {
+  startDate: string;
+  endDate: string;
+  months: number;
+  items: RecurringItem[];
+};
+
+export type TopMerchantItem = {
+  merchant: string;
+  total: string; // "123.45"
+  count: number;
+};
+
+export type TopMerchantsResponse = {
+  startDate: string;
+  endDate: string;
+  limit: number;
+  items: TopMerchantItem[];
+};
+
 export type MonthlyPoint = {
   month: string;
   income: string;
@@ -62,6 +91,38 @@ export class AnalyticsService {
   private toBigInt(userId: string | number | bigint): bigint {
     return typeof userId === "bigint" ? userId : BigInt(userId);
   }
+
+  private normalizeMerchant(raw: unknown): string {
+  let v = (typeof raw === "string" ? raw : "")
+    .trim()
+    .replace(/\s+/g, " ");
+
+  if (!v) return "UNKNOWN";
+
+  v = v.toUpperCase();
+  v = v.replace(/-/g, "");
+
+  // Remove masked card patterns like ******5569 or *1234
+  v = v.replace(/\*{2,}\d{2,}/g, " ");
+  v = v.replace(/\*\d{2,}/g, " ");
+
+  v = v.replace(/[.,#]/g, " ");
+
+  v = v.replace(/\b(ON|QC|BC|AB|MB|SK|NS|NB|NL|PE|CA|CANADA)\b/g, " ");
+
+  v = v.replace(/\s+/g, " ").trim();
+
+  const parts = v.split(" ").filter(Boolean);
+  if (parts.length === 0) return "UNKNOWN";
+
+  const keep = parts.slice(0, 2).join(" ");
+
+  if (keep.startsWith("WALMART")) return "WALMART";
+  if (keep.startsWith("UBER")) return "UBER";
+  if (keep.startsWith("ROGERS")) return "ROGERS";
+
+  return keep;
+}
 
   private decToString(v: any): string {
     if (!v) return "0";
@@ -199,6 +260,195 @@ export class AnalyticsService {
     return {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
+      items,
+    };
+  }
+
+  async getRecurring(
+  userId: string | number | bigint,
+  startDate: Date,
+  endDate: Date,
+  opts?: { months?: number },
+): Promise<RecurringResponse> {
+  const uid = this.toBigInt(userId);
+  const months = opts?.months ?? 6;
+
+  // Pull only the fields we need
+  const tx = await this.prisma.transaction.findMany({
+    where: {
+      userId: uid,
+      transactionDate: { gte: startDate, lte: endDate },
+      transactionType: "DEBIT",
+    },
+    select: {
+      transactionDate: true,
+      amount: true,
+      description: true,
+    },
+    orderBy: { transactionDate: "asc" },
+  });
+
+  const toCents = (s: string) => {
+    const n = Number(s);
+    return Number.isFinite(n) ? Math.round(n * 100) : 0;
+  };
+  const fromCents = (c: number) => (c / 100).toFixed(2);
+
+  // Group by normalized merchant
+  const groups = new Map<string, { dates: Date[]; cents: number[] }>();
+
+  for (const row of tx) {
+    const merchant = this.normalizeMerchant(row.description);
+    const centsAbs = Math.abs(toCents(this.decToString(row.amount)));
+
+    const g = groups.get(merchant);
+    if (g) {
+      g.dates.push(row.transactionDate);
+      g.cents.push(centsAbs);
+    } else {
+      groups.set(merchant, { dates: [row.transactionDate], cents: [centsAbs] });
+    }
+  }
+
+  function median(nums: number[]) {
+    if (nums.length === 0) return 0;
+    const a = [...nums].sort((x, y) => x - y);
+    const mid = Math.floor(a.length / 2);
+    return a.length % 2 ? a[mid] : Math.round((a[mid - 1] + a[mid]) / 2);
+  }
+
+  function medianGapDays(dates: Date[]) {
+    if (dates.length < 2) return 0;
+    const gaps: number[] = [];
+    for (let i = 1; i < dates.length; i++) {
+      const diffMs = dates[i].getTime() - dates[i - 1].getTime();
+      gaps.push(Math.round(diffMs / (24 * 60 * 60 * 1000)));
+    }
+    return median(gaps);
+  }
+
+  function classifyCadence(medGap: number): "MONTHLY" | "WEEKLY" | "UNKNOWN" {
+    if (medGap >= 27 && medGap <= 35) return "MONTHLY";
+    if (medGap >= 6 && medGap <= 8) return "WEEKLY";
+    return "UNKNOWN";
+  }
+
+  const items: RecurringItem[] = [];
+
+  for (const [merchant, g] of groups.entries()) {
+    const occurrences = g.dates.length;
+    if (occurrences < 3) continue; 
+
+    const medCents = median(g.cents);
+
+    const tol = Math.max(Math.round(medCents * 0.05), 500);
+
+    const withinTol = g.cents.filter((c) => Math.abs(c - medCents) <= tol).length;
+    if (withinTol / occurrences < 0.8) continue;
+
+    const medGap = medianGapDays(g.dates);
+    const cadence = classifyCadence(medGap);
+
+    if (cadence === "UNKNOWN") continue;
+
+    const lastDate = g.dates[g.dates.length - 1];
+    const avgCents = Math.round(g.cents.reduce((s, c) => s + c, 0) / occurrences);
+
+    // Predict next date from median cadence
+    const nextEstimatedDate =
+      cadence === "MONTHLY"
+        ? new Date(Date.UTC(
+            lastDate.getUTCFullYear(),
+            lastDate.getUTCMonth() + 1,
+            lastDate.getUTCDate(),
+            0, 0, 0,
+          ))
+        : cadence === "WEEKLY"
+          ? new Date(lastDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+          : undefined;
+
+    items.push({
+      merchant,
+      cadence,
+      occurrences,
+      avgAmount: fromCents(avgCents),
+      lastDate: lastDate.toISOString(),
+      nextEstimatedDate: nextEstimatedDate?.toISOString(),
+    });
+  }
+
+  items.sort((a, b) => {
+    if (b.occurrences !== a.occurrences) return b.occurrences - a.occurrences;
+    return Number(b.avgAmount) - Number(a.avgAmount);
+  });
+
+  return {
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    months,
+    items,
+  };
+}
+
+    async getTopMerchants(
+    userId: string | number | bigint,
+    startDate: Date,
+    endDate: Date,
+    opts?: { limit?: number },
+  ): Promise<TopMerchantsResponse> {
+    const uid = this.toBigInt(userId);
+    const limit = Math.min(Math.max(opts?.limit ?? 10, 1), 50);
+
+      const tx = await this.prisma.transaction.findMany({
+      where: {
+        userId: uid,
+        transactionDate: { gte: startDate, lte: endDate },
+        transactionType: "DEBIT",
+      },
+      select: {
+        amount: true,
+        description: true,
+      },
+    });
+
+    const toCents = (s: string) => {
+      const n = Number(s);
+      return Number.isFinite(n) ? Math.round(n * 100) : 0;
+    };
+
+    const map = new Map<string, { cents: number; count: number }>();
+
+    for (const row of tx as any[]) {
+      const amtStr = this.decToString(row.amount);
+      const centsAbs = Math.abs(toCents(amtStr));
+
+      const merchantRaw =
+        row.description;
+
+      const merchant = this.normalizeMerchant(merchantRaw);
+
+      const prev = map.get(merchant);
+      if (prev) {
+        prev.cents += centsAbs;
+        prev.count += 1;
+      } else {
+        map.set(merchant, { cents: centsAbs, count: 1 });
+      }
+    }
+
+    const items: TopMerchantItem[] = Array.from(map.entries())
+      .map(([merchant, v]) => ({
+        merchant,
+        total: (v.cents / 100).toFixed(2),
+        count: v.count,
+      }))
+      .sort((a, b) => Number(b.total) - Number(a.total))
+      .slice(0, limit);
+
+    return {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      limit,
       items,
     };
   }

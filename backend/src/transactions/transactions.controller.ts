@@ -10,6 +10,7 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UnsupportedMediaTypeException,
   UploadedFile,
   UseGuards,
@@ -18,7 +19,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ZodValidationPipe } from "nestjs-zod";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { TransactionsService } from "./transactions.service";
@@ -26,6 +27,7 @@ import type { ValidRow } from "./validation/transaction-csv.validator";
 import { parseCibcCsv } from "./validation/transaction-csv.parser";
 import { validateCibcRows } from "./validation/transaction-csv.validator";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
+import { bulkUpdateCategorySchema, type BulkUpdateCategoryDto } from "./dto/bulk-update-category.dto";
 
 function requireDigits(id: string) {
   if (!/^\d+$/.test(id)) {
@@ -121,6 +123,7 @@ export class TransactionsController {
     @Query("fromDate") fromDate?: string,
     @Query("toDate") toDate?: string,
     @Query("category") category?: string,
+    @Query("cardLast4") cardLast4?: string,
   ) {
     const user = req.user as { userId: string; email: string };
 
@@ -135,8 +138,37 @@ export class TransactionsController {
       fromDate,
       toDate,
       category,
+      cardLast4,
     });
   }
+
+    @UseGuards(JwtAuthGuard)
+  @Get("export/csv")
+  async exportCsv(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query("month") month?: string,
+    @Query("category") category?: string,
+  ) {
+    const user = req.user as { userId: string; email: string };
+    const userId = user?.userId;
+
+    if (!userId) {
+      throw new BadRequestException("Missing authenticated user.");
+    }
+
+    const csv = await this.transactionsService.exportTransactionsCsv(userId, {
+      month,
+      category,
+    });
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", 'attachment; filename="transactions.csv"');
+
+    return res.send(csv);
+  }
+
+
 
   @UseGuards(JwtAuthGuard)
   @Get(":id")
@@ -157,6 +189,22 @@ export class TransactionsController {
     const user = req.user as { userId: string; email: string };
     return this.transactionsService.updateSpendCategoryForUser(id, user.userId, dto.spendCategory);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch("bulk-category")
+  @UsePipes(new ZodValidationPipe(bulkUpdateCategorySchema))
+  async bulkUpdateCategory(
+    @Body() dto: BulkUpdateCategoryDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as { userId: string; email: string };
+    return this.transactionsService.bulkUpdateCategoryForUser(
+      dto.transactionIds,
+      user.userId,
+      dto.spendCategory,
+    );
+  }
+
 
   @UseGuards(JwtAuthGuard)
   @Patch(":id")

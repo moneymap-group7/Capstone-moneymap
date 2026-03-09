@@ -17,16 +17,18 @@ export default function BudgetRightPanel({ alerts = [] }) {
               return (rank[b?.severity] || 0) - (rank[a?.severity] || 0);
             })
             .map((a, idx) => (
-              <div key={`${a.spendCategory}-${idx}`} className="alertItem">
+              <div key={`${a.spendCategory || "alert"}-${idx}`} className="alertItem">
                 <div className="alertTop">
-                  <div className="alertTitle">{a.spendCategory}</div>
+                  <div className="alertTitle">{a.spendCategory || a.title || "Alert"}</div>
 
-                  <span className={`severityBadge sev-${String(a.severity || "").toLowerCase()}`}>
+                  <span
+                    className={`severityBadge sev-${String(a.severity || "").toLowerCase()}`}
+                  >
                     {a.severity}
                   </span>
                 </div>
 
-                <div className="alertDetail">{a.message}</div>
+                <div className="alertDetail">{a.message || a.detail || ""}</div>
 
                 <div className="alertMeta">
                   <span>{Number(a.currentPercent || 0).toFixed(2)}%</span>

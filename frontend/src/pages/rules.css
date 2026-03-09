@@ -1,0 +1,303 @@
+.rulesPage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.rulesHeader {
+  margin-bottom: 20px;
+}
+
+.rulesTitle {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 800;
+}
+
+.rulesSub {
+  margin-top: 8px;
+  opacity: 0.85;
+}
+
+.rulesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.rulesCard {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+  background: #fff;
+}
+
+.rulesCard h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.rulesForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.rulesForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rulesForm input,
+.rulesForm select {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.checkboxRow {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+  margin-top: 26px;
+}
+
+.rulesActions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.rulesActions button,
+.actionCell button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.rulesActions button,
+.actionCell button:not(.dangerBtn) {
+  background: #111827;
+  color: #fff;
+}
+
+.secondaryBtn {
+  background: #e5e7eb !important;
+  color: #111827 !important;
+}
+
+.dangerBtn {
+  background: #b91c1c !important;
+  color: #fff !important;
+}
+
+.rulesAlert {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.rulesAlert.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rulesAlert.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rulesTableWrap {
+  overflow-x: auto;
+}
+
+.rulesPage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.rulesHeader {
+  margin-bottom: 20px;
+}
+
+.rulesTitle {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 800;
+}
+
+.rulesSub {
+  margin-top: 8px;
+  opacity: 0.85;
+}
+
+.rulesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.rulesCard {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 20px;
+  background: #fff;
+}
+
+.rulesCard h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.rulesForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.rulesForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rulesForm input,
+.rulesForm select {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.checkboxRow {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+  margin-top: 26px;
+}
+
+.rulesActions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.rulesActions button,
+.actionCell button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.rulesActions button,
+.actionCell button:not(.dangerBtn) {
+  background: #111827;
+  color: #fff;
+}
+
+.secondaryBtn {
+  background: #e5e7eb !important;
+  color: #111827 !important;
+}
+
+.dangerBtn {
+  background: #b91c1c !important;
+  color: #fff !important;
+}
+
+.rulesAlert {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.rulesAlert.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rulesAlert.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rulesTableWrap {
+  overflow-x: auto;
+}
+
+.rulesTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rulesTable th,
+.rulesTable td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rulesTable th {
+  background: #f9fafb;
+}
+
+.actionCell {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .rulesForm {
+    grid-template-columns: 1fr;
+  }
+
+  .checkboxRow {
+    margin-top: 0;
+  }
+}
+
+.actionCell {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .rulesForm {
+    grid-template-columns: 1fr;
+  }
+
+  .checkboxRow {
+    margin-top: 0;
+  }
+}
+
+.rulesCard,
+.rulesCard h2,
+.rulesCard p,
+.rulesCard label,
+.rulesCard span,
+.rulesTable,
+.rulesTable th,
+.rulesTable td {
+  color: #111827 !important;
+}
+
+.rulesTable th {
+  background: #f9fafb !important;
+}
+
+.rulesTable td {
+  background: #ffffff !important;
+}
