@@ -19,6 +19,7 @@ model User {
   transactions Transaction[]
   budgets      Budget[]
   rules        UserCategoryRule[]
+  statements Statement[]
 
   @@map("users")
 }
@@ -39,8 +40,11 @@ model Transaction {
   cardLast4       String?           @db.Char(4)
   spendCategory   SpendCategory     @default(UNCATEGORIZED)
   user            User              @relation(fields: [userId], references: [userId])
+statementId BigInt?
+statement   Statement? @relation(fields: [statementId], references: [statementId])
 
   @@index([userId])
+  @@index([statementId])
   @@index([transactionDate])
   @@index([spendCategory])
   @@index([cardLast4])
@@ -81,7 +85,26 @@ model BankCategoryRule {
   @@index([priority])
   @@map("bank_category_rules")
 }
+model Statement {
+  statementId       BigInt   @id @default(autoincrement())
+  userId            BigInt
+  originalFileName  String
+  storedFileName    String
+  relativePath      String
+  size              Int
+  mimeType          String
+  bank              String?
+  fileHash          String
+  status            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
+  user              User @relation(fields: [userId], references: [userId])
+  transactions      Transaction[]
+
+  
+  @@unique([userId, fileHash])
+}
 enum TransactionType {
   DEBIT
   CREDIT
