@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:3000/rules";
+const BASE_URL = `${import.meta.env.VITE_API_URL}/rules`;
 
 function getToken() {
   return localStorage.getItem("mm_access_token");

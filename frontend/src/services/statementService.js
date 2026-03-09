@@ -1,4 +1,4 @@
-const ENDPOINT = "http://localhost:3000/transactions/upload-csv";
+const ENDPOINT = `${import.meta.env.VITE_API_URL}/transactions/upload-csv`;
 const FIELD_NAME = "file";
 
 export async function uploadStatement(file) {
