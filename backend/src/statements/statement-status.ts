@@ -2,9 +2,9 @@ import type { IngestionErrorCode } from "../parsing/csv/ingestion-errors";
 
 export enum StatementStatus {
   UPLOADED = "UPLOADED",
-  PARSING = "PARSING",
-  FAILED = "FAILED",
+  PROCESSING = "PROCESSING",
   COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
 }
 
 export type StatementMeta = {

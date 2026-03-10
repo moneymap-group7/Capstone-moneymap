@@ -23,6 +23,7 @@ export class AuthController {
     return this.authService.verifyEmail(dto);
   }
 
+
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("login")
   @HttpCode(HttpStatus.OK)

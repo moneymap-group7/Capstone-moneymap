@@ -35,4 +35,8 @@ constructor(
   listBanks(): Exclude<BankId, "UNKNOWN">[] {
     return Array.from(this.byBank.keys());
   }
+  get supportedBanks(): Exclude<BankId, "UNKNOWN">[] {
+  return Array.from(this.byBank.keys());
 }
+}
+
