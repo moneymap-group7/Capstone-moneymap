@@ -10,9 +10,9 @@ import Categories from "../pages/Categories";
 import BudgetPage from "../pages/BudgetPage";
 import InsightsPage from "../pages/InsightsPage";
 import RulesPage from "../pages/RulesPage";
+import VerifyEmail from "../pages/VerifyEmail";
 
 import ProtectedRoute from "./ProtectedRoute";
-
 
 export default function AppRoutes() {
   return (
@@ -21,6 +21,7 @@ export default function AppRoutes() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
@@ -28,7 +29,7 @@ export default function AppRoutes() {
         <Route path="/upload" element={<UploadStatement />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/categories" element={<Categories />} />
-        <Route path="/budget" element={<BudgetPage />} /> 
+        <Route path="/budget" element={<BudgetPage />} />
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/rules" element={<RulesPage />} />
       </Route>

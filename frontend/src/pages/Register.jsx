@@ -70,9 +70,11 @@ export default function Register() {
 
     setLoading(true);
     try {
+    const res = await api.post("/auth/register", payload);
 
-      await api.post("/auth/register", payload);
-      navigate("/login");
+    navigate("/verify-email", {
+    state: { email: payload.email },
+  });
     } catch (err) {
       const status = err?.response?.status;
 
