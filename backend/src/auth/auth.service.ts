@@ -4,6 +4,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { VerifyEmailDto } from "./dto/verify-email.dto";
+import { ForgotPasswordRequestDto } from "./dto/forgot-password-request.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { JwtService } from "@nestjs/jwt";
 import { MailService } from "../mail/mail.service";
 
@@ -125,6 +127,82 @@ await this.mailService.sendVerificationEmail(email, verificationCode);
     });
 
     return { message: "Email verified successfully" };
+  }
+
+
+
+  async requestPasswordReset(dto: ForgotPasswordRequestDto) {
+    const email = dto.email.trim().toLowerCase();
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    // Generic response so users cannot check which emails exist
+    if (!user || !user.isEmailVerified) {
+      return {
+        message: "If an account exists for this email, a reset code has been sent",
+      };
+    }
+
+    const resetCode = this.generateVerificationCode();
+    const resetExpiry = this.generateVerificationExpiry();
+
+    await this.prisma.user.update({
+      where: { email },
+      data: {
+        passwordResetCode: resetCode,
+        passwordResetExpiresAt: resetExpiry,
+        passwordResetUsedAt: null,
+      },
+    });
+
+    await this.mailService.sendPasswordResetEmail(email, resetCode);
+
+    return {
+      message: "If an account exists for this email, a reset code has been sent",
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const email = dto.email.trim().toLowerCase();
+    const code = dto.code.trim();
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      throw new BadRequestException("Invalid email or reset code");
+    }
+
+    if (!user.passwordResetCode || !user.passwordResetExpiresAt) {
+      throw new BadRequestException("No password reset request found");
+    }
+
+    if (user.passwordResetUsedAt) {
+      throw new BadRequestException("This reset code has already been used");
+    }
+
+    if (user.passwordResetCode !== code) {
+      throw new BadRequestException("Invalid email or reset code");
+    }
+
+    if (new Date() > new Date(user.passwordResetExpiresAt)) {
+      throw new BadRequestException("Reset code has expired");
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, this.SALT_ROUNDS);
+
+    await this.prisma.user.update({
+      where: { email },
+      data: {
+        passwordHash,
+        passwordResetCode: null,
+        passwordResetExpiresAt: null,
+        passwordResetUsedAt: new Date(),
+      },
+    });
+
+    return {
+      message: "Password reset successful",
+    };
   }
 
 async login(dto: LoginDto) {

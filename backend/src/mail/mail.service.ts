@@ -27,4 +27,21 @@ export class MailService {
       throw new InternalServerErrorException("Failed to send verification email");
     }
   }
+
+
+    async sendPasswordResetEmail(email: string, code: string) {
+    try {
+      await this.transporter.sendMail({
+        from: process.env.MAIL_FROM,
+        to: email,
+        subject: "MoneyMap Password Reset Code",
+        text: `Your MoneyMap password reset code is: ${code}. It expires in 10 minutes.`,
+        html: `<p>Your MoneyMap password reset code is: <b>${code}</b></p><p>It expires in 10 minutes.</p>`,
+      });
+    } catch (error) {
+      console.error("Failed to send password reset email:", error);
+      throw new InternalServerErrorException("Failed to send password reset email");
+    }
+  }
+
 }
