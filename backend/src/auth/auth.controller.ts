@@ -3,6 +3,8 @@ import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { VerifyEmailDto } from "./dto/verify-email.dto";
+import { ForgotPasswordRequestDto } from "./dto/forgot-password-request.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
@@ -23,6 +25,18 @@ export class AuthController {
     return this.authService.verifyEmail(dto);
   }
 
+
+    @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post("forgot-password/request")
+  forgotPasswordRequest(@Body() dto: ForgotPasswordRequestDto) {
+    return this.authService.requestPasswordReset(dto);
+  }
+
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post("forgot-password/reset")
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
 
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post("login")

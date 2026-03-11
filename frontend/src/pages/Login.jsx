@@ -139,6 +139,10 @@ export default function Login() {
         </button>
       </form>
 
+      <div style={{ marginTop: 14, textAlign: "right" }}>
+        <Link to="/forgot-password">Forgot password?</Link>
+      </div>
+
       <div style={{ marginTop: 14 }}>
         Don’t have an account? <Link to="/register">Register</Link>
       </div>
