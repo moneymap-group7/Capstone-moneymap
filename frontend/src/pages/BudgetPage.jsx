@@ -225,7 +225,31 @@ export default function BudgetPage() {
                 ) : (
                   rows.map((row) => (
                     <tr key={row.spendCategory}>
-                      <td>{row.spendCategory}</td>
+                      <td className="categoryCell">
+                        <div className="categoryName">{row.spendCategory}</div>
+
+                        <div className="progressWrap">
+                          <div className="progressTrack">
+                            <div
+                              className={`progressFill ${utilizationClass(
+                                Number(row.utilizationPercent || 0)
+                              )}`}
+                              style={{
+                                width: `${Math.min(
+                                  Number(row.utilizationPercent || 0),
+                                  100
+                                )}%`,
+                              }}
+                            />
+                          </div>
+
+                          <div className="progressMeta">
+                            <span>{formatMoney(row.currentSpend)} spent</span>
+                            <span>{formatMoney(row.budgetLimit)} budget</span>
+                          </div>
+                        </div>
+                      </td>
+
                       <td>{formatMoney(row.budgetLimit)}</td>
                       <td>{formatMoney(row.currentSpend)}</td>
                       <td>
