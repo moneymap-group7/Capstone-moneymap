@@ -49,3 +49,18 @@ export async function getRecurring(params) {
     items: Array.isArray(data.items) ? data.items : [],
   };
 }
+
+export async function getMonthly(params) {
+  const { start, end, includeCategoryMonthly = false } = params || {};
+  const res = await httpClient.get("/analytics/monthly", {
+    params: { start, end, includeCategoryMonthly },
+  });
+
+  const data = res.data || {};
+  return {
+    monthly: Array.isArray(data.monthly) ? data.monthly : [],
+    byCategoryMonthly: Array.isArray(data.byCategoryMonthly)
+      ? data.byCategoryMonthly
+      : [],
+  };
+}

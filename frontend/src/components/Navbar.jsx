@@ -30,6 +30,7 @@ export default function Navbar() {
             <Link to="/dashboard">Dashboard</Link>
             <Link to="/budget">Budgets</Link>
             <Link to="/insights">Insights</Link>
+            <Link to="/insights-visuals">Visuals</Link>
             <Link to="/rules">Rules</Link>
           </div>
 

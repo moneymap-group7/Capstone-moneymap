@@ -1,0 +1,232 @@
+.insightsVisualsPage {
+  width: 100%;
+  min-height: 100vh;
+  padding: 24px 24px 40px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.insightsVisualsTopBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.insightsVisualsTitle {
+  margin: 0;
+  font-size: 36px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.insightsVisualsSub {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: #64748b;
+}
+
+.insightsVisualsFilterCard {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.visualDateField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.visualDateField label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.visualDateField input {
+  height: 46px;
+  min-width: 176px;
+  padding: 0 14px;
+  border: 1px solid #dbe3ee;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.visualDateField input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.visualApplyBtn {
+  height: 46px;
+  padding: 0 18px;
+  border: 1px solid #2563eb;
+  border-radius: 12px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.visualApplyBtn:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.visualApplyBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.insightsVisualsErrorWrap {
+  margin-bottom: 16px;
+}
+
+.visualStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.visualStatCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+}
+
+.visualStatCard--success {
+  border-color: #bbf7d0;
+  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.visualStatCard--danger {
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #ffffff 0%, #fef2f2 100%);
+}
+
+.visualStatLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+.visualStatValue {
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.visualStatSubtext {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.visualLoadingCard {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 220px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.visualChartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.visualChartCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
+}
+
+.visualChartHeader {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.visualChartTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.visualChartSub {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.visualChartBody {
+  padding: 16px 18px 18px;
+  min-height: 360px;
+}
+
+.visualEmpty {
+  padding: 20px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+  .visualChartsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .insightsVisualsPage {
+    padding: 18px 16px 32px;
+  }
+
+  .insightsVisualsTitle {
+    font-size: 30px;
+  }
+
+  .insightsVisualsFilterCard {
+    width: 100%;
+  }
+
+  .visualDateField {
+    width: 100%;
+  }
+
+  .visualDateField input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .visualApplyBtn {
+    width: 100%;
+  }
+}

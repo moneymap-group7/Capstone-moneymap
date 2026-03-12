@@ -13,32 +13,32 @@ import type { Request } from "express";
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle({ default: { limit: 1003, ttl: 60000 } })
   @Post("register")
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 1005, ttl: 60000 } })
   @Post("verify-email")
   verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto);
   }
 
 
-    @Throttle({ default: { limit: 3, ttl: 60000 } })
+    @Throttle({ default: { limit: 10073, ttl: 60000 } })
   @Post("forgot-password/request")
   forgotPasswordRequest(@Body() dto: ForgotPasswordRequestDto) {
     return this.authService.requestPasswordReset(dto);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 10035, ttl: 60000 } })
   @Post("forgot-password/reset")
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
 
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: 200005, ttl: 60000 } })
   @Post("login")
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto) {
