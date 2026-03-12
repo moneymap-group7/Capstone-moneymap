@@ -61,7 +61,7 @@ export class StatementsService {
         },
       });
 
-      if (existingStatement) {
+      if (existingStatement?.status === StatementStatus.COMPLETED) {
         return {
           ...base,
           status: StatementStatus.COMPLETED,
@@ -127,22 +127,40 @@ export class StatementsService {
       }
 
       // Save statement record first so hash is reserved
-      const statement = await this.prisma.statement.create({
-        data: {
-          userId: userIdBigInt,
-          originalFileName: params.originalFileName,
-          storedFileName: params.storedFileName,
-          relativePath: params.relativePath,
-          size: params.size,
-          mimeType: params.mimeType,
-          bank: detectedBank,
-          fileHash,
-          status:
-            parsed.length === 0
-              ? StatementStatus.COMPLETED
-              : StatementStatus.PROCESSING,
-        },
-      });
+            // Save statement record first so hash is reserved
+      const statement = existingStatement
+        ? await this.prisma.statement.update({
+            where: { statementId: existingStatement.statementId },
+            data: {
+              originalFileName: params.originalFileName,
+              storedFileName: params.storedFileName,
+              relativePath: params.relativePath,
+              size: params.size,
+              mimeType: params.mimeType,
+              bank: detectedBank,
+              fileHash,
+              status:
+                parsed.length === 0
+                  ? StatementStatus.COMPLETED
+                  : StatementStatus.PROCESSING,
+            },
+          })
+        : await this.prisma.statement.create({
+            data: {
+              userId: userIdBigInt,
+              originalFileName: params.originalFileName,
+              storedFileName: params.storedFileName,
+              relativePath: params.relativePath,
+              size: params.size,
+              mimeType: params.mimeType,
+              bank: detectedBank,
+              fileHash,
+              status:
+                parsed.length === 0
+                  ? StatementStatus.COMPLETED
+                  : StatementStatus.PROCESSING,
+            },
+          });
 
       if (parsed.length === 0) {
         await this.prisma.statement.update({
