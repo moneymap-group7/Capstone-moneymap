@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
-import { Eye, EyeOff, Mail, User, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, User } from "lucide-react";
 
 const initialForm = {
-  fullname: "",
+  name: "",
   email: "",
   password: "",
 };
@@ -47,66 +47,90 @@ function inputStyle(withRightIcon = false) {
   };
 }
 
+function fieldErrorStyle() {
+  return {
+    color: "#b91c1c",
+    fontSize: 13,
+    marginTop: 6,
+    fontWeight: 500,
+  };
+}
+
 export default function Register() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState(initialForm);
   const [showPassword, setShowPassword] = useState(false);
-
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function updateField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  function setField(name, value) {
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setServerError("");
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    const fullName = form.fullName.trim();
+  function validateAll() {
+    const e = {};
+    const name = form.name.trim();
     const email = form.email.trim().toLowerCase();
     const password = form.password;
 
-    if (!fullName || !email || !password) {
-      setError("Full name, email, and password are required.");
-      return;
+    if (!name) {
+      e.name = "Full name is required.";
+    } else if (name.length < 2 || name.length > 100) {
+      e.name = "Full name must be 2–100 characters.";
     }
 
-    if (!isValidEmail(email)) {
-      setError("Please enter a valid email address.");
-      return;
+    if (!email) {
+      e.email = "Email is required.";
+    } else if (!isValidEmail(email)) {
+      e.email = "Enter a valid email address.";
     }
 
-    const passwordCheck = passwordMeetsPolicy(password);
-    if (!passwordCheck.ok) {
-      setError(passwordCheck.msg);
+    if (!password) {
+      e.password = "Password is required.";
+    } else {
+      const pwCheck = passwordMeetsPolicy(password);
+      if (!pwCheck.ok) e.password = pwCheck.msg;
+    }
+
+    return { e, payload: { fullName: name, email, password } };
+  }
+
+  async function onSubmit(ev) {
+    ev.preventDefault();
+    setServerError("");
+
+    const { e, payload } = validateAll();
+    if (Object.keys(e).length > 0) {
+      setErrors(e);
       return;
     }
 
     setLoading(true);
-
     try {
-      await api.post("/auth/register", {
-        fullName,
-        email,
-        password,
+      await api.post("/auth/register", payload);
+
+      navigate("/verify-email", {
+        state: { email: payload.email },
       });
-
-      setSuccess("Account created successfully. Redirecting to login...");
-
-      setTimeout(() => {
-        navigate("/login");
-      }, 1200);
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.error?.message ||
-        "Registration failed. Please try again.";
+      const status = err?.response?.status;
 
-      setError(Array.isArray(msg) ? msg.join(", ") : msg);
+      if (!err?.response) {
+        setServerError("Backend not reachable. Is the server running?");
+      } else {
+        const msg =
+          err?.response?.data?.message ||
+          err?.response?.data?.error?.message ||
+          (status === 409
+            ? "Email already exists."
+            : "Registration failed. Please try again.");
+
+        setServerError(Array.isArray(msg) ? msg.join(", ") : msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -160,24 +184,7 @@ export default function Register() {
           </p>
         </div>
 
-        {success ? (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: "1px solid #bbf7d0",
-              background: "#f0fdf4",
-              color: "#166534",
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {success}
-          </div>
-        ) : null}
-
-        {error ? (
+        {serverError ? (
           <div
             style={{
               marginBottom: 16,
@@ -190,11 +197,11 @@ export default function Register() {
               fontWeight: 600,
             }}
           >
-            {error}
+            {serverError}
           </div>
         ) : null}
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={onSubmit} noValidate>
           <div style={{ display: "grid", gap: 16 }}>
             <label style={{ display: "block" }}>
               <div
@@ -210,9 +217,9 @@ export default function Register() {
 
               <div style={{ position: "relative" }}>
                 <input
-                  type="text"
-                  value={form.fullName}
-                  onChange={(e) => updateField("fullName", e.target.value)}
+                  name="name"
+                  value={form.name}
+                  onChange={(e) => setField("name", e.target.value)}
                   autoComplete="name"
                   placeholder="Enter your full name"
                   style={inputStyle()}
@@ -229,6 +236,10 @@ export default function Register() {
                   }}
                 />
               </div>
+
+              {errors.name ? (
+                <div style={fieldErrorStyle()}>{errors.name}</div>
+              ) : null}
             </label>
 
             <label style={{ display: "block" }}>
@@ -246,8 +257,9 @@ export default function Register() {
               <div style={{ position: "relative" }}>
                 <input
                   type="email"
+                  name="email"
                   value={form.email}
-                  onChange={(e) => updateField("email", e.target.value)}
+                  onChange={(e) => setField("email", e.target.value)}
                   autoComplete="email"
                   inputMode="email"
                   placeholder="Enter your email"
@@ -265,6 +277,10 @@ export default function Register() {
                   }}
                 />
               </div>
+
+              {errors.email ? (
+                <div style={fieldErrorStyle()}>{errors.email}</div>
+              ) : null}
             </label>
 
             <label style={{ display: "block" }}>
@@ -282,8 +298,9 @@ export default function Register() {
               <div style={{ position: "relative" }}>
                 <input
                   type={showPassword ? "text" : "password"}
+                  name="password"
                   value={form.password}
-                  onChange={(e) => updateField("password", e.target.value)}
+                  onChange={(e) => setField("password", e.target.value)}
                   autoComplete="new-password"
                   placeholder="Create a password"
                   style={inputStyle(true)}
@@ -311,6 +328,10 @@ export default function Register() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+
+              {errors.password ? (
+                <div style={fieldErrorStyle()}>{errors.password}</div>
+              ) : null}
 
               <div
                 style={{
@@ -341,7 +362,7 @@ export default function Register() {
                 marginTop: 4,
               }}
             >
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? "Creating..." : "Create account"}
             </button>
           </div>
         </form>
