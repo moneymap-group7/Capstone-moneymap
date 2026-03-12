@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
+import { Eye, EyeOff } from "lucide-react";
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -11,6 +12,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,13 +40,11 @@ export default function Login() {
         password,
       });
 
-
-      // Support multiple possible backend response shapes
       const token =
-        res?.data?.accessToken ||       // your backend: { accessToken: "..." }
-        res?.data?.data?.accessToken || // nested: { data: { accessToken } }
-        res?.data?.token ||             // alt: { token }
-        res?.data?.data?.token;         // alt nested
+        res?.data?.accessToken ||
+        res?.data?.data?.accessToken ||
+        res?.data?.token ||
+        res?.data?.data?.token;
 
       if (!token) {
         setError("Login succeeded but token was missing in response.");
@@ -74,7 +74,9 @@ export default function Login() {
         const msg =
           err?.response?.data?.message ||
           err?.response?.data?.error?.message ||
-          (status === 401 ? "Invalid email or password." : "Login failed. Please try again.");
+          (status === 401
+            ? "Invalid email or password."
+            : "Login failed. Please try again.");
 
         setError(msg);
       }
@@ -107,7 +109,12 @@ export default function Login() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ width: "100%", padding: 10, marginTop: 6 }}
+            style={{
+              width: "100%",
+              padding: 10,
+              marginTop: 6,
+              boxSizing: "border-box",
+            }}
             autoComplete="email"
             inputMode="email"
           />
@@ -115,13 +122,40 @@ export default function Login() {
 
         <label style={{ display: "block", marginBottom: 12 }}>
           Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ width: "100%", padding: 10, marginTop: 6 }}
-            autoComplete="current-password"
-          />
+          <div style={{ position: "relative", marginTop: 6 }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 42px 10px 10px",
+                boxSizing: "border-box",
+              }}
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              style={{
+                position: "absolute",
+                right: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                border: "none",
+                background: "transparent",
+                padding: 0,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              title={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
         </label>
 
         <button
@@ -138,6 +172,10 @@ export default function Login() {
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
+
+      <div style={{ marginTop: 14, textAlign: "right" }}>
+        <Link to="/forgot-password">Forgot password?</Link>
+      </div>
 
       <div style={{ marginTop: 14 }}>
         Don’t have an account? <Link to="/register">Register</Link>

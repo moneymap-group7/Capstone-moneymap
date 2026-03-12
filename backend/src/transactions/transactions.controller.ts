@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   InternalServerErrorException,
   Param,
@@ -27,7 +28,11 @@ import type { ValidRow } from "./validation/transaction-csv.validator";
 import { parseCibcCsv } from "./validation/transaction-csv.parser";
 import { validateCibcRows } from "./validation/transaction-csv.validator";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
-import { bulkUpdateCategorySchema, type BulkUpdateCategoryDto } from "./dto/bulk-update-category.dto";
+import {
+  bulkUpdateCategorySchema,
+  type BulkUpdateCategoryDto,
+} from "./dto/bulk-update-category.dto";
+import { DeleteTransactionsDto } from "./dto/delete-transactions.dto";
 
 function requireDigits(id: string) {
   if (!/^\d+$/.test(id)) {
@@ -36,7 +41,11 @@ function requireDigits(id: string) {
   return id;
 }
 
-function parsePositiveInt(value: string | undefined, fallback: number, name: string) {
+function parsePositiveInt(
+  value: string | undefined,
+  fallback: number,
+  name: string,
+) {
   if (value === undefined) return fallback;
   const n = Number(value);
   if (!Number.isInteger(n) || n <= 0) {
@@ -57,7 +66,10 @@ export class TransactionsController {
       limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
     }),
   )
-  async uploadCsv(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  async uploadCsv(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+  ) {
     try {
       if (!file) {
         throw new BadRequestException("CSV file is required");
@@ -77,7 +89,10 @@ export class TransactionsController {
       const rawRows = parseCibcCsv(file.buffer);
       const validated: ValidRow[] = validateCibcRows(rawRows);
 
-      const saved = await this.transactionsService.saveCsvRowsForUser(userId, validated);
+      const saved = await this.transactionsService.saveCsvRowsForUser(
+        userId,
+        validated,
+      );
 
       const preview = validated.slice(0, 10).map((row) => ({
         transactionDate: row.transactionDate,
@@ -97,17 +112,20 @@ export class TransactionsController {
         preview,
       };
     } catch (e: any) {
-      // Preserve HttpExceptions thrown by parser/validator
       if (e?.getStatus) throw e;
 
       const msg = e?.message ?? "CSV upload failed";
-
       const m = String(msg).toLowerCase();
-      if (m.includes("csv") || m.includes("row") || m.includes("date") || m.includes("amount")) {
+
+      if (
+        m.includes("csv") ||
+        m.includes("row") ||
+        m.includes("date") ||
+        m.includes("amount")
+      ) {
         throw new BadRequestException(msg);
       }
 
-      // Anything else → controlled 500
       throw new InternalServerErrorException(msg);
     }
   }
@@ -142,7 +160,7 @@ export class TransactionsController {
     });
   }
 
-    @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get("export/csv")
   async exportCsv(
     @Req() req: Request,
@@ -163,12 +181,13 @@ export class TransactionsController {
     });
 
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", 'attachment; filename="transactions.csv"');
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="transactions.csv"',
+    );
 
     return res.send(csv);
   }
-
-
 
   @UseGuards(JwtAuthGuard)
   @Get(":id")
@@ -177,6 +196,7 @@ export class TransactionsController {
     const user = req.user as { userId: string; email: string };
     return this.transactionsService.getByIdForUser(id, user.userId);
   }
+
   @UseGuards(JwtAuthGuard)
   @Patch(":id/category")
   @UsePipes(ZodValidationPipe)
@@ -187,7 +207,11 @@ export class TransactionsController {
   ) {
     requireDigits(id);
     const user = req.user as { userId: string; email: string };
-    return this.transactionsService.updateSpendCategoryForUser(id, user.userId, dto.spendCategory);
+    return this.transactionsService.updateSpendCategoryForUser(
+      id,
+      user.userId,
+      dto.spendCategory,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -205,7 +229,6 @@ export class TransactionsController {
     );
   }
 
-
   @UseGuards(JwtAuthGuard)
   @Patch(":id")
   async updateMine(
@@ -220,6 +243,28 @@ export class TransactionsController {
       throw new BadRequestException("spendCategory is required");
     }
 
-    return this.transactionsService.updateSpendCategoryForUser(id, user.userId, body.spendCategory);
+    return this.transactionsService.updateSpendCategoryForUser(
+      id,
+      user.userId,
+      body.spendCategory,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete("bulk")
+  async deleteTransactions(
+    @Body() dto: DeleteTransactionsDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as { userId: string; email: string };
+
+    if (!dto?.transactionIds?.length) {
+      throw new BadRequestException("transactionIds is required");
+    }
+
+    return this.transactionsService.deleteMany(
+      user.userId,
+      dto.transactionIds,
+    );
   }
 }
