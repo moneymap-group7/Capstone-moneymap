@@ -4,7 +4,7 @@ import api from "../services/api";
 import { Eye, EyeOff, Mail, User, Lock } from "lucide-react";
 
 const initialForm = {
-  name: "",
+  fullname: "",
   email: "",
   password: "",
 };
@@ -66,12 +66,12 @@ export default function Register() {
     setError("");
     setSuccess("");
 
-    const name = form.name.trim();
+    const fullName = form.fullName.trim();
     const email = form.email.trim().toLowerCase();
     const password = form.password;
 
-    if (!name || !email || !password) {
-      setError("Name, email, and password are required.");
+    if (!fullName || !email || !password) {
+      setError("Full name, email, and password are required.");
       return;
     }
 
@@ -90,7 +90,7 @@ export default function Register() {
 
     try {
       await api.post("/auth/register", {
-        name,
+        fullName,
         email,
         password,
       });
@@ -211,8 +211,8 @@ export default function Register() {
               <div style={{ position: "relative" }}>
                 <input
                   type="text"
-                  value={form.name}
-                  onChange={(e) => updateField("name", e.target.value)}
+                  value={form.fullName}
+                  onChange={(e) => updateField("fullName", e.target.value)}
                   autoComplete="name"
                   placeholder="Enter your full name"
                   style={inputStyle()}
