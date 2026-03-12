@@ -333,5 +333,26 @@ export class TransactionsService {
     const safe = String(value).replace(/"/g, '""');
     return `"${safe}"`;
   }
+  async deleteMany(userId: string, transactionIds: string[]) {
+  const uniqueIds = [...new Set(transactionIds)];
 
+  if (!uniqueIds.length) {
+    throw new BadRequestException("At least one transactionId is required");
+  }
+
+  const ids = uniqueIds.map((id) => BigInt(id));
+
+  const result = await this.prisma.transaction.deleteMany({
+    where: {
+      userId: BigInt(userId),
+      transactionId: { in: ids },
+    },
+  });
+
+  return {
+    success: true,
+    deletedCount: result.count,
+  };
 }
+}
+
