@@ -4,7 +4,9 @@ import ErrorBox from "../components/common/ErrorBox";
 import {
   getTransactions,
   updateTransactionCategory,
+  deleteTransactions,
 } from "../services/transactionService";
+import { Trash2 } from "lucide-react";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -104,6 +106,8 @@ export default function Transactions() {
 
   const [saveState, setSaveState] = useState({});
   const [saveError, setSaveError] = useState({});
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [editMode, setEditMode] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -149,6 +153,7 @@ export default function Transactions() {
           setErrors(msgs);
           setData([]);
           setMeta({ page, pageSize, total: 0, totalPages: 1 });
+          setSelectedIds([]);
           return;
         }
 
@@ -162,6 +167,7 @@ export default function Transactions() {
 
         setData(Array.isArray(payloadData) ? payloadData : []);
         setMeta(payloadMeta);
+        setSelectedIds([]);
       } catch {
         if (!alive) return;
         setErrors([
@@ -169,6 +175,7 @@ export default function Transactions() {
         ]);
         setData([]);
         setMeta({ page, pageSize, total: 0, totalPages: 1 });
+        setSelectedIds([]);
       } finally {
         if (alive) setLoading(false);
       }
@@ -245,6 +252,65 @@ export default function Transactions() {
 
   const debitCount = rows.filter((r) => r.type === "DEBIT").length;
   const creditCount = rows.filter((r) => r.type === "CREDIT").length;
+
+  function handleSelectOne(id) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  }
+
+  function handleSelectAll() {
+    const currentPageIds = filteredRows.map((tx) => String(tx.id));
+    const allSelected =
+      currentPageIds.length > 0 &&
+      currentPageIds.every((id) => selectedIds.includes(id));
+
+    if (allSelected) {
+      setSelectedIds((prev) =>
+        prev.filter((id) => !currentPageIds.includes(id))
+      );
+    } else {
+      setSelectedIds((prev) => [...new Set([...prev, ...currentPageIds])]);
+    }
+  }
+
+  function toggleEditMode() {
+    setEditMode((prev) => {
+      const next = !prev;
+      if (!next) {
+        setSelectedIds([]);
+      }
+      return next;
+    });
+  }
+
+  async function handleDeleteSelected() {
+  if (!selectedIds.length) return;
+
+  const confirmDelete = window.confirm(
+    `Delete ${selectedIds.length} selected transaction(s)?`
+  );
+
+  if (!confirmDelete) return;
+
+  try {
+    await deleteTransactions(selectedIds);
+
+    // remove deleted rows from UI
+    setData((prev) =>
+      prev.filter((tx) => !selectedIds.includes(String(tx.transactionId)))
+    );
+
+    setSelectedIds([]);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to delete transactions.");
+  }
+}
+
+  const allVisibleSelected =
+    filteredRows.length > 0 &&
+    filteredRows.every((tx) => selectedIds.includes(String(tx.id)));
 
   return (
     <div style={styles.page}>
@@ -364,8 +430,36 @@ export default function Transactions() {
           <div>
             <div style={styles.cardTitle}>Transaction List</div>
             <div style={styles.cardSubtitle}>
-              Inline category editing is enabled for each transaction.
+              {editMode
+                ? "Edit mode is on. Select transactions to delete or change categories."
+                : "Click Edit to select transactions or change categories."}
             </div>
+          </div>
+
+          <div style={styles.tableActions}>
+           {editMode && selectedIds.length > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                style={styles.deleteIconButton}
+                title={`Delete ${selectedIds.length} selected transaction(s)`}
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
+
+            {editMode && selectedIds.length > 0 && (
+              <div style={styles.selectionSummary}>
+                {selectedIds.length} selected
+              </div>
+            )}
+
+            <button
+              onClick={toggleEditMode}
+              style={editMode ? styles.editButtonActive : styles.editButton}
+              title={editMode ? "Exit edit mode" : "Enter edit mode"}
+            >
+              {editMode ? "Done" : "Edit"}
+            </button>
           </div>
         </div>
 
@@ -380,8 +474,9 @@ export default function Transactions() {
         ) : (
           <div style={styles.tableScroll}>
             <table style={styles.table}>
-              <thead>
+             <thead>
                 <tr style={styles.tableHeadRow}>
+                  {editMode && <th style={styles.thCheckbox}></th>}
                   <th style={styles.thLeft}>Date</th>
                   <th style={styles.thLeft}>Description</th>
                   <th style={styles.thRight}>Amount (CAD)</th>
@@ -403,9 +498,28 @@ export default function Transactions() {
                       : "#d1d5db";
 
                   const categoryTone = getCategoryTone(tx.category);
+                  const isSelected = selectedIds.includes(String(tx.id));
 
                   return (
-                    <tr key={tx.id} style={styles.tr}>
+                    <tr
+                      key={tx.id}
+                      style={{
+                        ...styles.tr,
+                        ...(editMode && isSelected ? styles.trSelected : {}),
+                      }}
+                    >
+                      {editMode && (
+                        <td style={styles.tdCheckbox}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleSelectOne(String(tx.id))}
+                            title="Select this transaction"
+                            style={styles.checkbox}
+                          />
+                        </td>
+                      )}
+
                       <td style={styles.tdDate}>{tx.date}</td>
 
                       <td style={{ ...styles.td, maxWidth: 460 }}>
@@ -447,51 +561,55 @@ export default function Transactions() {
                             {getCategoryLabel(tx.category)}
                           </div>
 
-                          <select
-                            value={tx.category}
-                            disabled={state === "saving"}
-                            onChange={(e) =>
-                              handleCategoryChange(tx, e.target.value)
-                            }
-                            style={{
-                              ...styles.categorySelect,
-                              borderColor: selectBorder,
-                            }}
-                            title="Change category"
-                          >
-                            {CATEGORY_OPTIONS.map((c) => (
-                              <option key={c.value} value={c.value}>
-                                {c.label}
-                              </option>
-                            ))}
-                          </select>
+                          {editMode && (
+                            <>
+                              <select
+                                value={tx.category}
+                                disabled={state === "saving"}
+                                onChange={(e) =>
+                                  handleCategoryChange(tx, e.target.value)
+                                }
+                                style={{
+                                  ...styles.categorySelect,
+                                  borderColor: selectBorder,
+                                }}
+                                title="Change category"
+                              >
+                                {CATEGORY_OPTIONS.map((c) => (
+                                  <option key={c.value} value={c.value}>
+                                    {c.label}
+                                  </option>
+                                ))}
+                              </select>
 
-                          {state !== "idle" && (
-                            <span
-                              style={{
-                                ...styles.saveBadge,
-                                ...(state === "saving"
-                                  ? styles.saveBadgeSaving
-                                  : {}),
-                                ...(state === "saved"
-                                  ? styles.saveBadgeSaved
-                                  : {}),
-                                ...(state === "error"
-                                  ? styles.saveBadgeError
-                                  : {}),
-                              }}
-                              title={state === "error" ? err : ""}
-                            >
-                              {state === "saving"
-                                ? "Saving..."
-                                : state === "saved"
-                                ? "Saved"
-                                : "Error"}
-                            </span>
+                              {state !== "idle" && (
+                                <span
+                                  style={{
+                                    ...styles.saveBadge,
+                                    ...(state === "saving"
+                                      ? styles.saveBadgeSaving
+                                      : {}),
+                                    ...(state === "saved"
+                                      ? styles.saveBadgeSaved
+                                      : {}),
+                                    ...(state === "error"
+                                      ? styles.saveBadgeError
+                                      : {}),
+                                  }}
+                                  title={state === "error" ? err : ""}
+                                >
+                                  {state === "saving"
+                                    ? "Saving..."
+                                    : state === "saved"
+                                    ? "Saved"
+                                    : "Error"}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
 
-                        {state === "error" && (
+                        {editMode && state === "error" && (
                           <div style={styles.errorText}>
                             {err || "Update failed"}
                           </div>
@@ -661,7 +779,8 @@ const styles = {
   },
   filterGrid: {
     display: "grid",
-    gridTemplateColumns: "minmax(260px, 2fr) repeat(3, minmax(140px, 1fr)) auto",
+    gridTemplateColumns:
+      "minmax(260px, 2fr) repeat(3, minmax(140px, 1fr)) auto",
     gap: 12,
     alignItems: "center",
   },
@@ -706,6 +825,61 @@ const styles = {
     padding: "18px 18px 14px",
     borderBottom: "1px solid #eef2f7",
     background: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  tableActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  selectionSummary: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#475569",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: 999,
+    padding: "8px 12px",
+    whiteSpace: "nowrap",
+  },
+  editButton: {
+    height: 40,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #dbe3ee",
+    background: "#ffffff",
+    color: "#0f172a",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  editButtonActive: {
+    height: 40,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #2563eb",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  deleteButton: {
+    height: 40,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #ef4444",
+    background: "#fef2f2",
+    color: "#b91c1c",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
   },
   centerBlock: {
     padding: 30,
@@ -726,6 +900,16 @@ const styles = {
   },
   tableHeadRow: {
     background: "#f8fafc",
+  },
+  thCheckbox: {
+    textAlign: "center",
+    width: 56,
+    minWidth: 56,
+    padding: "14px 10px",
+    fontSize: 12,
+    fontWeight: 800,
+    color: "#475569",
+    borderBottom: "1px solid #e2e8f0",
   },
   thLeft: {
     textAlign: "left",
@@ -751,6 +935,21 @@ const styles = {
   },
   tr: {
     background: "#ffffff",
+  },
+  trSelected: {
+    background: "#f8fbff",
+  },
+  tdCheckbox: {
+    padding: "16px 10px",
+    borderBottom: "1px solid #f1f5f9",
+    textAlign: "center",
+    verticalAlign: "middle",
+  },
+  checkbox: {
+    width: 16,
+    height: 16,
+    cursor: "pointer",
+    accentColor: "#2563eb",
   },
   td: {
     padding: "16px 18px",
@@ -914,4 +1113,17 @@ const styles = {
     fontSize: 14,
     fontWeight: 700,
   },
+  deleteIconButton: {
+  width: 40,
+  height: 40,
+  borderRadius: 10,
+  border: "1px solid #ef4444",
+  background: "#fef2f2",
+  color: "#b91c1c",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  transition: "all 0.15s ease",
+},
 };

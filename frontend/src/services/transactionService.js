@@ -82,3 +82,10 @@ export async function updateTransactionCategory(transactionId, spendCategory) {
     return normalizeAxiosError(err);
   }
 }
+
+export async function deleteTransactions(transactionIds) {
+  const { data } = await api.delete("/transactions/bulk", {
+    data: { transactionIds }
+  });
+  return data;
+}
