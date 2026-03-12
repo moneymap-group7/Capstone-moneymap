@@ -12,6 +12,7 @@ import InsightsPage from "../pages/InsightsPage";
 import RulesPage from "../pages/RulesPage";
 import VerifyEmail from "../pages/VerifyEmail";
 import ForgotPassword from "../pages/ForgotPassword";
+import InsightsVisualsPage from "../pages/InsightsVisualsPage";
 
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -34,6 +35,7 @@ export default function AppRoutes() {
         <Route path="/budget" element={<BudgetPage />} />
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/rules" element={<RulesPage />} />
+        <Route path="/insights-visuals" element={<InsightsVisualsPage />} />
       </Route>
 
       {/* Fallback */}
