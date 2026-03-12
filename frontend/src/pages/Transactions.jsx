@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Spinner from "../components/common/Spinner";
 import ErrorBox from "../components/common/ErrorBox";
-import { getTransactions, updateTransactionCategory } from "../services/transactionService";
+import {
+  getTransactions,
+  updateTransactionCategory,
+  deleteTransactions,
+} from "../services/transactionService";
+import { Trash2 } from "lucide-react";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -33,13 +38,76 @@ const CATEGORY_OPTIONS = [
   { value: "UNCATEGORIZED", label: "Uncategorized" },
 ];
 
+function getCategoryLabel(value) {
+  const match = CATEGORY_OPTIONS.find((c) => c.value === value);
+  return match?.label || value || "Uncategorized";
+}
+
+function getTypeBadgeStyle(type) {
+  const normalized = String(type).toUpperCase();
+  if (normalized === "DEBIT") {
+    return {
+      background: "#fef2f2",
+      color: "#b91c1c",
+      border: "1px solid #fecaca",
+    };
+  }
+  if (normalized === "CREDIT") {
+    return {
+      background: "#f0fdf4",
+      color: "#166534",
+      border: "1px solid #bbf7d0",
+    };
+  }
+  return {
+    background: "#f8fafc",
+    color: "#475569",
+    border: "1px solid #e2e8f0",
+  };
+}
+
+function getCategoryTone(category) {
+  switch (category) {
+    case "FOOD_AND_DINING":
+      return { background: "#fff7ed", color: "#c2410c", border: "#fdba74" };
+    case "TRANSPORTATION":
+      return { background: "#eff6ff", color: "#1d4ed8", border: "#93c5fd" };
+    case "UTILITIES":
+      return { background: "#faf5ff", color: "#7e22ce", border: "#d8b4fe" };
+    case "GROCERIES":
+      return { background: "#f0fdf4", color: "#166534", border: "#86efac" };
+    case "INCOME":
+      return { background: "#ecfdf5", color: "#047857", border: "#6ee7b7" };
+    case "RENT":
+      return { background: "#fefce8", color: "#a16207", border: "#fde68a" };
+    case "SHOPPING":
+      return { background: "#fdf2f8", color: "#be185d", border: "#f9a8d4" };
+    case "UNCATEGORIZED":
+      return { background: "#f8fafc", color: "#475569", border: "#cbd5e1" };
+    default:
+      return { background: "#f8fafc", color: "#334155", border: "#cbd5e1" };
+  }
+}
+
+function StatCard({ label, value, subtext }) {
+  return (
+    <div style={styles.statCard}>
+      <div style={styles.statValue}>{value}</div>
+      <div style={styles.statLabel}>{label}</div>
+      {subtext ? <div style={styles.statSubtext}>{subtext}</div> : null}
+    </div>
+  );
+}
+
 export default function Transactions() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState([]);
 
-  const [saveState, setSaveState] = useState({}); // { [id]: "idle"|"saving"|"saved"|"error" }
-  const [saveError, setSaveError] = useState({}); // { [id]: string }
+  const [saveState, setSaveState] = useState({});
+  const [saveError, setSaveError] = useState({});
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [editMode, setEditMode] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -50,10 +118,10 @@ export default function Transactions() {
     totalPages: 1,
   });
 
-  const [q, setQ] = useState(""); // search text
-  const [typeFilter, setTypeFilter] = useState("ALL"); // ALL | DEBIT | CREDIT
-  const [fromDate, setFromDate] = useState(""); // yyyy-mm-dd
-  const [toDate, setToDate] = useState(""); // yyyy-mm-dd
+  const [q, setQ] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -85,6 +153,7 @@ export default function Transactions() {
           setErrors(msgs);
           setData([]);
           setMeta({ page, pageSize, total: 0, totalPages: 1 });
+          setSelectedIds([]);
           return;
         }
 
@@ -98,11 +167,15 @@ export default function Transactions() {
 
         setData(Array.isArray(payloadData) ? payloadData : []);
         setMeta(payloadMeta);
-      } catch (e) {
+        setSelectedIds([]);
+      } catch {
         if (!alive) return;
-        setErrors(["Backend not reachable. Is the server running on http://localhost:3000 ?"]);
+        setErrors([
+          "Backend not reachable. Is the server running on http://localhost:3000 ?",
+        ]);
         setData([]);
         setMeta({ page, pageSize, total: 0, totalPages: 1 });
+        setSelectedIds([]);
       } finally {
         if (alive) setLoading(false);
       }
@@ -119,8 +192,10 @@ export default function Transactions() {
 
     setData((prev) =>
       (prev || []).map((tx) =>
-        String(tx.transactionId) === id ? { ...tx, spendCategory: newCategory } : tx,
-      ),
+        String(tx.transactionId) === id
+          ? { ...tx, spendCategory: newCategory }
+          : tx
+      )
     );
 
     setSaveState((s) => ({ ...s, [id]: "saving" }));
@@ -136,215 +211,272 @@ export default function Transactions() {
       return;
     }
 
-    // revert on failure
     setData((prev) =>
       (prev || []).map((tx) =>
-        String(tx.transactionId) === id ? { ...tx, spendCategory: rowView.category } : tx,
-      ),
+        String(tx.transactionId) === id
+          ? { ...tx, spendCategory: rowView.category }
+          : tx
+      )
     );
 
     setSaveState((s) => ({ ...s, [id]: "error" }));
-    setSaveError((e) => ({ ...e, [id]: res?.message || "Failed to update category" }));
+    setSaveError((e) => ({
+      ...e,
+      [id]: res?.message || "Failed to update category",
+    }));
   }
 
   const rows = useMemo(() => {
     return (data || []).map((tx) => {
       const type = tx.transactionType || "—";
-      const isDebit = String(type).toUpperCase() === "DEBIT";
+      const normalizedType = String(type).toUpperCase();
+      const isDebit = normalizedType === "DEBIT";
 
-      const id = String(tx.transactionId ?? `${tx.transactionDate}-${tx.description}-${tx.amount}`);
+      const id = String(
+        tx.transactionId ?? `${tx.transactionDate}-${tx.description}-${tx.amount}`
+      );
 
       return {
         id,
         date: formatDate(tx.transactionDate),
         description: tx.description ?? "—",
         amount: formatMoney(tx.amount),
-        type: String(type).toUpperCase(),
+        type: normalizedType,
         category: tx.spendCategory ?? "UNCATEGORIZED",
         isDebit,
       };
     });
   }, [data]);
 
-  const filteredRows = rows; // backend already filters
+  const filteredRows = rows;
+
+  const debitCount = rows.filter((r) => r.type === "DEBIT").length;
+  const creditCount = rows.filter((r) => r.type === "CREDIT").length;
+
+  function handleSelectOne(id) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  }
+
+  function handleSelectAll() {
+    const currentPageIds = filteredRows.map((tx) => String(tx.id));
+    const allSelected =
+      currentPageIds.length > 0 &&
+      currentPageIds.every((id) => selectedIds.includes(id));
+
+    if (allSelected) {
+      setSelectedIds((prev) =>
+        prev.filter((id) => !currentPageIds.includes(id))
+      );
+    } else {
+      setSelectedIds((prev) => [...new Set([...prev, ...currentPageIds])]);
+    }
+  }
+
+  function toggleEditMode() {
+    setEditMode((prev) => {
+      const next = !prev;
+      if (!next) {
+        setSelectedIds([]);
+      }
+      return next;
+    });
+  }
+
+  async function handleDeleteSelected() {
+  if (!selectedIds.length) return;
+
+  const confirmDelete = window.confirm(
+    `Delete ${selectedIds.length} selected transaction(s)?`
+  );
+
+  if (!confirmDelete) return;
+
+  try {
+    await deleteTransactions(selectedIds);
+
+    // remove deleted rows from UI
+    setData((prev) =>
+      prev.filter((tx) => !selectedIds.includes(String(tx.transactionId)))
+    );
+
+    setSelectedIds([]);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to delete transactions.");
+  }
+}
+
+  const allVisibleSelected =
+    filteredRows.length > 0 &&
+    filteredRows.every((tx) => selectedIds.includes(String(tx.id)));
 
   return (
-    <div style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
+    <div style={styles.page}>
+      <div style={styles.header}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 28 }}>Transactions</h2>
-          <div style={{ marginTop: 6, color: "#6b7280", fontSize: 14 }}>
-            View your spending and income history.
-          </div>
+          <h1 style={styles.pageTitle}>Transactions</h1>
+          <p style={styles.pageSubtitle}>
+            Track, search, and recategorize your spending and income history.
+          </p>
         </div>
 
-        <div
-          style={{
-            padding: "6px 10px",
-            border: "1px solid #e5e7eb",
-            borderRadius: 999,
-            fontSize: 13,
-            color: "#374151",
-            background: "#fff",
-          }}
-          title="Count of loaded rows"
-        >
-          {meta?.total ?? rows.length} total · {rows.length} shown on this page
+        <div style={styles.headerPill}>
+          {meta?.total ?? rows.length} total · {rows.length} on this page
         </div>
+      </div>
+
+      <div style={styles.statsGrid}>
+        <StatCard
+          label="Total Transactions"
+          value={meta?.total ?? rows.length}
+          subtext="Available in results"
+        />
+        <StatCard
+          label="Debits"
+          value={debitCount}
+          subtext="Shown on this page"
+        />
+        <StatCard
+          label="Credits"
+          value={creditCount}
+          subtext="Shown on this page"
+        />
+        <StatCard
+          label="Page"
+          value={`${meta?.page ?? 1}/${meta?.totalPages ?? 1}`}
+          subtext={`${pageSize} rows per page`}
+        />
       </div>
 
       {errors.length > 0 && <ErrorBox title="Error" errors={errors} />}
 
-      {/* Filters */}
-      <div
-        style={{
-          marginTop: 14,
-          padding: 12,
-          border: "1px solid #e5e7eb",
-          borderRadius: 12,
-          background: "#fff",
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <input
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setPage(1);
-          }}
-          placeholder="Search description…"
-          style={{
-            flex: "1 1 240px",
-            padding: "10px 12px",
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            color: "#000",
-            fontSize: 14,
-          }}
-        />
+      <div style={styles.filterCard}>
+        <div style={styles.filterHeader}>
+          <div>
+            <div style={styles.cardTitle}>Filters</div>
+            <div style={styles.cardSubtitle}>
+              Search by description, transaction type, or date range.
+            </div>
+          </div>
+        </div>
 
-        <select
-          value={typeFilter}
-          onChange={(e) => {
-            setTypeFilter(e.target.value);
-            setPage(1);
-          }}
-          style={{
-            padding: "10px 10px",
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            color: "#000",
-            fontSize: 14,
-          }}
-          title="Type"
-        >
-          <option value="ALL">All types</option>
-          <option value="DEBIT">DEBIT</option>
-          <option value="CREDIT">CREDIT</option>
-        </select>
+        <div style={styles.filterGrid}>
+          <input
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search description..."
+            style={{ ...styles.input, ...styles.searchInput }}
+          />
 
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => {
-            setFromDate(e.target.value);
-            setPage(1);
-          }}
-          style={{
-            padding: "10px 10px",
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            color: "#000",
-            fontSize: 14,
-          }}
-          title="From date"
-        />
+          <select
+            value={typeFilter}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setPage(1);
+            }}
+            style={styles.input}
+            title="Type"
+          >
+            <option value="ALL">All types</option>
+            <option value="DEBIT">Debit</option>
+            <option value="CREDIT">Credit</option>
+          </select>
 
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => {
-            setToDate(e.target.value);
-            setPage(1);
-          }}
-          style={{
-            padding: "10px 10px",
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            color: "#000",
-            fontSize: 14,
-          }}
-          title="To date"
-        />
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => {
+              setFromDate(e.target.value);
+              setPage(1);
+            }}
+            style={styles.input}
+            title="From date"
+          />
 
-        <button
-          onClick={() => {
-            setQ("");
-            setTypeFilter("ALL");
-            setFromDate("");
-            setToDate("");
-            setPage(1);
-          }}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 10,
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            color: "#000",
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-          title="Clear filters"
-        >
-          Clear
-        </button>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => {
+              setToDate(e.target.value);
+              setPage(1);
+            }}
+            style={styles.input}
+            title="To date"
+          />
+
+          <button
+            onClick={() => {
+              setQ("");
+              setTypeFilter("ALL");
+              setFromDate("");
+              setToDate("");
+              setPage(1);
+            }}
+            style={styles.clearButton}
+            title="Clear filters"
+          >
+            Clear
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
-      <div
-        style={{
-          marginTop: 14,
-          border: "1px solid #e5e7eb",
-          borderRadius: 12,
-          overflow: "hidden",
-          background: "#fff",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-        }}
-      >
+      <div style={styles.tableCard}>
+        <div style={styles.tableHeader}>
+          <div>
+            <div style={styles.cardTitle}>Transaction List</div>
+            <div style={styles.cardSubtitle}>
+              {editMode
+                ? "Edit mode is on. Select transactions to delete or change categories."
+                : "Click Edit to select transactions or change categories."}
+            </div>
+          </div>
+
+          <div style={styles.tableActions}>
+           {editMode && selectedIds.length > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                style={styles.deleteIconButton}
+                title={`Delete ${selectedIds.length} selected transaction(s)`}
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
+
+            {editMode && selectedIds.length > 0 && (
+              <div style={styles.selectionSummary}>
+                {selectedIds.length} selected
+              </div>
+            )}
+
+            <button
+              onClick={toggleEditMode}
+              style={editMode ? styles.editButtonActive : styles.editButton}
+              title={editMode ? "Exit edit mode" : "Enter edit mode"}
+            >
+              {editMode ? "Done" : "Edit"}
+            </button>
+          </div>
+        </div>
+
         {loading ? (
-          <div style={{ padding: 16 }}>
+          <div style={styles.centerBlock}>
             <Spinner />
           </div>
         ) : errors.length > 0 ? (
-          <div style={{ padding: 18, color: "#6b7280" }}>Fix the errors above.</div>
+          <div style={styles.emptyState}>Fix the errors above.</div>
         ) : filteredRows.length === 0 ? (
-          <div style={{ padding: 18, color: "#6b7280" }}>No transactions found.</div>
+          <div style={styles.emptyState}>No transactions found.</div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "separate",
-                borderSpacing: 0,
-                minWidth: 860,
-              }}
-            >
-              <thead>
-                <tr style={{ background: "#f9fafb" }}>
+          <div style={styles.tableScroll}>
+            <table style={styles.table}>
+             <thead>
+                <tr style={styles.tableHeadRow}>
+                  {editMode && <th style={styles.thCheckbox}></th>}
                   <th style={styles.thLeft}>Date</th>
                   <th style={styles.thLeft}>Description</th>
                   <th style={styles.thRight}>Amount (CAD)</th>
@@ -358,63 +490,127 @@ export default function Transactions() {
                   const state = saveState[tx.id] || "idle";
                   const err = saveError[tx.id] || "";
 
-                  const rowBg = state === "saved" ? "#f0fdf4" : "#fff";
                   const selectBorder =
-                    state === "error" ? "#ef4444" : state === "saved" ? "#22c55e" : "#d1d5db";
+                    state === "error"
+                      ? "#ef4444"
+                      : state === "saved"
+                      ? "#22c55e"
+                      : "#d1d5db";
+
+                  const categoryTone = getCategoryTone(tx.category);
+                  const isSelected = selectedIds.includes(String(tx.id));
 
                   return (
-                    <tr key={tx.id} style={{ ...styles.tr, background: rowBg }}>
-                      <td style={styles.td}>{tx.date}</td>
+                    <tr
+                      key={tx.id}
+                      style={{
+                        ...styles.tr,
+                        ...(editMode && isSelected ? styles.trSelected : {}),
+                      }}
+                    >
+                      {editMode && (
+                        <td style={styles.tdCheckbox}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleSelectOne(String(tx.id))}
+                            title="Select this transaction"
+                            style={styles.checkbox}
+                          />
+                        </td>
+                      )}
 
-                      <td style={{ ...styles.td, maxWidth: 420 }}>
-                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {tx.description}
-                        </div>
+                      <td style={styles.tdDate}>{tx.date}</td>
+
+                      <td style={{ ...styles.td, maxWidth: 460 }}>
+                        <div style={styles.descriptionCell}>{tx.description}</div>
                       </td>
 
-                      <td style={{ ...styles.td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                        <span style={{ fontWeight: 700, color: tx.isDebit ? "#b91c1c" : "#166534" }}>
+                      <td style={styles.tdAmount}>
+                        <span
+                          style={{
+                            ...styles.amount,
+                            color: tx.isDebit ? "#dc2626" : "#16a34a",
+                          }}
+                        >
                           {tx.isDebit ? "-" : "+"}${tx.amount}
                         </span>
                       </td>
 
                       <td style={styles.td}>
-                        <span style={styles.pill}>{tx.type}</span>
+                        <span
+                          style={{
+                            ...styles.typeBadge,
+                            ...getTypeBadgeStyle(tx.type),
+                          }}
+                        >
+                          {tx.type}
+                        </span>
                       </td>
 
                       <td style={styles.td}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <select
-                            value={tx.category}
-                            disabled={state === "saving"}
-                            onChange={(e) => handleCategoryChange(tx, e.target.value)}
-                            style={{ ...styles.select, borderColor: selectBorder }}
-                            title="Change category"
+                        <div style={styles.categoryCell}>
+                          <div
+                            style={{
+                              ...styles.categoryPreview,
+                              background: categoryTone.background,
+                              color: categoryTone.color,
+                              border: `1px solid ${categoryTone.border}`,
+                            }}
                           >
-                            {CATEGORY_OPTIONS.map((c) => (
-                              <option key={c.value} value={c.value}>
-                                {c.label}
-                              </option>
-                            ))}
-                          </select>
+                            {getCategoryLabel(tx.category)}
+                          </div>
 
-                          {state !== "idle" && (
-                            <span
-                              style={{
-                                ...styles.badge,
-                                ...(state === "saving" ? styles.badgeSaving : {}),
-                                ...(state === "saved" ? styles.badgeSaved : {}),
-                                ...(state === "error" ? styles.badgeError : {}),
-                              }}
-                              title={state === "error" ? err : ""}
-                            >
-                              {state === "saving" ? "Saving…" : state === "saved" ? "Saved" : "Error"}
-                            </span>
+                          {editMode && (
+                            <>
+                              <select
+                                value={tx.category}
+                                disabled={state === "saving"}
+                                onChange={(e) =>
+                                  handleCategoryChange(tx, e.target.value)
+                                }
+                                style={{
+                                  ...styles.categorySelect,
+                                  borderColor: selectBorder,
+                                }}
+                                title="Change category"
+                              >
+                                {CATEGORY_OPTIONS.map((c) => (
+                                  <option key={c.value} value={c.value}>
+                                    {c.label}
+                                  </option>
+                                ))}
+                              </select>
+
+                              {state !== "idle" && (
+                                <span
+                                  style={{
+                                    ...styles.saveBadge,
+                                    ...(state === "saving"
+                                      ? styles.saveBadgeSaving
+                                      : {}),
+                                    ...(state === "saved"
+                                      ? styles.saveBadgeSaved
+                                      : {}),
+                                    ...(state === "error"
+                                      ? styles.saveBadgeError
+                                      : {}),
+                                  }}
+                                  title={state === "error" ? err : ""}
+                                >
+                                  {state === "saving"
+                                    ? "Saving..."
+                                    : state === "saved"
+                                    ? "Saved"
+                                    : "Error"}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
 
-                        {state === "error" && (
-                          <div style={{ marginTop: 6, fontSize: 12, color: "#b91c1c" }}>
+                        {editMode && state === "error" && (
+                          <div style={styles.errorText}>
                             {err || "Update failed"}
                           </div>
                         )}
@@ -428,35 +624,20 @@ export default function Transactions() {
         )}
       </div>
 
-      <div
-        style={{
-          marginTop: 12,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ color: "#6b7280", fontSize: 13 }}>
-          Page <b>{meta.page}</b> of <b>{meta.totalPages}</b> · Total <b>{meta.total}</b>
+      <div style={styles.paginationBar}>
+        <div style={styles.paginationText}>
+          Page <b>{meta.page}</b> of <b>{meta.totalPages}</b> · Total{" "}
+          <b>{meta.total}</b>
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={styles.paginationControls}>
           <select
             value={pageSize}
             onChange={(e) => {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            style={{
-              padding: "10px 10px",
-              borderRadius: 10,
-              border: "1px solid #e5e7eb",
-              background: "#fff",
-              color: "#000",
-              fontSize: 14,
-            }}
+            style={styles.paginationSelect}
             title="Rows per page"
           >
             {[10, 20, 50, 100].map((n) => (
@@ -470,14 +651,9 @@ export default function Transactions() {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1 || loading}
             style={{
-              padding: "10px 12px",
-              borderRadius: 10,
-              border: "1px solid #e5e7eb",
-              background: "#fff",
-              color: "#000",
-              fontWeight: 700,
-              cursor: "pointer",
-              opacity: page <= 1 || loading ? 0.6 : 1,
+              ...styles.secondaryButton,
+              opacity: page <= 1 || loading ? 0.55 : 1,
+              cursor: page <= 1 || loading ? "not-allowed" : "pointer",
             }}
           >
             Prev
@@ -487,97 +663,467 @@ export default function Transactions() {
             onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
             disabled={page >= (meta.totalPages || 1) || loading}
             style={{
-              padding: "10px 12px",
-              borderRadius: 10,
-              border: "1px solid #2563eb",
-              background: "#2563eb",
-              color: "white",
-              fontWeight: 700,
-              cursor: "pointer",
-              opacity: page >= (meta.totalPages || 1) || loading ? 0.6 : 1,
+              ...styles.primaryButton,
+              opacity: page >= (meta.totalPages || 1) || loading ? 0.55 : 1,
+              cursor:
+                page >= (meta.totalPages || 1) || loading
+                  ? "not-allowed"
+                  : "pointer",
             }}
           >
             Next
           </button>
         </div>
       </div>
-
-      <div style={{ marginTop: 10, fontSize: 12, color: "#6b7280" }}>
-        Note: Transactions are loaded from the backend with pagination and filters. Categories can be edited inline.
-      </div>
     </div>
   );
 }
 
 const styles = {
-  thLeft: {
-    textAlign: "left",
-    padding: "12px 14px",
+  page: {
+    width: "100%",
+    maxWidth: "100%",
+    margin: 0,
+    padding: "24px 24px 40px",
+    background: "#f8fafc",
+    minHeight: "100vh",
+    boxSizing: "border-box",
+  },
+
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+    flexWrap: "wrap",
+    marginBottom: 20,
+  },
+  pageTitle: {
+    margin: 0,
+    fontSize: 36,
+    lineHeight: 1.1,
+    fontWeight: 800,
+    color: "#0f172a",
+    letterSpacing: "-0.02em",
+  },
+  pageSubtitle: {
+    margin: "8px 0 0",
+    fontSize: 15,
+    color: "#64748b",
+  },
+  headerPill: {
+    alignSelf: "center",
+    padding: "10px 14px",
+    borderRadius: 999,
+    border: "1px solid #e2e8f0",
+    background: "#ffffff",
+    color: "#334155",
+    fontSize: 13,
+    fontWeight: 600,
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
+  },
+
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: 14,
+    marginBottom: 20,
+  },
+  statCard: {
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: 18,
+    padding: "18px 18px 16px",
+    boxShadow: "0 6px 20px rgba(15, 23, 42, 0.05)",
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: 800,
+    color: "#0f172a",
+    lineHeight: 1,
+  },
+  statLabel: {
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: 700,
+    color: "#334155",
+  },
+  statSubtext: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#64748b",
+  },
+
+  filterCard: {
+    width: "100%",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: 20,
+    padding: 18,
+    boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
+    marginBottom: 18,
+    boxSizing: "border-box",
+  },
+  filterHeader: {
+    marginBottom: 14,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: 700,
+    color: "#0f172a",
+  },
+  cardSubtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#64748b",
+  },
+  filterGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "minmax(260px, 2fr) repeat(3, minmax(140px, 1fr)) auto",
+    gap: 12,
+    alignItems: "center",
+  },
+  input: {
+    height: 46,
+    borderRadius: 12,
+    border: "1px solid #dbe3ee",
+    background: "#ffffff",
+    color: "#0f172a",
+    fontSize: 14,
+    padding: "0 14px",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  searchInput: {
+    minWidth: 220,
+  },
+  clearButton: {
+    height: 46,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #dbe3ee",
+    background: "#f8fafc",
+    color: "#0f172a",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+
+  tableCard: {
+    width: "100%",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: 20,
+    overflow: "hidden",
+    boxShadow: "0 8px 28px rgba(15, 23, 42, 0.06)",
+    boxSizing: "border-box",
+  },
+
+  tableHeader: {
+    padding: "18px 18px 14px",
+    borderBottom: "1px solid #eef2f7",
+    background: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  tableActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  selectionSummary: {
     fontSize: 13,
     fontWeight: 700,
-    color: "#374151",
-    borderBottom: "1px solid #e5e7eb",
+    color: "#475569",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: 999,
+    padding: "8px 12px",
+    whiteSpace: "nowrap",
+  },
+  editButton: {
+    height: 40,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #dbe3ee",
+    background: "#ffffff",
+    color: "#0f172a",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  editButtonActive: {
+    height: 40,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #2563eb",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  deleteButton: {
+    height: 40,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #ef4444",
+    background: "#fef2f2",
+    color: "#b91c1c",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+  centerBlock: {
+    padding: 30,
+  },
+  emptyState: {
+    padding: 24,
+    color: "#64748b",
+    fontSize: 14,
+  },
+  tableScroll: {
+    overflowX: "auto",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "separate",
+    borderSpacing: 0,
+    minWidth: 980,
+  },
+  tableHeadRow: {
+    background: "#f8fafc",
+  },
+  thCheckbox: {
+    textAlign: "center",
+    width: 56,
+    minWidth: 56,
+    padding: "14px 10px",
+    fontSize: 12,
+    fontWeight: 800,
+    color: "#475569",
+    borderBottom: "1px solid #e2e8f0",
+  },
+  thLeft: {
+    textAlign: "left",
+    padding: "14px 18px",
+    fontSize: 12,
+    fontWeight: 800,
+    color: "#475569",
+    borderBottom: "1px solid #e2e8f0",
+    letterSpacing: "0.03em",
+    textTransform: "uppercase",
     whiteSpace: "nowrap",
   },
   thRight: {
     textAlign: "right",
-    padding: "12px 14px",
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#374151",
-    borderBottom: "1px solid #e5e7eb",
+    padding: "14px 18px",
+    fontSize: 12,
+    fontWeight: 800,
+    color: "#475569",
+    borderBottom: "1px solid #e2e8f0",
+    letterSpacing: "0.03em",
+    textTransform: "uppercase",
     whiteSpace: "nowrap",
   },
   tr: {
-    background: "#fff",
+    background: "#ffffff",
+  },
+  trSelected: {
+    background: "#f8fbff",
+  },
+  tdCheckbox: {
+    padding: "16px 10px",
+    borderBottom: "1px solid #f1f5f9",
+    textAlign: "center",
+    verticalAlign: "middle",
+  },
+  checkbox: {
+    width: 16,
+    height: 16,
+    cursor: "pointer",
+    accentColor: "#2563eb",
   },
   td: {
-    padding: "12px 14px",
+    padding: "16px 18px",
     borderBottom: "1px solid #f1f5f9",
     fontSize: 14,
-    color: "#111827",
+    color: "#0f172a",
     verticalAlign: "middle",
     whiteSpace: "nowrap",
   },
-  pill: {
-    display: "inline-block",
-    padding: "4px 10px",
-    borderRadius: 999,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    fontSize: 12,
-    color: "#374151",
+  tdDate: {
+    padding: "16px 18px",
+    borderBottom: "1px solid #f1f5f9",
+    fontSize: 14,
+    color: "#334155",
+    verticalAlign: "middle",
+    whiteSpace: "nowrap",
+    fontWeight: 600,
   },
-  select: {
+  tdAmount: {
+    padding: "16px 18px",
+    borderBottom: "1px solid #f1f5f9",
+    fontSize: 14,
+    textAlign: "right",
+    verticalAlign: "middle",
+    whiteSpace: "nowrap",
+    fontVariantNumeric: "tabular-nums",
+  },
+  descriptionCell: {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    color: "#0f172a",
+    fontWeight: 500,
+  },
+  amount: {
+    fontSize: 16,
+    fontWeight: 800,
+    letterSpacing: "-0.01em",
+  },
+
+  typeBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "6px 12px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 800,
+    letterSpacing: "0.02em",
+  },
+
+  categoryCell: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "nowrap",
+  },
+
+  categoryPreview: {
+    width: 130,
+    minWidth: 130,
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: 700,
     padding: "6px 10px",
-    borderRadius: 10,
-    border: "1px solid #d1d5db",
-    background: "#fff",
-    fontSize: 13,
-    color: "#111827",
+    borderRadius: 999,
+    whiteSpace: "nowrap",
+    boxSizing: "border-box",
   },
-  badge: {
+
+  categorySelect: {
+    width: 190,
+    minWidth: 190,
+    height: 40,
+    padding: "0 12px",
+    borderRadius: 12,
+    border: "1px solid #d1d5db",
+    background: "#ffffff",
+    fontSize: 13,
+    color: "#0f172a",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+
+  saveBadge: {
     fontSize: 12,
-    padding: "4px 8px",
+    fontWeight: 700,
+    padding: "6px 10px",
     borderRadius: 999,
     border: "1px solid #e5e7eb",
-    background: "#fff",
+    background: "#ffffff",
     color: "#374151",
     whiteSpace: "nowrap",
   },
-  badgeSaving: {
-    borderColor: "#93c5fd",
+  saveBadgeSaving: {
+    borderColor: "#bfdbfe",
     background: "#eff6ff",
     color: "#1d4ed8",
   },
-  badgeSaved: {
+  saveBadgeSaved: {
     borderColor: "#86efac",
     background: "#f0fdf4",
     color: "#166534",
   },
-  badgeError: {
+  saveBadgeError: {
     borderColor: "#fecaca",
     background: "#fef2f2",
     color: "#b91c1c",
   },
+  errorText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#b91c1c",
+  },
+
+  paginationBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "wrap",
+    marginTop: 18,
+    padding: "0 4px",
+  },
+  paginationText: {
+    color: "#64748b",
+    fontSize: 14,
+  },
+  paginationControls: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  paginationSelect: {
+    height: 44,
+    padding: "0 12px",
+    borderRadius: 12,
+    border: "1px solid #dbe3ee",
+    background: "#ffffff",
+    color: "#0f172a",
+    fontSize: 14,
+  },
+  secondaryButton: {
+    height: 44,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #dbe3ee",
+    background: "#ffffff",
+    color: "#0f172a",
+    fontSize: 14,
+    fontWeight: 700,
+  },
+  primaryButton: {
+    height: 44,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #2563eb",
+    background: "#2563eb",
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: 700,
+  },
+  deleteIconButton: {
+  width: 40,
+  height: 40,
+  borderRadius: 10,
+  border: "1px solid #ef4444",
+  background: "#fef2f2",
+  color: "#b91c1c",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  transition: "all 0.15s ease",
+},
 };
