@@ -56,10 +56,12 @@ export default function BudgetEditModal({
       }
     }
 
-    const obj = {};
-    for (const c of CATEGORIES) obj[c] = map.get(c) ?? 0;
-    return obj;
-  }, [existingRows]);
+  const obj = {};
+for (const c of CATEGORIES) {
+  obj[c] = map.has(c) ? String(map.get(c)) : "";
+}
+return obj;
+}, [existingRows]);
 
   const [limits, setLimits] = useState(initial);
 
@@ -76,13 +78,24 @@ export default function BudgetEditModal({
   const start = toYmd(monthStart);
   const end = toYmd(monthEnd);
 
-  const handleChange = (cat, value) => {
-    const n = Number(value);
+ const handleChange = (cat, value) => {
+  if (value === "") {
     setLimits((prev) => ({
       ...prev,
-      [cat]: Number.isFinite(n) && n >= 0 ? n : 0,
+      [cat]: "",
     }));
-  };
+    return;
+  }
+
+  const n = Number(value);
+
+  if (!Number.isFinite(n) || n < 0) return;
+
+  setLimits((prev) => ({
+    ...prev,
+    [cat]: value,
+  }));
+};
 
   const handleSave = async () => {
     setSaving(true);
@@ -209,15 +222,21 @@ export default function BudgetEditModal({
           {CATEGORIES.map((cat) => (
             <div className="modalRow" key={cat}>
               <div className="modalCat">{cat}</div>
-              <input
-                className="modalInput"
-                type="number"
-                min="0"
-                step="1"
-                value={limits[cat] ?? 0}
-                onChange={(e) => handleChange(cat, e.target.value)}
-                disabled={saving}
-              />
+          <input
+            className="modalInput"
+            type="number"
+            min="0"
+            step="1"
+            value={limits[cat] ?? ""}
+            onChange={(e) => handleChange(cat, e.target.value)}
+            onKeyDown={(e) => {
+              if (["e", "E", "+", "-"].includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            onWheel={(e) => e.target.blur()}
+            disabled={saving}
+          />
             </div>
           ))}
         </div>
