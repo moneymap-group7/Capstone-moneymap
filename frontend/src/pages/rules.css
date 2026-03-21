@@ -12,11 +12,12 @@
   margin: 0;
   font-size: 36px;
   font-weight: 800;
+  color: #111827;
 }
 
 .rulesSub {
-  margin-top: 8px;
-  opacity: 0.85;
+  margin: 8px 0 0;
+  color: #4b5563;
 }
 
 .rulesGrid {
@@ -26,88 +27,108 @@
 }
 
 .rulesCard {
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 20px;
-  background: #fff;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 24px;
 }
 
 .rulesCard h2 {
-  margin-top: 0;
-  margin-bottom: 16px;
+  margin: 0 0 18px;
+  color: #111827;
 }
 
 .rulesForm {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 16px;
 }
 
-.rulesForm label {
+.formField {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.rulesForm input,
-.rulesForm select {
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font: inherit;
+.formField label {
+  font-weight: 600;
   color: #111827;
-  background: #fff;
 }
 
-.rulesForm input:focus,
-.rulesForm select:focus {
+.formField input,
+.formField select {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rulesForm input::placeholder {
+  color: #9ca3af;
+}
+
+.formField input:focus,
+.formField select:focus {
   outline: none;
   border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
-.checkboxRow {
-  flex-direction: row !important;
-  align-items: center;
-  gap: 10px !important;
-  margin-top: 26px;
+.fullWidth {
+  grid-column: 1 / -1;
 }
 
 .rulesActions {
   grid-column: 1 / -1;
   display: flex;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
-.rulesActions button,
-.actionCell button {
-  padding: 10px 14px;
+.rulesButton,
+.secondaryBtn,
+.dangerBtn {
   border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  border-radius: 10px;
+  padding: 11px 16px;
   font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.02s ease;
 }
 
-.rulesActions button,
-.actionCell button:not(.dangerBtn) {
+.rulesButton:active,
+.secondaryBtn:active,
+.dangerBtn:active {
+  transform: translateY(1px);
+}
+
+.rulesButton {
   background: #111827;
-  color: #fff;
+  color: #ffffff;
 }
 
 .secondaryBtn {
-  background: #e5e7eb !important;
-  color: #111827 !important;
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .dangerBtn {
-  background: #b91c1c !important;
-  color: #fff !important;
+  background: #b91c1c;
+  color: #ffffff;
 }
 
 .rulesAlert {
   margin-bottom: 14px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-weight: 500;
 }
 
 .rulesAlert.error {
@@ -131,8 +152,8 @@
 
 .rulesTable th,
 .rulesTable td {
-  border-bottom: 1px solid #e5e7eb;
   padding: 12px 10px;
+  border-bottom: 1px solid #e5e7eb;
   text-align: left;
   vertical-align: top;
   color: #111827;
@@ -140,10 +161,7 @@
 
 .rulesTable th {
   background: #f9fafb;
-}
-
-.rulesTable td {
-  background: #ffffff;
+  font-weight: 700;
 }
 
 .actionCell {
@@ -152,17 +170,37 @@
   flex-wrap: wrap;
 }
 
-/* Remove arrows from number inputs in Chrome, Safari, Edge */
 .rulesPage input[type="number"]::-webkit-outer-spin-button,
 .rulesPage input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* Remove arrows from number inputs in Firefox */
 .rulesPage input[type="number"] {
   appearance: textfield;
   -moz-appearance: textfield;
+}
+
+.checkboxField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 34px;
+}
+
+.checkboxField input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #2563eb;
+  flex: 0 0 auto;
+}
+
+.checkboxField label {
+  margin: 0;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
 }
 
 @media (max-width: 900px) {
@@ -170,7 +208,7 @@
     grid-template-columns: 1fr;
   }
 
-  .checkboxRow {
+  .checkboxField {
     margin-top: 0;
   }
 }
