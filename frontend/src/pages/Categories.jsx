@@ -44,12 +44,80 @@ function titleCaseCategory(value) {
     .join(" ");
 }
 
+function formatMerchantLabel(value) {
+  if (!value) return "Unknown Merchant";
+
+  const cleaned = String(value)
+    .replace(/\s+/g, " ")
+    .trim()
+    .replaceAll("*", "")
+    .replaceAll("  ", " ");
+
+  if (cleaned.length <= 22) return cleaned;
+  return `${cleaned.slice(0, 22)}…`;
+}
+
 function StatCard({ label, value, subtext }) {
   return (
     <div className="categoryExplorerStatCard">
       <div className="categoryExplorerStatLabel">{label}</div>
       <div className="categoryExplorerStatValue">{value}</div>
       {subtext ? <div className="categoryExplorerStatSubtext">{subtext}</div> : null}
+    </div>
+  );
+}
+
+function TreemapTooltip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null;
+
+  const item = payload[0]?.payload;
+  if (!item) return null;
+
+  return (
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 12,
+        padding: "10px 12px",
+        boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+      }}
+    >
+      <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>
+        {item.fullName || item.name}
+      </div>
+      <div style={{ fontSize: 14, color: "#475569" }}>
+        Amount: <strong style={{ color: "#0f172a" }}>{money(item.value)}</strong>
+      </div>
+      <div style={{ fontSize: 14, color: "#475569" }}>
+        Transactions: <strong style={{ color: "#0f172a" }}>{item.count ?? 0}</strong>
+      </div>
+    </div>
+  );
+}
+
+
+function MonthlyTooltip({ active, payload, label }) {
+  if (!active || !payload || !payload.length) return null;
+
+  const value = payload[0]?.value ?? 0;
+
+  return (
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 12,
+        padding: "10px 12px",
+        boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+      }}
+    >
+      <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 14, color: "#475569" }}>
+        Total spent: <strong style={{ color: "#0f172a" }}>{money(value)}</strong>
+      </div>
     </div>
   );
 }
@@ -211,7 +279,8 @@ export default function Categories() {
 
   const treemapData =
     breakdown?.items?.map((item) => ({
-      name: item.merchant,
+      name: formatMerchantLabel(item.merchant),
+      fullName: item.merchant,
       value: Number(item.total),
       count: item.count,
     })) || [];
@@ -333,12 +402,12 @@ export default function Categories() {
                     fill="#2563eb"
                     content={<CustomTreemapContent />}
                   >
-                    <Tooltip formatter={(value) => money(value)} />
+                    <Tooltip content={<TreemapTooltip />} />
                   </Treemap>
                 </ResponsiveContainer>
               ) : (
                 <div className="categoryExplorerEmpty">
-                  No merchant data for this category in the selected range.
+                  No spending found in this category for the selected date range.
                 </div>
               )}
             </div>
@@ -367,7 +436,7 @@ export default function Categories() {
                 ))
               ) : (
                 <div className="categoryExplorerEmpty">
-                  No merchant breakdown available.
+                  No merchant breakdown is available for this category yet.
                 </div>
               )}
             </div>
@@ -388,7 +457,7 @@ export default function Categories() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="month" />
                     <YAxis tickFormatter={(value) => `$${value}`} />
-                    <Tooltip formatter={(value) => money(value)} />
+                    <Tooltip content={<MonthlyTooltip />} />
                     <Bar dataKey="total" radius={[8, 8, 0, 0]}>
                       {monthlyData.map((_, index) => (
                         <Cell
@@ -401,7 +470,7 @@ export default function Categories() {
                 </ResponsiveContainer>
               ) : (
                 <div className="categoryExplorerEmpty">
-                  No monthly trend data for this category.
+                  No monthly spending trend is available for this date range.
                 </div>
               )}
             </div>
