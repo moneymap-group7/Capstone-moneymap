@@ -17,7 +17,13 @@ export class RuleEngineService {
     return (value ?? "").replace(/\s+/g, " ").trim().toUpperCase();
   }
 
-  private matchesMerchant(description: string, rule: any): boolean {
+  private matchesMerchant(
+    description: string,
+    rule: {
+      merchantContains?: string | null;
+      merchantEquals?: string | null;
+    },
+  ): boolean {
     const descNorm = this.normalize(description);
 
     if (rule.merchantEquals) {
@@ -31,7 +37,13 @@ export class RuleEngineService {
     return false;
   }
 
-  private matchesAmount(amount: Prisma.Decimal | undefined, rule: any): boolean {
+  private matchesAmount(
+    amount: Prisma.Decimal | undefined,
+    rule: {
+      minAmount?: Prisma.Decimal | null;
+      maxAmount?: Prisma.Decimal | null;
+    },
+  ): boolean {
     if (!amount) return true;
 
     if (rule.minAmount && amount.lessThan(rule.minAmount)) {
@@ -47,7 +59,9 @@ export class RuleEngineService {
 
   private matchesTransactionType(
     transactionType: TransactionType | undefined,
-    rule: any,
+    rule: {
+      transactionType?: TransactionType | null;
+    },
   ): boolean {
     if (!rule.transactionType) return true;
     if (!transactionType) return false;
@@ -80,5 +94,35 @@ export class RuleEngineService {
     }
 
     return null;
+  }
+
+  async reapplyRulesToExistingTransactions(userId: bigint) {
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        spendCategory: "UNCATEGORIZED",
+      },
+      orderBy: [{ transactionId: "asc" }],
+    });
+
+    for (const tx of transactions) {
+      const matchedCategory = await this.evaluate({
+        userId: tx.userId,
+        description: tx.description,
+        amount: tx.amount,
+        transactionType: tx.transactionType,
+      });
+
+      if (!matchedCategory || matchedCategory === tx.spendCategory) {
+        continue;
+      }
+
+      await this.prisma.transaction.update({
+        where: { transactionId: tx.transactionId },
+        data: {
+          spendCategory: matchedCategory,
+        },
+      });
+    }
   }
 }
