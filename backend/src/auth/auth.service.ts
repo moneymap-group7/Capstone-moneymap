@@ -187,7 +187,15 @@ await this.mailService.sendVerificationEmail(email, verificationCode);
     if (new Date() > new Date(user.passwordResetExpiresAt)) {
       throw new BadRequestException("Reset code has expired");
     }
+    const isSameAsOldPassword = await bcrypt.compare(
+      dto.newPassword,
+      user.passwordHash
+    );
 
+    if (isSameAsOldPassword) {
+      throw new BadRequestException("Password cannot be the same as the old password");
+    }
+    
     const passwordHash = await bcrypt.hash(dto.newPassword, this.SALT_ROUNDS);
 
     await this.prisma.user.update({

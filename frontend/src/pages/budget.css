@@ -477,3 +477,14 @@
     font-size: 24px;
   }
 }
+
+.modalInput::-webkit-outer-spin-button,
+.modalInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.modalInput[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

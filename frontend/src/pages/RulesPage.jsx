@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./rules.css";
+import { SPEND_CATEGORY_OPTIONS } from "../components/common/spendcategories";
 import {
   createRule,
   deleteRule,
@@ -14,22 +15,6 @@ const TRANSACTION_TYPE_OPTIONS = [
   { value: "CREDIT", label: "CREDIT" },
 ];
 
-const SPEND_CATEGORY_OPTIONS = [
-  "INCOME",
-  "HOUSING",
-  "TRANSPORTATION",
-  "FOOD_AND_DINING",
-  "UTILITIES",
-  "INSURANCE",
-  "HEALTHCARE",
-  "SAVINGS",
-  "PERSONAL",
-  "ENTERTAINMENT",
-  "EDUCATION",
-  "DEBT",
-  "TRANSFER",
-  "OTHER",
-];
 
 const EMPTY_FORM = {
   isActive: true,
@@ -113,7 +98,6 @@ export default function RulesPage() {
   function resetForm() {
     setForm(EMPTY_FORM);
     setEditingRuleId(null);
-    setSuccessMessage("");
     setPageError("");
   }
 
