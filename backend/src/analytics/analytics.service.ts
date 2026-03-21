@@ -83,6 +83,28 @@ export type AggregationContractResponse = {
   rows: AggregationContractRow[];
 };
 
+export type CategoryBreakdownItem = {
+  merchant: string;
+  total: string;
+  count: number;
+};
+
+export type CategoryBreakdownMonthlyPoint = {
+  month: string;
+  total: string;
+};
+
+export type CategoryBreakdownResponse = {
+  category: SpendCategory;
+  startDate: string;
+  endDate: string;
+  totalSpent: string;
+  transactionCount: number;
+  averageTransaction: string;
+  topMerchant: string;
+  items: CategoryBreakdownItem[];
+  monthly: CategoryBreakdownMonthlyPoint[];
+};
 
 @Injectable()
 export class AnalyticsService {
@@ -553,6 +575,94 @@ export class AnalyticsService {
       endDate: endDate.toISOString(),
       monthly,
       byCategoryMonthly,
+    };
+  }
+
+    async getCategoryBreakdown(
+    userId: string | number | bigint,
+    startDate: Date,
+    endDate: Date,
+    category: SpendCategory,
+    opts?: { limit?: number },
+  ): Promise<CategoryBreakdownResponse> {
+    const uid = this.toBigInt(userId);
+    const limit = Math.min(Math.max(opts?.limit ?? 12, 1), 50);
+
+    const tx = await this.prisma.transaction.findMany({
+      where: {
+        userId: uid,
+        transactionDate: { gte: startDate, lte: endDate },
+        transactionType: "DEBIT",
+        spendCategory: category,
+      },
+      select: {
+        transactionDate: true,
+        amount: true,
+        description: true,
+      },
+      orderBy: { transactionDate: "asc" },
+    });
+
+    const toCents = (s: string) => {
+      const n = Number(s);
+      return Number.isFinite(n) ? Math.round(n * 100) : 0;
+    };
+
+    const fromCents = (c: number) => (c / 100).toFixed(2);
+
+    const merchantMap = new Map<string, { cents: number; count: number }>();
+    const monthlyCents = new Map<string, number>();
+
+    let totalCents = 0;
+    let transactionCount = 0;
+
+    for (const row of tx) {
+      const centsAbs = Math.abs(toCents(this.decToString(row.amount)));
+      const merchant = this.normalizeMerchant(row.description);
+      const month = this.monthKey(row.transactionDate);
+
+      totalCents += centsAbs;
+      transactionCount += 1;
+
+      const prevMerchant = merchantMap.get(merchant);
+      if (prevMerchant) {
+        prevMerchant.cents += centsAbs;
+        prevMerchant.count += 1;
+      } else {
+        merchantMap.set(merchant, { cents: centsAbs, count: 1 });
+      }
+
+      monthlyCents.set(month, (monthlyCents.get(month) ?? 0) + centsAbs);
+    }
+
+    const items: CategoryBreakdownItem[] = Array.from(merchantMap.entries())
+      .map(([merchant, value]) => ({
+        merchant,
+        total: fromCents(value.cents),
+        count: value.count,
+      }))
+      .sort((a, b) => Number(b.total) - Number(a.total))
+      .slice(0, limit);
+
+    const months = this.listMonths(startDate, endDate);
+    const monthly: CategoryBreakdownMonthlyPoint[] = months.map((month) => ({
+      month,
+      total: fromCents(monthlyCents.get(month) ?? 0),
+    }));
+
+    const averageTransaction =
+      transactionCount > 0 ? fromCents(Math.round(totalCents / transactionCount)) : "0.00";
+
+    return {
+      category,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      totalSpent: fromCents(totalCents),
+      transactionCount,
+      averageTransaction,
+      topMerchant: items[0]?.merchant ?? "—",
+      items,
+      monthly,
     };
   }
 
