@@ -64,3 +64,23 @@ export async function getMonthly(params) {
       : [],
   };
 }
+
+export async function getCategoryBreakdown(params) {
+  const { start, end, category, limit = 12 } = params || {};
+  const res = await httpClient.get("/analytics/category-breakdown", {
+    params: { start, end, category, limit },
+  });
+
+  const data = res.data || {};
+  return {
+    category: data.category ?? "",
+    startDate: data.startDate ?? "",
+    endDate: data.endDate ?? "",
+    totalSpent: data.totalSpent ?? "0.00",
+    transactionCount: data.transactionCount ?? 0,
+    averageTransaction: data.averageTransaction ?? "0.00",
+    topMerchant: data.topMerchant ?? "—",
+    items: Array.isArray(data.items) ? data.items : [],
+    monthly: Array.isArray(data.monthly) ? data.monthly : [],
+  };
+}
