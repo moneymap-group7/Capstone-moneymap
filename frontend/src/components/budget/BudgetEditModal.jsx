@@ -56,12 +56,12 @@ export default function BudgetEditModal({
       }
     }
 
-  const obj = {};
-for (const c of CATEGORIES) {
-  obj[c] = map.has(c) ? String(map.get(c)) : "";
-}
-return obj;
-}, [existingRows]);
+    const obj = {};
+    for (const c of CATEGORIES) {
+      obj[c] = map.has(c) ? String(map.get(c)) : "";
+    }
+    return obj;
+  }, [existingRows]);
 
   const [limits, setLimits] = useState(initial);
 
@@ -78,24 +78,23 @@ return obj;
   const start = toYmd(monthStart);
   const end = toYmd(monthEnd);
 
- const handleChange = (cat, value) => {
-  if (value === "") {
+  const handleChange = (cat, value) => {
+    if (value === "") {
+      setLimits((prev) => ({
+        ...prev,
+        [cat]: "",
+      }));
+      return;
+    }
+
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0) return;
+
     setLimits((prev) => ({
       ...prev,
-      [cat]: "",
+      [cat]: value,
     }));
-    return;
-  }
-
-  const n = Number(value);
-
-  if (!Number.isFinite(n) || n < 0) return;
-
-  setLimits((prev) => ({
-    ...prev,
-    [cat]: value,
-  }));
-};
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -122,17 +121,36 @@ return obj;
         const rawAmount = Number(limits[category] ?? 0);
         const amount = Number.isFinite(rawAmount) ? rawAmount : 0;
 
-        const match = existingArr.find((b) => {
+        const sameMonthMatch = existingArr.find((b) => {
           const bCategory = b?.spendCategory ?? b?.name;
           const bStart = normalizeYmd(b?.startDate);
           return bCategory === category && bStart === start;
         });
 
-        // If user set amount to 0 and a budget exists, remove it.
+        const overlappingMatches = existingArr
+          .filter((b) => {
+            const bCategory = b?.spendCategory ?? b?.name;
+            const bStart = normalizeYmd(b?.startDate);
+            const bEnd = normalizeYmd(b?.endDate);
+
+            return (
+              bCategory === category &&
+              bStart <= end &&
+              (!bEnd || bEnd >= start)
+            );
+          })
+          .sort((a, b) => {
+            const aStart = normalizeYmd(a?.startDate);
+            const bStart = normalizeYmd(b?.startDate);
+            return bStart.localeCompare(aStart);
+          });
+
+        const activeMatch = sameMonthMatch || overlappingMatches[0] || null;
+
         if (amount <= 0) {
-          if (match?.budgetId) {
+          if (sameMonthMatch?.budgetId) {
             const deleteRes = await fetch(
-              `${API_BASE}/budgets/${match.budgetId}`,
+              `${API_BASE}/budgets/${sameMonthMatch.budgetId}`,
               {
                 method: "DELETE",
                 headers: {
@@ -156,20 +174,23 @@ return obj;
 
           continue;
         }
+        
 
         const payload = {
-          name: category,
-          spendCategory: category,
-          amount,
-          startDate: `${start}T00:00:00.000Z`,
-          endDate: `${end}T23:59:59.999Z`,
-        };
+        name: category,
+        spendCategory: category,
+        amount,
+        startDate: `${start}T00:00:00.000Z`,
+      };
+        const shouldPatchExactMonth =
+          sameMonthMatch &&
+          normalizeYmd(sameMonthMatch.startDate) === start;
 
-        const url = match?.budgetId
-          ? `${API_BASE}/budgets/${match.budgetId}`
+        const url = shouldPatchExactMonth
+          ? `${API_BASE}/budgets/${sameMonthMatch.budgetId}`
           : `${API_BASE}/budgets`;
 
-        const method = match?.budgetId ? "PATCH" : "POST";
+        const method = shouldPatchExactMonth ? "PATCH" : "POST";
 
         const res = await fetch(url, {
           method,
@@ -189,6 +210,11 @@ return obj;
 
           throw new Error(Array.isArray(msg) ? msg.join(", ") : msg);
         }
+
+        if (!shouldPatchExactMonth && activeMatch?.budgetId) {
+          // no-op placeholder for readability:
+          // backend is responsible for collapsing overlapping future rows
+        }
       }
 
       await onSaved?.();
@@ -207,7 +233,7 @@ return obj;
           <div>
             <div className="modalTitle">Add / Edit Budgets</div>
             <div className="modalSub">
-              {start} → {end}
+              Selected month: {start} → {end}
             </div>
           </div>
 
@@ -222,34 +248,39 @@ return obj;
           {CATEGORIES.map((cat) => (
             <div className="modalRow" key={cat}>
               <div className="modalCat">{cat}</div>
-          <input
-            className="modalInput"
-            type="number"
-            min="0"
-            step="1"
-            value={limits[cat] ?? ""}
-            onChange={(e) => handleChange(cat, e.target.value)}
-            onKeyDown={(e) => {
-              if (["e", "E", "+", "-"].includes(e.key)) {
-                e.preventDefault();
-              }
-            }}
-            onWheel={(e) => e.target.blur()}
-            disabled={saving}
-          />
+              <input
+                className="modalInput"
+                type="number"
+                min="0"
+                step="1"
+                value={limits[cat] ?? ""}
+                onChange={(e) => handleChange(cat, e.target.value)}
+                onKeyDown={(e) => {
+                  if (["e", "E", "+", "-"].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onWheel={(e) => e.target.blur()}
+                disabled={saving}
+              />
             </div>
           ))}
         </div>
 
         <div className="modalFooter">
-          <button className="btn btnPrimary" onClick={handleSave} disabled={saving}>
+          <button
+            className="btn btnPrimary"
+            onClick={handleSave}
+            disabled={saving}
+          >
             {saving ? "Saving..." : "Save Budgets"}
           </button>
         </div>
 
         <div style={{ opacity: 0.7, fontSize: 12, marginTop: 10 }}>
-          Enter a value greater than 0 to create or update a budget. Set a value
-          to 0 to remove that budget for this month.
+          Enter a value greater than 0 to create or update a budget. Each saved
+          budget will automatically apply for 12 months from the selected month.
+          Set a value to 0 to remove the active budget starting in this month.
         </div>
       </div>
     </div>

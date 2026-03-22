@@ -37,34 +37,6 @@ export class UtilizationService {
     };
   }
 
-  async getUtilizationWithAlertsForRange(
-  userId: bigint,
-  start: Date,
-  end: Date
-): Promise<{ rows: BudgetUtilizationRow[]; alerts: BudgetAlert[] }> {
-  const rows = await this.getUtilizationForRange(userId, start, end);
-  const alerts = this.alertsService.evaluateAlerts(rows);
-  return { rows, alerts };
-}
-  /**
-   * For UI mock/testing: returns both rows + evaluated alerts.
-   */
-  calculateRows(
-    inputs: UtilizationInput[]
-  ): { rows: BudgetUtilizationRow[]; alerts: BudgetAlert[] } {
-    const rows = inputs.map((x) => this.calculateRow(x));
-    const alerts = this.alertsService.evaluateAlerts(rows);
-    return { rows, alerts };
-  }
-
-  private buildRow(
-    spendCategory: BudgetUtilizationRow["spendCategory"],
-    budgetLimit: number,
-    currentSpend: number
-  ): BudgetUtilizationRow {
-    return this.calculateRow({ spendCategory, budgetLimit, currentSpend });
-  }
-
   async getUtilizationForRange(
     userId: bigint,
     start: Date,
@@ -76,13 +48,39 @@ export class UtilizationService {
         isActive: true,
         startDate: { lte: end },
         OR: [{ endDate: null }, { endDate: { gte: start } }],
-       
       },
       select: {
         spendCategory: true,
         amount: true,
+        startDate: true,
       },
+      orderBy: [{ spendCategory: "asc" }, { startDate: "desc" }],
     });
+
+    const latestBudgetByCategory = new Map<
+      string,
+      {
+        spendCategory: BudgetUtilizationRow["spendCategory"];
+        amount: number;
+        startDate: Date;
+      }
+    >();
+
+    for (const b of budgets) {
+      const cat = String(b.spendCategory);
+      const existing = latestBudgetByCategory.get(cat);
+
+      if (
+        !existing ||
+        new Date(b.startDate).getTime() > existing.startDate.getTime()
+      ) {
+        latestBudgetByCategory.set(cat, {
+          spendCategory: b.spendCategory!,
+          amount: Number(b.amount),
+          startDate: new Date(b.startDate),
+        });
+      }
+    }
 
     const spendAgg = await this.prisma.transaction.groupBy({
       by: ["spendCategory"],
@@ -101,13 +99,12 @@ export class UtilizationService {
     const spendMap = new Map<string, number>();
     for (const row of spendAgg) {
       const raw = row._sum.amount ? Number(row._sum.amount) : 0;
-      // debit amounts might be negative depending on ingestion; keep spend positive
       spendMap.set(String(row.spendCategory), Math.abs(raw));
     }
 
     const out: BudgetUtilizationRow[] = [];
-    for (const b of budgets) {
-      const cat = b.spendCategory!;
+    for (const [, b] of latestBudgetByCategory) {
+      const cat = b.spendCategory;
       const limit = Number(b.amount);
       const spend = spendMap.get(String(cat)) ?? 0;
       out.push(this.buildRow(cat, limit, spend));
@@ -115,6 +112,32 @@ export class UtilizationService {
 
     out.sort((a, b) => b.utilizationPercent - a.utilizationPercent);
     return out;
+  }
+
+  async getUtilizationWithAlertsForRange(
+    userId: bigint,
+    start: Date,
+    end: Date
+  ): Promise<{ rows: BudgetUtilizationRow[]; alerts: BudgetAlert[] }> {
+    const rows = await this.getUtilizationForRange(userId, start, end);
+    const alerts = this.alertsService.evaluateAlerts(rows);
+    return { rows, alerts };
+  }
+
+  calculateRows(
+    inputs: UtilizationInput[]
+  ): { rows: BudgetUtilizationRow[]; alerts: BudgetAlert[] } {
+    const rows = inputs.map((x) => this.calculateRow(x));
+    const alerts = this.alertsService.evaluateAlerts(rows);
+    return { rows, alerts };
+  }
+
+  private buildRow(
+    spendCategory: BudgetUtilizationRow["spendCategory"],
+    budgetLimit: number,
+    currentSpend: number
+  ): BudgetUtilizationRow {
+    return this.calculateRow({ spendCategory, budgetLimit, currentSpend });
   }
 
   async compareRanges(userId: bigint, start: Date, end: Date) {
