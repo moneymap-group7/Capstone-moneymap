@@ -69,6 +69,28 @@ function alertSeverityLabel(severity) {
   }
 }
 
+function dedupeRowsByCategory(rows = []) {
+  const map = new Map();
+
+  for (const row of rows) {
+    if (!row?.spendCategory) continue;
+    map.set(row.spendCategory, row);
+  }
+
+  return Array.from(map.values());
+}
+
+function dedupeAlertsByCategory(alerts = []) {
+  const map = new Map();
+
+  for (const alert of alerts) {
+    if (!alert?.spendCategory) continue;
+    map.set(alert.spendCategory, alert);
+  }
+
+  return Array.from(map.values());
+}
+
 export default function BudgetPage() {
   const [currentMonth, setCurrentMonth] = useState(
     new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1))
@@ -111,8 +133,11 @@ export default function BudgetPage() {
         throw new Error(Array.isArray(msg) ? msg.join(", ") : msg);
       }
 
-      setRows(Array.isArray(json?.data) ? json.data : []);
-      setAlerts(Array.isArray(json?.alerts) ? json.alerts : []);
+      const rawRows = Array.isArray(json?.data) ? json.data : [];
+      const rawAlerts = Array.isArray(json?.alerts) ? json.alerts : [];
+
+      setRows(dedupeRowsByCategory(rawRows));
+      setAlerts(dedupeAlertsByCategory(rawAlerts));
     } catch (e) {
       setRows([]);
       setAlerts([]);
@@ -223,8 +248,8 @@ export default function BudgetPage() {
                     <td colSpan="5">No budgets found for this month.</td>
                   </tr>
                 ) : (
-                  rows.map((row) => (
-                    <tr key={row.spendCategory}>
+                  rows.map((row, index) => (
+                    <tr key={`${row.spendCategory}-${index}`}>
                       <td className="categoryCell">
                         <div className="categoryName">{row.spendCategory}</div>
 
