@@ -5,6 +5,47 @@ import { Eye, EyeOff, Mail, ShieldCheck, Lock } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+function passwordMeetsPolicy(pw) {
+  if (pw.length < 8) {
+    return { ok: false, msg: "Password must be at least 8 characters." };
+  }
+  if (!/[A-Z]/.test(pw)) {
+    return { ok: false, msg: "Password must include an uppercase letter." };
+  }
+  if (!/[a-z]/.test(pw)) {
+    return { ok: false, msg: "Password must include a lowercase letter." };
+  }
+  if (!/[0-9]/.test(pw)) {
+    return { ok: false, msg: "Password must include a number." };
+  }
+  if (!/[^\w\s]/.test(pw)) {
+    return { ok: false, msg: "Password must include a special character." };
+  }
+  return { ok: true, msg: "" };
+}
+
+function getPasswordChecks(pw) {
+  return {
+    length: pw.length >= 8,
+    lower: /[a-z]/.test(pw),
+    upper: /[A-Z]/.test(pw),
+    number: /[0-9]/.test(pw),
+    special: /[^\w\s]/.test(pw),
+  };
+}
+
+function passwordRuleItemStyle(active) {
+  return {
+    color: active ? "#15803d" : "#94a3b8",
+    fontWeight: active ? 600 : 500,
+    transition: "color 0.2s ease, font-weight 0.2s ease",
+  };
+}
+
+function passwordRuleIcon(active) {
+  return active ? "✓" : "○";
+}
+
 function inputBaseStyle(hasIconRight = false) {
   return {
     width: "100%",
@@ -35,6 +76,7 @@ export default function ForgotPassword() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const passwordChecks = getPasswordChecks(newPassword);
 
   async function sendCode(e) {
     e.preventDefault();
@@ -66,6 +108,10 @@ export default function ForgotPassword() {
       return;
     }
 
+    if (newPassword !== confirmPassword) {
+    setError("Passwords do not match.");
+    return;
+  }
     setLoading(true);
 
     try {
@@ -356,6 +402,47 @@ export default function ForgotPassword() {
                   </button>
                 </div>
               </label>
+
+              <div
+  style={{
+    marginTop: -4,
+    padding: "16px 18px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 12,
+    background: "#ffffff",
+    fontSize: 15,
+    lineHeight: 1.6,
+  }}
+>
+  <div
+    style={{
+      marginBottom: 10,
+      fontSize: 16,
+      fontWeight: 700,
+      color: "#334155",
+    }}
+  >
+    Your password must contain:
+  </div>
+
+  <div style={{ display: "grid", gap: 8 }}>
+    <div style={passwordRuleItemStyle(passwordChecks.length)}>
+      {passwordRuleIcon(passwordChecks.length)} At least 8 characters
+    </div>
+    <div style={passwordRuleItemStyle(passwordChecks.lower)}>
+      {passwordRuleIcon(passwordChecks.lower)} At least 1 lowercase letter (a-z)
+    </div>
+    <div style={passwordRuleItemStyle(passwordChecks.upper)}>
+      {passwordRuleIcon(passwordChecks.upper)} At least 1 uppercase letter (A-Z)
+    </div>
+    <div style={passwordRuleItemStyle(passwordChecks.number)}>
+      {passwordRuleIcon(passwordChecks.number)} At least 1 number (0-9)
+    </div>
+    <div style={passwordRuleItemStyle(passwordChecks.special)}>
+      {passwordRuleIcon(passwordChecks.special)} At least 1 special character (e.g. !@#$%^&*)
+    </div>
+  </div>
+</div>
 
               <label style={{ display: "block" }}>
                 <div
