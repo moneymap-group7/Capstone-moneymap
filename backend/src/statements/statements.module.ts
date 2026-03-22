@@ -1,15 +1,15 @@
 import { Module } from "@nestjs/common";
 import { StatementsController } from "./statements.controller";
 import { StatementsService } from "./statements.service";
-import { PrismaService } from "../prisma/prisma.service";
-import { CibcCsvParserService } from "../parsing/csv/cibc-csv-parser.service";
+import { PrismaModule } from "../prisma/prisma.module";
+import { ParsingModule } from "../parsing/parsing.module";
+import { CommonModule } from "../common/common.module";
 
 @Module({
+  imports: [PrismaModule, ParsingModule, CommonModule],
   controllers: [StatementsController],
   providers: [
     StatementsService,
-    PrismaService,
-    CibcCsvParserService,
   ],
 })
 export class StatementsModule {}
