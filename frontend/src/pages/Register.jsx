@@ -32,6 +32,28 @@ function passwordMeetsPolicy(pw) {
   return { ok: true, msg: "" };
 }
 
+function getPasswordChecks(pw) {
+  return {
+    length: pw.length >= 8,
+    lower: /[a-z]/.test(pw),
+    upper: /[A-Z]/.test(pw),
+    number: /[0-9]/.test(pw),
+    special: /[^\w\s]/.test(pw),
+  };
+}
+
+function passwordRuleItemStyle(active) {
+  return {
+    color: active ? "#15803d" : "#94a3b8",
+    fontWeight: active ? 600 : 500,
+    transition: "color 0.2s ease, font-weight 0.2s ease",
+  };
+}
+
+function passwordRuleIcon(active) {
+  return active ? "✓" : "○";
+}
+
 function inputStyle(withRightIcon = false) {
   return {
     width: "100%",
@@ -64,6 +86,7 @@ export default function Register() {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  const passwordChecks = getPasswordChecks(form.password);
 
   function setField(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -333,16 +356,47 @@ export default function Register() {
                 <div style={fieldErrorStyle()}>{errors.password}</div>
               ) : null}
 
-              <div
-                style={{
-                  marginTop: 8,
-                  fontSize: 13,
-                  color: "#64748b",
-                  lineHeight: 1.5,
-                }}
-              >
-                Min 8 chars, include upper, lower, number, and special character.
-              </div>
+
+  <div
+  style={{
+    marginTop: 10,
+    padding: "16px 18px",
+    border: "1px solid #e2e8f0",
+    borderRadius: 12,
+    background: "#ffffff",
+    fontSize: 15,
+    lineHeight: 1.6,
+  }}
+>
+  <div
+    style={{
+      marginBottom: 10,
+      fontSize: 16,
+      fontWeight: 700,
+      color: "#334155",
+    }}
+  >
+    Your password must contain:
+  </div>
+
+  <div style={{ display: "grid", gap: 8 }}>
+    <div style={passwordRuleItemStyle(passwordChecks.length)}>
+      {passwordRuleIcon(passwordChecks.length)} At least 8 characters
+    </div>
+    <div style={passwordRuleItemStyle(passwordChecks.lower)}>
+      {passwordRuleIcon(passwordChecks.lower)} At least 1 lowercase letter (a-z)
+    </div>
+    <div style={passwordRuleItemStyle(passwordChecks.upper)}>
+      {passwordRuleIcon(passwordChecks.upper)} At least 1 uppercase letter (A-Z)
+    </div>
+    <div style={passwordRuleItemStyle(passwordChecks.number)}>
+      {passwordRuleIcon(passwordChecks.number)} At least 1 number (0-9)
+    </div>
+    <div style={passwordRuleItemStyle(passwordChecks.special)}>
+      {passwordRuleIcon(passwordChecks.special)} At least 1 special character (e.g. !@#$%^&*)
+    </div>
+  </div>
+</div>
             </label>
 
             <button
