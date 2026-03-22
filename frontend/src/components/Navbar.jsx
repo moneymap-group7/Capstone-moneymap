@@ -32,6 +32,7 @@ export default function Navbar() {
             <Link to="/insights">Insights</Link>
             <Link to="/insights-visuals">Visuals</Link>
             <Link to="/rules">Rules</Link>
+            <Link to="/categories">Categories</Link>
           </div>
 
           <button className="logoutBtn" onClick={handleLogout}>

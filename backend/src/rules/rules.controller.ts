@@ -27,9 +27,9 @@ export class RulesController {
   }
 
   @Patch(":id")
-update(@Param("id") id: string, @Body() dto?: UpdateRuleDto) {
-  return this.rulesService.update(id, dto ?? {});
-}
+  update(@Param("id") id: string, @Body() dto?: UpdateRuleDto) {
+    return this.rulesService.update(id, dto ?? {});
+  }
 
   @Delete(":id")
   remove(@Param("id") id: string) {

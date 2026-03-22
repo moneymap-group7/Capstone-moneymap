@@ -1,9 +1,10 @@
-import { Controller, Get, Query, Req, UseGuards } from "@nestjs/common";
+import { Controller, Get, Query, Req, UseGuards, BadRequestException } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import type { Request } from "express";
 import { AnalyticsService } from "./analytics.service";
 import { UnauthorizedException } from "@nestjs/common";
 import { parseDateRange } from "./analytics.query";
+import { SpendCategory } from "@prisma/client";
 
 @Controller("analytics")
 export class AnalyticsController {
@@ -68,6 +69,44 @@ export class AnalyticsController {
       limit: lim,
     });
   }
+
+    @Get("category-breakdown")
+  @UseGuards(JwtAuthGuard)
+  async categoryBreakdown(
+    @Req() req: Request,
+    @Query("start") start?: string,
+    @Query("end") end?: string,
+    @Query("category") category?: string,
+    @Query("limit") limit?: string,
+  ) {
+    const userId = (req as any)?.user?.userId;
+    if (!userId) throw new UnauthorizedException();
+
+    if (!category) {
+      throw new BadRequestException("Category is required");
+    }
+
+    if (!Object.values(SpendCategory).includes(category as SpendCategory)) {
+  throw new BadRequestException("Invalid category");
+    }
+
+    const { startDate, endDate } = parseDateRange(
+      { ...(req.query as any), start, end },
+      { daysBack: 180 },
+    );
+
+    const lim = Math.min(Math.max(Number(limit ?? 12) || 12, 1), 50);
+
+    return this.analyticsService.getCategoryBreakdown(
+      userId,
+      startDate,
+      endDate,
+      category as SpendCategory,
+      { limit: lim },
+    );
+  }
+
+
     @Get("recurring")
   @UseGuards(JwtAuthGuard)
   async recurring(
