@@ -103,7 +103,7 @@ export default function Register() {
     if (!name) {
       e.name = "Full name is required.";
     } else if (name.length < 2 || name.length > 100) {
-      e.name = "Full name must be 2–100 characters.";
+      e.name = "Full name must be 2-100 characters.";
     }
 
     if (!email) {
@@ -143,16 +143,15 @@ export default function Register() {
       const status = err?.response?.status;
 
       if (!err?.response) {
-        setServerError("Backend not reachable. Is the server running?");
+        setServerError("Unable to reach the server. Please try again.");
+      } else if (status === 409) {
+        setServerError("An account with this email already exists.");
+      } else if (status === 400) {
+        setServerError("Please check your entered information and try again.");
+      } else if (status >= 500) {
+        setServerError("Something went wrong while creating your account. Please try again later.");
       } else {
-        const msg =
-          err?.response?.data?.message ||
-          err?.response?.data?.error?.message ||
-          (status === 409
-            ? "Email already exists."
-            : "Registration failed. Please try again.");
-
-        setServerError(Array.isArray(msg) ? msg.join(", ") : msg);
+        setServerError("Registration failed. Please try again.");
       }
     } finally {
       setLoading(false);

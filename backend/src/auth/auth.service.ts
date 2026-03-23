@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -22,7 +23,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly mailService: MailService
+    private readonly mailService: MailService,
   ) {}
 
   private generateVerificationCode() {
@@ -30,7 +31,7 @@ export class AuthService {
   }
 
   private generateVerificationExpiry() {
-    return new Date(Date.now() + 10 * 60 * 1000);
+    return new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
   }
 
   private validatePasswordPolicy(password: string) {
@@ -47,9 +48,7 @@ export class AuthService {
     }
 
     if (password.trim() !== password) {
-      throw new BadRequestException(
-        "Password cannot start or end with spaces"
-      );
+      throw new BadRequestException("Password cannot start or end with spaces");
     }
 
     if (!/[A-Za-z]/.test(password)) {
@@ -94,7 +93,7 @@ export class AuthService {
 
     if (existing) {
       if (existing.isEmailVerified) {
-        throw new BadRequestException("Email already registered");
+        throw new ConflictException("Email already registered");
       }
 
       await this.prisma.user.update({
@@ -188,8 +187,7 @@ export class AuthService {
 
     if (!user || !user.isEmailVerified) {
       return {
-        message:
-          "If an account exists for this email, a reset code has been sent",
+        message: "If an account exists for this email, a reset code has been sent",
       };
     }
 
@@ -244,9 +242,7 @@ export class AuthService {
     );
 
     if (isSameAsOldPassword) {
-      throw new BadRequestException(
-        "Password cannot be the same as the old password"
-      );
+      throw new BadRequestException("Password cannot be the same as the old password");
     }
 
     const passwordHash = await bcrypt.hash(dto.newPassword, this.SALT_ROUNDS);
@@ -276,9 +272,7 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException("Invalid credentials");
 
     if (!user.isEmailVerified) {
-      throw new UnauthorizedException(
-        "Please verify your email before logging in"
-      );
+      throw new UnauthorizedException("Please verify your email before logging in");
     }
 
     const accessToken = this.jwtService.sign({
@@ -322,15 +316,11 @@ export class AuthService {
     }
 
     if (newPassword !== confirmNewPassword) {
-      throw new BadRequestException(
-        "New password and confirm password do not match"
-      );
+      throw new BadRequestException("New password and confirm password do not match");
     }
 
     if (oldPassword === newPassword) {
-      throw new BadRequestException(
-        "New password cannot be the same as the old password"
-      );
+      throw new BadRequestException("New password cannot be the same as the old password");
     }
 
     this.validatePasswordPolicy(newPassword);

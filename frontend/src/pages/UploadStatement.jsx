@@ -77,6 +77,23 @@ export default function UploadStatement() {
     try {
       const result = await uploadStatement(file);
 
+      if (
+        result.ok &&
+        result.data &&
+        typeof result.data === "object" &&
+        result.data.status === "FAILED"
+      ) {
+        setStatus(STATUS.ERROR);
+        setStatusMsg("");
+        setMeta(null);
+        setErrorList([
+          typeof result.data.message === "string"
+            ? result.data.message
+            : "Upload failed.",
+        ]);
+        return;
+      }
+
       if (result.ok) {
         const msg =
           (result.data &&
@@ -92,20 +109,28 @@ export default function UploadStatement() {
       }
 
       const list = [];
-      if (result.status) list.push(`HTTP ${result.status}`);
-      if (result.message) list.push(result.message);
+
+      if (result.status === 401) {
+        list.push("Your session expired. Please log in again.");
+      } else if (result.status === 403) {
+        list.push("You do not have permission to upload statements.");
+      } else if (result.status === 400) {
+        list.push("We could not process this file. Please check the CSV format and try again.");
+      } else if (typeof result.status === "number" && result.status >= 500) {
+        list.push("Something went wrong while processing the upload. Please try again later.");
+      }
+
+      if (list.length === 0 && result.message) {
+        list.push(result.message);
+      }
 
       if (Array.isArray(result.errors) && result.errors.length) {
-        result.errors.forEach((e) =>
-          list.push(typeof e === "string" ? e : JSON.stringify(e))
-        );
-      } else if (result.raw) {
-        list.push(
-          typeof result.raw === "string"
-            ? result.raw
-            : JSON.stringify(result.raw)
-        );
-      }
+        result.errors.forEach((e) => {
+          if (typeof e === "string") {
+            list.push(e);
+          }
+        });
+}
 
       setStatus(STATUS.ERROR);
       setStatusMsg("");
@@ -113,7 +138,7 @@ export default function UploadStatement() {
     } catch {
       setStatus(STATUS.ERROR);
       setStatusMsg("");
-      setErrorList(["Unexpected error occurred during upload."]);
+      setErrorList(["Something went wrong during upload. Please try again."]);
     }
   }
 
@@ -626,33 +651,6 @@ export default function UploadStatement() {
                       </div>
                     )}
 
-                    <details style={{ marginTop: 16 }}>
-                      <summary
-                        style={{
-                          cursor: "pointer",
-                          fontWeight: 700,
-                          color: "#2563eb",
-                        }}
-                      >
-                        View raw response (debug)
-                      </summary>
-
-                      <pre
-                        style={{
-                          marginTop: 12,
-                          color: "#111827",
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          padding: 14,
-                          borderRadius: 14,
-                          overflowX: "auto",
-                          fontSize: 13,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {JSON.stringify(meta, null, 2)}
-                      </pre>
-                    </details>
                   </div>
                 </div>
               )}
