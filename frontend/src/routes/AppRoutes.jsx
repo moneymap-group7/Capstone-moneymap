@@ -13,7 +13,6 @@ import RulesPage from "../pages/RulesPage";
 import VerifyEmail from "../pages/VerifyEmail";
 import ForgotPassword from "../pages/ForgotPassword";
 import InsightsVisualsPage from "../pages/InsightsVisualsPage";
-
 import ProtectedRoute from "./ProtectedRoute";
 
 export default function AppRoutes() {
@@ -25,6 +24,7 @@ export default function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+     
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
