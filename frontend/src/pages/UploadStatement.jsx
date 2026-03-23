@@ -1,7 +1,12 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { uploadStatement } from "../services/statementService";
+import {
+  getAllStatementFiles,
+  deleteStatementFile,
+} from "../services/statementsAdminService";
 import ErrorBox from "../components/common/ErrorBox";
 import StatusBanner from "../components/common/StatusBanner";
+import StatementFilesTable from "../components/StatementFilesTable";
 
 const STATUS = {
   IDLE: "IDLE",
@@ -38,6 +43,18 @@ function pickNumber(obj, keys) {
   return null;
 }
 
+function normalizeFilesResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.files)) return data.files;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+function getFileId(item) {
+  return item?.statementId ?? item?.id ?? item?._id ?? null;
+}
+
 export default function UploadStatement() {
   const inputRef = useRef(null);
 
@@ -47,6 +64,67 @@ export default function UploadStatement() {
   const [statusMsg, setStatusMsg] = useState("");
   const [errorList, setErrorList] = useState([]);
   const [meta, setMeta] = useState(null);
+
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [filesError, setFilesError] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
+
+  useEffect(() => {
+    loadUploadedFiles();
+  }, []);
+
+  async function loadUploadedFiles() {
+    try {
+      setFilesLoading(true);
+      setFilesError("");
+
+      const data = await getAllStatementFiles();
+      console.log("GET /statements/admin/files response:", data);
+
+      const normalizedFiles = normalizeFilesResponse(data);
+      setUploadedFiles(normalizedFiles);
+    } catch (error) {
+      console.error("Failed to load uploaded files:", error);
+      console.error("Backend error response:", error?.response?.data);
+
+      const statusCode = error?.response?.status;
+
+      if (statusCode === 401) {
+        setFilesError("Unauthorized. Please log in again.");
+      } else if (statusCode === 403) {
+        setFilesError("You do not have permission to view uploaded files.");
+      } else if (statusCode === 404) {
+        setFilesError("Files endpoint not found. Check the frontend URL.");
+      } else {
+        setFilesError("Failed to load uploaded CSV files.");
+      }
+    } finally {
+      setFilesLoading(false);
+    }
+  }
+
+  async function handleDeleteFile(statementId) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this CSV file?"
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(statementId);
+      await deleteStatementFile(statementId);
+
+      setUploadedFiles((prev) =>
+        prev.filter((item) => getFileId(item) !== statementId)
+      );
+    } catch (error) {
+      console.error("Failed to delete file:", error);
+      console.error("Delete backend response:", error?.response?.data);
+      alert("Failed to delete CSV file.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   function reset() {
     setStatus(STATUS.IDLE);
@@ -105,6 +183,7 @@ export default function UploadStatement() {
         setStatusMsg(String(msg));
         setErrorList([]);
         setMeta(result.data);
+        await loadUploadedFiles();
         return;
       }
 
@@ -115,9 +194,13 @@ export default function UploadStatement() {
       } else if (result.status === 403) {
         list.push("You do not have permission to upload statements.");
       } else if (result.status === 400) {
-        list.push("We could not process this file. Please check the CSV format and try again.");
+        list.push(
+          "We could not process this file. Please check the CSV format and try again."
+        );
       } else if (typeof result.status === "number" && result.status >= 500) {
-        list.push("Something went wrong while processing the upload. Please try again later.");
+        list.push(
+          "Something went wrong while processing the upload. Please try again later."
+        );
       }
 
       if (list.length === 0 && result.message) {
@@ -130,12 +213,15 @@ export default function UploadStatement() {
             list.push(e);
           }
         });
-}
+      }
 
       setStatus(STATUS.ERROR);
       setStatusMsg("");
       setErrorList(list.length ? list : ["Upload failed."]);
-    } catch {
+    } catch (error) {
+      console.error("Upload failed:", error);
+      console.error("Upload backend response:", error?.response?.data);
+
       setStatus(STATUS.ERROR);
       setStatusMsg("");
       setErrorList(["Something went wrong during upload. Please try again."]);
@@ -157,8 +243,8 @@ export default function UploadStatement() {
   const warnings = Array.isArray(meta?.warnings)
     ? meta.warnings
     : Array.isArray(meta?.warning)
-    ? meta.warning
-    : null;
+      ? meta.warning
+      : null;
 
   return (
     <main
@@ -650,10 +736,53 @@ export default function UploadStatement() {
                         )}
                       </div>
                     )}
-
                   </div>
                 </div>
               )}
+
+              <div style={{ marginTop: 24 }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 24,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                  }}
+                >
+                  Uploaded CSV Files
+                </h3>
+
+                <p
+                  style={{
+                    margin: "8px 0 0",
+                    fontSize: 15,
+                    color: "#64748b",
+                  }}
+                >
+                  Review previously uploaded statement files and delete them if
+                  needed.
+                </p>
+
+                {filesLoading && (
+                  <div style={{ marginTop: 16 }}>
+                    <StatusBanner type="info" message="Loading uploaded CSV files..." />
+                  </div>
+                )}
+
+                {!filesLoading && filesError && (
+                  <div style={{ marginTop: 16 }}>
+                    <ErrorBox title="Could not load files" errors={[filesError]} />
+                  </div>
+                )}
+
+                {!filesLoading && !filesError && (
+                  <StatementFilesTable
+                    files={uploadedFiles}
+                    onDelete={handleDeleteFile}
+                    deletingId={deletingId}
+                  />
+                )}
+              </div>
             </div>
           </section>
 
