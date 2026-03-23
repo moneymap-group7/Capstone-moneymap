@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
 import * as bcrypt from "bcrypt";
 import { PrismaService } from "../prisma/prisma.service";
 import { RegisterDto } from "./dto/register.dto";
@@ -39,7 +39,7 @@ export class AuthService {
 
     if (existing) {
       if (existing.isEmailVerified) {
-        throw new BadRequestException("Email already registered");
+        throw new ConflictException("Email already registered");
       }
 
       await this.prisma.user.update({
