@@ -1,22 +1,10 @@
-import {
-  Body,
-  Controller,
-  Post,
-  Get,
-  Req,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
-  Patch,
-} from "@nestjs/common";
+import { Body, Controller, Post, Get, Req, UseGuards, HttpCode, HttpStatus } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { VerifyEmailDto } from "./dto/verify-email.dto";
 import { ForgotPasswordRequestDto } from "./dto/forgot-password-request.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
-import { ChangePasswordDto } from "./dto/change-password.dto";
-import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { Throttle } from "@nestjs/throttler";
 import type { Request } from "express";
@@ -37,7 +25,8 @@ export class AuthController {
     return this.authService.verifyEmail(dto);
   }
 
-  @Throttle({ default: { limit: 10073, ttl: 60000 } })
+
+    @Throttle({ default: { limit: 10073, ttl: 60000 } })
   @Post("forgot-password/request")
   forgotPasswordRequest(@Body() dto: ForgotPasswordRequestDto) {
     return this.authService.requestPasswordReset(dto);
@@ -59,21 +48,6 @@ export class AuthController {
   @Get("me")
   @UseGuards(JwtAuthGuard)
   me(@Req() req: Request) {
-    const user = (req as any).user;
-    return this.authService.me(user.userId);
-  }
-
-  @Post("change-password")
-  @UseGuards(JwtAuthGuard)
-  changePassword(@Req() req: Request, @Body() dto: ChangePasswordDto) {
-    const user = (req as any).user;
-    return this.authService.changePassword(user.userId, dto);
-  }
-
-  @Patch("profile")
-  @UseGuards(JwtAuthGuard)
-  updateProfile(@Req() req: Request, @Body() dto: UpdateProfileDto) {
-    const user = (req as any).user;
-    return this.authService.updateProfile(user.userId, dto);
+    return (req as any).user;
   }
 }
