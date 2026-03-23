@@ -49,6 +49,7 @@ export default function Login() {
     }
 
     setLoading(true);
+
     try {
       const res = await api.post("/auth/login", {
         email: normalizedEmail,
@@ -68,16 +69,16 @@ export default function Login() {
 
       localStorage.setItem("mm_access_token", token);
 
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        const userId = payload.sub || payload.userId || payload.id;
+      const meRes = await api.get("/auth/me");
+      const me = meRes?.data;
 
-        if (userId) {
-          localStorage.setItem("mm_user", JSON.stringify({ userId }));
-        }
-      } catch (e) {
-        console.error("Failed to decode token", e);
-      }
+      const userToStore = {
+        userId: String(me?.userId ?? ""),
+        fullName: me?.fullName ?? "",
+        email: me?.email ?? normalizedEmail,
+      };
+
+      localStorage.setItem("mm_user", JSON.stringify(userToStore));
 
       navigate("/dashboard");
     } catch (err) {
