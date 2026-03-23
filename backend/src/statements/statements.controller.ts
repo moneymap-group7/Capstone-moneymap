@@ -1,11 +1,7 @@
 import {
   BadRequestException,
   Controller,
-  Delete,
-  Get,
   InternalServerErrorException,
-  NotFoundException,
-  Param,
   Post,
   Req,
   UploadedFile,
@@ -36,93 +32,70 @@ function getUserIdOrThrow(req: Request): string {
 @Controller("statements")
 export class StatementsController {
   constructor(private readonly statementsService: StatementsService) {}
-
   @UseGuards(JwtAuthGuard)
   @Post("upload")
   @UseInterceptors(
     FileInterceptor("file", {
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 10 * 1024 * 1024 }, 
       storage: diskStorage({
         destination: (req, file, cb) => {
           try {
             const userId = getUserIdOrThrow(req as any);
+
             const uploadDir = path.join(process.cwd(), "uploads", String(userId));
-            if (!fs.existsSync(uploadDir)) {
-              fs.mkdirSync(uploadDir, { recursive: true });
-            }
+            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
             cb(null, uploadDir);
           } catch (e: any) {
             cb(new Error(e?.message ?? "Invalid upload destination"), "");
           }
         },
-        filename: (req, file, cb) => {
-          cb(null, `${Date.now()}-${safeName(file.originalname)}`);
-        },
+          filename: (req, file, cb) => {
+            cb(null, `${Date.now()}-${safeName(file.originalname)}`);
+          },
       }),
-    })
+    }),
   )
-  async uploadStatement(
-    @UploadedFile() file: Express.Multer.File,
-    @Req() req: Request
-  ) {
-    try {
-      if (!file) {
-        throw new BadRequestException("File is required. Use form-data key: file");
-      }
-
-      const userId = getUserIdOrThrow(req);
-
-      const ext = path.extname(file.originalname).toLowerCase();
-      if (ext !== ".csv") {
-        try {
-          if ((file as any).path) fs.unlinkSync((file as any).path);
-        } catch {}
-
-        throw new UnsupportedMediaTypeException("Only .csv files are allowed.");
-      }
-
-      const relativePath = `uploads/${userId}/${file.filename}`;
-
-      return await this.statementsService.processUploadedStatement({
-        userId: String(userId),
-        originalFileName: file.originalname,
-        storedFileName: file.filename,
-        mimeType: file.mimetype,
-        size: file.size,
-        relativePath,
-      });
-    } catch (e: any) {
-      if (e?.getStatus) throw e;
-
-      const msg = e?.message ?? "Upload failed";
-
-      if (msg.toLowerCase().includes("csv")) {
-        throw new UnsupportedMediaTypeException(msg);
-      }
-
-      throw new InternalServerErrorException(msg);
+  async uploadStatement(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  try {
+    if (!file) {
+      throw new BadRequestException("File is required. Use form-data key: file");
     }
-  }
 
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  async getStatements(@Req() req: Request) {
     const userId = getUserIdOrThrow(req);
-    return this.statementsService.getUserStatements(String(userId));
-  }
 
-  @UseGuards(JwtAuthGuard)
-  @Delete(":id")
-  async deleteStatement(@Param("id") id: string, @Req() req: Request) {
-    try {
-      const userId = getUserIdOrThrow(req);
-      return await this.statementsService.deleteStatement(String(userId), id);
-    } catch (e: any) {
-      if (e?.message === "Statement not found") {
-        throw new NotFoundException("Statement not found");
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext !== ".csv") {
+      try {
+        if ((file as any).path) fs.unlinkSync((file as any).path);
+      } catch {
+
       }
-      if (e?.getStatus) throw e;
-      throw new InternalServerErrorException(e?.message ?? "Delete failed");
+
+      throw new UnsupportedMediaTypeException("Only .csv files are allowed.");
     }
+
+    
+    const relativePath = `uploads/${userId}/${file.filename}`;
+
+    return await this.statementsService.processUploadedStatement({
+      userId: String(userId),
+      originalFileName: file.originalname,
+      storedFileName: file.filename,
+      mimeType: file.mimetype,
+      size: file.size,
+      relativePath,
+    });
+      } catch (e: any) {
+    if (e?.getStatus) throw e;
+
+    const msg = e?.message ?? "Upload failed";
+
+    if (msg.toLowerCase().includes("csv")) {
+      throw new UnsupportedMediaTypeException(msg);
+    }
+
+    throw new InternalServerErrorException(msg);
+  }
   }
 }

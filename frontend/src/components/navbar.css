@@ -32,15 +32,157 @@
   color: #2563eb;
 }
 
-.logoutBtn {
+.profileMenuWrap {
+  position: relative;
   margin-left: auto;
-  padding: 6px 14px;
-  border: none;
-  background: #f3f4f6;
-  border-radius: 6px;
-  cursor: pointer;
 }
 
-.logoutBtn:hover {
-  background: #e5e7eb;
+.profileTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profileTrigger:hover {
+  background: #f8fafc;
+  border-color: #dbe3ee;
+}
+
+.profileAvatarIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2563eb;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.profileTriggerText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.profileTriggerLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.profileChevron {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.profileDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 300px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.profileDropdownHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px;
+}
+
+.profileDropdownIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profileDropdownIdentity {
+  min-width: 0;
+}
+
+.profileName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.profileEmail {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748b;
+  word-break: break-word;
+}
+
+.profileDropdownDivider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 6px 0;
+}
+
+.profileDropdownItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  padding: 12px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.profileDropdownItem:hover {
+  background: #f8fafc;
+}
+
+.profileDropdownItemDanger {
+  color: #b91c1c;
+}
+
+.profileDropdownItemDanger:hover {
+  background: #fef2f2;
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .navbarLinks {
+    order: 3;
+    width: 100%;
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
+
+  .profileMenuWrap {
+    margin-left: auto;
+  }
 }
