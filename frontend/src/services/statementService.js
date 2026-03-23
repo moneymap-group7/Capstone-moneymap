@@ -1,4 +1,5 @@
 const ENDPOINT = `${import.meta.env.VITE_API_URL}/statements/upload`;
+const LIST_ENDPOINT = `${import.meta.env.VITE_API_URL}/statements`;
 const FIELD_NAME = "file";
 
 export async function uploadStatement(file) {
@@ -38,4 +39,25 @@ export async function uploadStatement(file) {
     errors,
     raw: data,
   };
+}
+export async function getStatements() {
+  const token = localStorage.getItem("mm_access_token");
+
+  const res = await fetch(LIST_ENDPOINT, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  const contentType = res.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+  const data = isJson
+    ? await res.json().catch(() => [])
+    : await res.text().catch(() => []);
+
+  if (res.ok) {
+    return Array.isArray(data) ? data : [];
+  }
+
+  console.error("Failed to fetch statements:", data);
+  return [];
 }

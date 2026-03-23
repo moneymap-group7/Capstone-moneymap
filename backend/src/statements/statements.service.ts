@@ -150,4 +150,49 @@ export class StatementsService {
       };
     }
   }
+ async getUserStatements(userId: string) {
+  const userIdBigInt = BigInt(userId);
+
+  const statements = await this.prisma.statement.findMany({
+    where: { userId: userIdBigInt },
+    orderBy: { createdAt: "desc" },
+    select: {
+      statementId: true,
+      originalFileName: true,
+      bank: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+}
+async deleteStatement(userId: string, statementId: string) {
+  const userIdBigInt = BigInt(userId);
+  const statementIdBigInt = BigInt(statementId);
+
+  const statement = await this.prisma.statement.findFirst({
+    where: {
+      statementId: statementIdBigInt,
+      userId: userIdBigInt,
+    },
+  });
+
+  if (!statement) {
+    throw new Error("Statement not found");
+  }
+
+  try {
+    const absPath = path.join(process.cwd(), statement.relativePath);
+    if (fs.existsSync(absPath)) {
+      fs.unlinkSync(absPath);
+    }
+  } catch (err) {
+    console.warn("File delete failed:", err);
+  }
+
+  await this.prisma.statement.delete({
+    where: { statementId: statementIdBigInt },
+  });
+
+  return { message: "Statement deleted successfully" };
+}
 }
