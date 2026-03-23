@@ -46,11 +46,19 @@ export default function VerifyEmail() {
         navigate("/login");
       }, 1500);
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        "Verification failed. Please try again.";
+      const status = err?.response?.status;
 
-      setError(Array.isArray(msg) ? msg.join(", ") : msg);
+      if (!err?.response) {
+        setError("Unable to reach the server. Please try again.");
+      } else if (status === 400) {
+        setError("The verification code is invalid or expired.");
+      } else if (status === 404) {
+        setError("No account was found for this email address.");
+      } else if (status >= 500) {
+        setError("Something went wrong while verifying your email. Please try again later.");
+      } else {
+        setError("Verification failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

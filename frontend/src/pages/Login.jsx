@@ -84,16 +84,15 @@ export default function Login() {
       const status = err?.response?.status;
 
       if (!err?.response) {
-        setError("Backend not reachable. Is the server running?");
+        setError("Unable to reach the server. Please try again.");
+      } else if (status === 401) {
+        setError("Invalid email or password.");
+      } else if (status === 400) {
+        setError("Please check your email and password and try again.");
+      } else if (status >= 500) {
+        setError("Something went wrong while logging in. Please try again later.");
       } else {
-        const msg =
-          err?.response?.data?.message ||
-          err?.response?.data?.error?.message ||
-          (status === 401
-            ? "Invalid email or password."
-            : "Login failed. Please try again.");
-
-        setError(msg);
+        setError("Login failed. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -293,7 +292,7 @@ export default function Login() {
             color: "#475569",
           }}
         >
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link
             to="/register"
             style={{

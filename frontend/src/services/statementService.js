@@ -24,7 +24,7 @@ export async function uploadStatement(file) {
   const message =
     (data && typeof data === "object" && (data.message || data.error)) ||
     (typeof data === "string" && data) ||
-    `Request failed (${res.status})`;
+    "Request failed. Please try again.";
 
   const errors =
     (data && typeof data === "object" && Array.isArray(data.errors) && data.errors) ||

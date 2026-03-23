@@ -92,7 +92,19 @@ export default function ForgotPassword() {
       setMessage(res.data.message || "Reset code sent.");
       setStep(2);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to send code");
+      const status = err?.response?.status;
+
+      if (!err?.response) {
+        setError("Unable to reach the server. Please try again.");
+      } else if (status === 400) {
+        setError("Please enter a valid email address.");
+      } else if (status === 404) {
+        setError("No account was found for that email address.");
+      } else if (status >= 500) {
+        setError("Something went wrong while sending the reset code. Please try again later.");
+      } else {
+        setError("Failed to send reset code. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -104,14 +116,16 @@ export default function ForgotPassword() {
     setMessage("");
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
     setError("Passwords do not match.");
     return;
   }
+
+  const pwCheck = passwordMeetsPolicy(newPassword);
+    if (!pwCheck.ok) {
+      setError(pwCheck.msg);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -127,7 +141,19 @@ export default function ForgotPassword() {
         navigate("/login");
       }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to reset password");
+      const status = err?.response?.status;
+
+      if (!err?.response) {
+        setError("Unable to reach the server. Please try again.");
+      } else if (status === 400) {
+        setError("The reset code is invalid or expired, or the new password does not meet requirements.");
+      } else if (status === 404) {
+        setError("No account was found for that email address.");
+      } else if (status >= 500) {
+        setError("Something went wrong while resetting your password. Please try again later.");
+      } else {
+        setError("Failed to reset password. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -178,7 +204,7 @@ export default function ForgotPassword() {
             }}
           >
             {step === 1
-              ? "Enter your email address and we’ll send you a reset code."
+              ? "Enter your email address and we'll send you a reset code."
               : "Enter the verification code and choose your new password."}
           </p>
         </div>
