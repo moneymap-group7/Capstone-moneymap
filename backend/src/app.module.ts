@@ -15,6 +15,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { BudgetsModule } from './budgets/budgets.module';
 import { ParsingModule } from "./parsing/parsing.module";
+import { RulesModule } from './rules/rules.module';
 
 @Module({
   imports: [
@@ -35,12 +36,12 @@ import { ParsingModule } from "./parsing/parsing.module";
     PrismaModule,
     HealthModule,
     ParsingModule,
-    ParsingModule,
     StatementsModule,
     TransactionsModule,
     CategoriesModule,
     AnalyticsModule,
     BudgetsModule,
+    RulesModule,
     
   ],
   controllers: [AppController],

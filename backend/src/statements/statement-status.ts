@@ -18,6 +18,12 @@ export type StatementMeta = {
 export type StatementDetails = {
   bank: string | null;
   transactionsInserted: number;
+
+  errorCode?: IngestionErrorCode | null;
+
+  supportedBanks?: string[];
+  totalErrors?: number;
+  errors?: string[];
 };
 
 export type StatusResponse = {
