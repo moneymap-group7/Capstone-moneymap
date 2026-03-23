@@ -1,7 +1,11 @@
 import {
   BadRequestException,
   Controller,
+  Delete,
+  Get,
   InternalServerErrorException,
+  NotFoundException,
+  Param,
   Post,
   Req,
   UploadedFile,
@@ -14,7 +18,6 @@ import { diskStorage } from "multer";
 import * as fs from "fs";
 import * as path from "path";
 import type { Request } from "express";
-
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { StatementsService } from "./statements.service";
 
@@ -97,5 +100,26 @@ export class StatementsController {
 
     throw new InternalServerErrorException(msg);
   }
+  }
+    @UseGuards(JwtAuthGuard)
+  @Get()
+  async getStatements(@Req() req: Request) {
+    const userId = getUserIdOrThrow(req);
+    return this.statementsService.getUserStatements(String(userId));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(":id")
+  async deleteStatement(@Param("id") id: string, @Req() req: Request) {
+    try {
+      const userId = getUserIdOrThrow(req);
+      return await this.statementsService.deleteStatement(String(userId), id);
+    } catch (e: any) {
+      if (e?.message === "Statement not found") {
+        throw new NotFoundException("Statement not found");
+      }
+      if (e?.getStatus) throw e;
+      throw new InternalServerErrorException(e?.message ?? "Delete failed");
+    }
   }
 }

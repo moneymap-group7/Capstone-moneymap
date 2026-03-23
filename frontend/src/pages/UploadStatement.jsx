@@ -1,5 +1,8 @@
-import { useRef, useState } from "react";
-import { uploadStatement } from "../services/statementService";
+import { useEffect, useRef, useState } from "react";
+import {
+  getStatements,
+  uploadStatement,
+} from "../services/statementService";
 import ErrorBox from "../components/common/ErrorBox";
 import StatusBanner from "../components/common/StatusBanner";
 
@@ -47,6 +50,7 @@ export default function UploadStatement() {
   const [statusMsg, setStatusMsg] = useState("");
   const [errorList, setErrorList] = useState([]);
   const [meta, setMeta] = useState(null);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
   function reset() {
     setStatus(STATUS.IDLE);
@@ -56,6 +60,15 @@ export default function UploadStatement() {
     setMeta(null);
     if (inputRef.current) inputRef.current.value = "";
   }
+
+  async function fetchStatements() {
+    const data = await getStatements();
+    setUploadedFiles(Array.isArray(data) ? data : []);
+  }
+
+  useEffect(() => {
+    fetchStatements();
+  }, []);
 
   function onFileChange(e) {
     const f = e.target.files?.[0] || null;
@@ -105,6 +118,7 @@ export default function UploadStatement() {
         setStatusMsg(String(msg));
         setErrorList([]);
         setMeta(result.data);
+        await fetchStatements();
         return;
       }
 
@@ -650,10 +664,76 @@ export default function UploadStatement() {
                         )}
                       </div>
                     )}
-
                   </div>
                 </div>
               )}
+
+              <div
+                style={{
+                  marginTop: 30,
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 20,
+                  background: "#ffffff",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "18px 22px",
+                    borderBottom: "1px solid #e2e8f0",
+                  }}
+                >
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 22,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                    }}
+                  >
+                    Uploaded CSV Files
+                  </h3>
+                </div>
+
+                <div style={{ padding: 20 }}>
+                  {uploadedFiles.length === 0 ? (
+                    <div style={{ color: "#64748b" }}>No uploaded files yet.</div>
+                  ) : (
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr
+                          style={{
+                            textAlign: "left",
+                            borderBottom: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <th style={{ padding: 10 }}>File Name</th>
+                          <th style={{ padding: 10 }}>Bank</th>
+                          <th style={{ padding: 10 }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {uploadedFiles.map((uploadedFile) => (
+                          <tr
+                            key={uploadedFile.statementId}
+                            style={{ borderBottom: "1px solid #f1f5f9" }}
+                          >
+                            <td style={{ padding: 10 }}>
+                              {uploadedFile.originalFileName}
+                            </td>
+                            <td style={{ padding: 10 }}>
+                              {uploadedFile.bank || "-"}
+                            </td>
+                            <td style={{ padding: 10 }}>
+                              {uploadedFile.status}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
             </div>
           </section>
 

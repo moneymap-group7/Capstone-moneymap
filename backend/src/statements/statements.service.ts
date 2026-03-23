@@ -1,6 +1,7 @@
 import { Injectable, UnprocessableEntityException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CsvIngestionService } from "../parsing/csv/csv-ingestion.service";
+import { CsvIngestionService } from "../parsing/csv/csv-ingestion.service";
 import { StatementStatus, StatusResponse } from "./statement-status";
 import { isIngestionError } from "../parsing/csv/ingestion-errors";
 import type { IngestionErrorCode } from "../parsing/csv/ingestion-errors";
@@ -15,8 +16,7 @@ import { createHash } from "crypto";
 export class StatementsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly csvIngestionService: CsvIngestionService,
-    private readonly categoryResolver: CategoryResolverService
+    private readonly csvIngestionService: CsvIngestionService
   ) {}
 
   private getFileHash(buffer: Buffer): string {
@@ -39,7 +39,13 @@ export class StatementsService {
         bank: null,
         transactionsInserted: 0,
       },
+      details: {
+        bank: null,
+        transactionsInserted: 0,
+      },
     };
+
+    let detectedBank: string | null = null;
 
     let detectedBank: string | null = null;
 
@@ -48,128 +54,23 @@ export class StatementsService {
         throw new UnprocessableEntityException("Only CSV statements are supported.");
       }
 
+      // 2) Read file from disk (diskStorage)
       const absPath = path.join(process.cwd(), params.relativePath);
       const buffer = fs.readFileSync(absPath);
-      const fileHash = this.getFileHash(buffer);
-      const userIdBigInt = BigInt(params.userId);
 
-      // Prevent parsing the same CSV more than once for the same user
-      const existingStatement = await this.prisma.statement.findFirst({
-        where: {
-          userId: userIdBigInt,
-          fileHash,
-        },
-      });
-
-      if (existingStatement?.status === StatementStatus.COMPLETED) {
-        return {
-          ...base,
-          status: StatementStatus.COMPLETED,
-          message: "This CSV has already been processed.",
-          details: {
-            bank: existingStatement.bank ?? null,
-            transactionsInserted: 0,
-            duplicate: true,
-          } as any,
-        };
-      }
-
+      // 3) Parse rows (auto-detect bank)
       const { bank, rows } = this.csvIngestionService.parse(buffer);
       detectedBank = bank ?? null;
 
       const parsed = rows ?? [];
 
-      const categorized = await Promise.all(
-        parsed.map(async (t: any) => {
-          const rawAmount =
-            t.amount != null
-              ? Number(t.amount)
-              : Number(t.deposits ?? 0) - Number(t.withdrawals ?? 0);
-
-          const amount = Number.isFinite(rawAmount) ? rawAmount : 0;
-
-          const txType: TransactionType =
-            t.transactionType === TransactionType.DEBIT ||
-            t.transactionType === TransactionType.CREDIT
-              ? t.transactionType
-              : amount < 0
-                ? TransactionType.DEBIT
-                : TransactionType.CREDIT;
-
-          const current = t.spendCategory;
-          const shouldSet = !current || String(current) === "UNCATEGORIZED";
-
-          if (!shouldSet) {
-            return {
-              ...t,
-              spendCategory: current,
-              transactionType: txType,
-            };
-          }
-
-          const spendCategory = await this.categoryResolver.resolve({
-            userId: userIdBigInt,
-            description: String(t.description ?? ""),
-            amount: new Prisma.Decimal(amount),
-            transactionType: txType,
-          });
-
-          return {
-            ...t,
-            spendCategory,
-            transactionType: txType,
-          };
-        }),
-      );
-
+      // Safe debug logging (no sample transaction rows)
       if (process.env.NODE_ENV !== "production") {
         console.info(`[CSV] ${detectedBank} rows parsed: ${parsed.length}`);
       }
 
-      // Save statement record first so hash is reserved
-            // Save statement record first so hash is reserved
-      const statement = existingStatement
-        ? await this.prisma.statement.update({
-            where: { statementId: existingStatement.statementId },
-            data: {
-              originalFileName: params.originalFileName,
-              storedFileName: params.storedFileName,
-              relativePath: params.relativePath,
-              size: params.size,
-              mimeType: params.mimeType,
-              bank: detectedBank,
-              fileHash,
-              status:
-                parsed.length === 0
-                  ? StatementStatus.COMPLETED
-                  : StatementStatus.PROCESSING,
-            },
-          })
-        : await this.prisma.statement.create({
-            data: {
-              userId: userIdBigInt,
-              originalFileName: params.originalFileName,
-              storedFileName: params.storedFileName,
-              relativePath: params.relativePath,
-              size: params.size,
-              mimeType: params.mimeType,
-              bank: detectedBank,
-              fileHash,
-              status:
-                parsed.length === 0
-                  ? StatementStatus.COMPLETED
-                  : StatementStatus.PROCESSING,
-            },
-          });
-
+      // If no transactions, still return the detected bank
       if (parsed.length === 0) {
-        await this.prisma.statement.update({
-          where: { statementId: statement.statementId },
-          data: {
-            status: StatementStatus.COMPLETED,
-          },
-        });
-
         return {
           ...base,
           status: StatementStatus.COMPLETED,
@@ -178,64 +79,40 @@ export class StatementsService {
             bank: detectedBank,
             transactionsInserted: 0,
           },
+          details: {
+            bank: detectedBank,
+            transactionsInserted: 0,
+          },
         };
       }
 
+      // 4) Save to DB
+      const userIdBigInt = BigInt(params.userId);
+
       const result = await this.prisma.transaction.createMany({
-        data: categorized.map((t: any) => {
-          const rawAmount =
-            t.amount != null
-              ? Number(t.amount)
-              : Number(t.deposits ?? 0) - Number(t.withdrawals ?? 0);
-
-          const amount = Number.isFinite(rawAmount) ? rawAmount : 0;
-
-          const txDate =
-            t.transactionDate instanceof Date
-              ? t.transactionDate
-              : new Date(t.transactionDate);
-
-          if (isNaN(txDate.getTime())) {
-            throw new UnprocessableEntityException(
-              `Invalid transactionDate: ${t.transactionDate}`
-            );
-          }
-
-          const txType: TransactionType =
-            t.transactionType === TransactionType.DEBIT ||
-            t.transactionType === TransactionType.CREDIT
-              ? t.transactionType
-              : amount < 0
-                ? TransactionType.DEBIT
-                : TransactionType.CREDIT;
-
-          return {
-            userId: userIdBigInt,
-            statementId: statement.statementId,
-            transactionDate: txDate,
-            description: String(t.description ?? "").slice(0, 255),
-            amount,
-            currency: t.currency ?? "CAD",
-            transactionType: txType,
-            source: t.source ?? TransactionSource.CSV,
-            spendCategory: t.spendCategory,
-            cardLast4: t.cardLast4 ?? null,
-            balanceAfter: t.balanceAfter ?? null,
-          };
-        }),
-      });
-
-      await this.prisma.statement.update({
-        where: { statementId: statement.statementId },
-        data: {
-          status: StatementStatus.COMPLETED,
-        },
+        data: parsed.map((t: any) => ({
+          userId: userIdBigInt,
+          transactionDate: t.transactionDate,
+          description: t.description,
+          // Ensure Prisma required field is never undefined
+          amount: Number(t.amount ?? t.deposits ?? t.withdrawals ?? 0),
+          currency: t.currency ?? "CAD",
+          transactionType: t.transactionType,
+          source: t.source,
+          spendCategory: t.spendCategory,
+          cardLast4: t.cardLast4 ?? null,
+          balanceAfter: t.balanceAfter ?? null,
+        })),
       });
 
       return {
         ...base,
         status: StatementStatus.COMPLETED,
         message: "Statement processed successfully.",
+        details: {
+          bank: detectedBank,
+          transactionsInserted: result.count,
+        },
         details: {
           bank: detectedBank,
           transactionsInserted: result.count,
@@ -265,14 +142,57 @@ export class StatementsService {
       return {
         ...base,
         status: StatementStatus.FAILED,
-        message,
+        message: e?.message ?? "Processing failed.",
         details: {
           bank: detectedBank,
           transactionsInserted: 0,
-          errorCode,
-          ...extra,
         },
       };
     }
   }
+ async getUserStatements(userId: string) {
+  const userIdBigInt = BigInt(userId);
+
+  const statements = await this.prisma.statement.findMany({
+    where: { userId: userIdBigInt },
+    orderBy: { createdAt: "desc" },
+    select: {
+      statementId: true,
+      originalFileName: true,
+      bank: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+}
+async deleteStatement(userId: string, statementId: string) {
+  const userIdBigInt = BigInt(userId);
+  const statementIdBigInt = BigInt(statementId);
+
+  const statement = await this.prisma.statement.findFirst({
+    where: {
+      statementId: statementIdBigInt,
+      userId: userIdBigInt,
+    },
+  });
+
+  if (!statement) {
+    throw new Error("Statement not found");
+  }
+
+  try {
+    const absPath = path.join(process.cwd(), statement.relativePath);
+    if (fs.existsSync(absPath)) {
+      fs.unlinkSync(absPath);
+    }
+  } catch (err) {
+    console.warn("File delete failed:", err);
+  }
+
+  await this.prisma.statement.delete({
+    where: { statementId: statementIdBigInt },
+  });
+
+  return { message: "Statement deleted successfully" };
+}
 }
