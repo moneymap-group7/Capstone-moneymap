@@ -12,7 +12,9 @@ export function parseDateRange(
   }
 
   const now = new Date();
-  const end = query.end ? new Date(String(query.end)) : now;
+  const end = query.end
+    ? new Date(String(query.end) + "T23:59:59.999Z")
+    : now;
 
   if (query.end && Number.isNaN(end.getTime())) {
     throw new BadRequestException(

@@ -8,16 +8,26 @@ datasource db {
 }
 
 model User {
-  userId       BigInt        @id @default(autoincrement())
-  fullName     String        @db.VarChar(100)
-  email        String        @unique @db.VarChar(254)
+  userId       BigInt             @id @default(autoincrement())
+  fullName     String             @db.VarChar(100)
+  email        String             @unique @db.VarChar(254)
   passwordHash String
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  isActive     Boolean            @default(true)
+  isEmailVerified            Boolean            @default(false)
+  emailVerificationCode      String?            @db.VarChar(10)
+  emailVerificationExpiresAt DateTime?
+
+  passwordResetCode         String?            @db.VarChar(10)
+  passwordResetExpiresAt    DateTime?
+  passwordResetUsedAt       DateTime?
+
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
   lastLoginAt  DateTime?
   transactions Transaction[]
   budgets      Budget[]
+  rules        UserCategoryRule[]
+  statements Statement[]
 
   @@map("users")
 }
@@ -38,8 +48,11 @@ model Transaction {
   cardLast4       String?           @db.Char(4)
   spendCategory   SpendCategory     @default(UNCATEGORIZED)
   user            User              @relation(fields: [userId], references: [userId])
+statementId BigInt?
+statement   Statement? @relation(fields: [statementId], references: [statementId])
 
   @@index([userId])
+  @@index([statementId])
   @@index([transactionDate])
   @@index([spendCategory])
   @@index([cardLast4])
@@ -47,18 +60,19 @@ model Transaction {
 }
 
 model Budget {
-  budgetId      BigInt         @id @default(autoincrement())
+  budgetId      BigInt        @id @default(autoincrement())
   userId        BigInt
-  name          String         @db.VarChar(100)
-  amount        Decimal        @db.Decimal(12, 2)
-  spendCategory SpendCategory?
+  name          String        @db.VarChar(100)
+  amount        Decimal       @db.Decimal(12, 2)
+  spendCategory SpendCategory
   startDate     DateTime
   endDate       DateTime?
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  user          User           @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
+  @@unique([userId, spendCategory, startDate])
   @@index([userId])
   @@index([spendCategory])
   @@index([startDate])
@@ -79,7 +93,26 @@ model BankCategoryRule {
   @@index([priority])
   @@map("bank_category_rules")
 }
+model Statement {
+  statementId       BigInt   @id @default(autoincrement())
+  userId            BigInt
+  originalFileName  String
+  storedFileName    String
+  relativePath      String
+  size              Int
+  mimeType          String
+  bank              String?
+  fileHash          String
+  status            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
+  user              User @relation(fields: [userId], references: [userId])
+  transactions      Transaction[]
+
+  
+  @@unique([userId, fileHash])
+}
 enum TransactionType {
   DEBIT
   CREDIT
@@ -105,4 +138,31 @@ enum SpendCategory {
   TRANSFER
   OTHER
   UNCATEGORIZED
+}
+
+model UserCategoryRule {
+  ruleId   BigInt  @id @default(autoincrement())
+  userId   BigInt
+  isActive Boolean @default(true)
+  priority Int     @default(100)
+
+  // match conditions
+  merchantContains String?
+  merchantEquals   String?
+  minAmount        Decimal?         @db.Decimal(12, 2)
+  maxAmount        Decimal?         @db.Decimal(12, 2)
+  transactionType  TransactionType?
+
+  // action
+  spendCategory SpendCategory
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([priority])
+  @@index([spendCategory])
+  @@map("user_category_rules")
 }
