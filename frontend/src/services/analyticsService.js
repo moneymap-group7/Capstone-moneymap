@@ -84,3 +84,17 @@ export async function getCategoryBreakdown(params) {
     monthly: Array.isArray(data.monthly) ? data.monthly : [],
   };
 }
+
+export async function getCategoryHierarchy(params) {
+  const { start, end, childLimit = 6 } = params || {};
+  const res = await httpClient.get("/analytics/category-hierarchy", {
+    params: { start, end, childLimit },
+  });
+
+  const data = res.data || {};
+  return {
+    startDate: data.startDate ?? "",
+    endDate: data.endDate ?? "",
+    items: Array.isArray(data.items) ? data.items : [],
+  };
+}
