@@ -106,8 +106,31 @@ export class AnalyticsController {
     );
   }
 
+   @Get("category-hierarchy")
+  @UseGuards(JwtAuthGuard)
+  async categoryHierarchy(
+    @Req() req: Request,
+    @Query("start") start?: string,
+    @Query("end") end?: string,
+    @Query("childLimit") childLimit?: string,
+  ) {
+    const userId = (req as any)?.user?.userId;
+    if (!userId) throw new UnauthorizedException();
 
-    @Get("recurring")
+    const { startDate, endDate } = parseDateRange(
+      { ...(req.query as any), start, end },
+      { daysBack: 180 },
+    );
+
+    const lim = Math.min(Math.max(Number(childLimit ?? 6) || 6, 1), 20);
+
+    return this.analyticsService.getCategoryHierarchy(userId, startDate, endDate, {
+      childLimit: lim,
+    });
+  }
+
+
+  @Get("recurring")
   @UseGuards(JwtAuthGuard)
   async recurring(
     @Req() req: Request,

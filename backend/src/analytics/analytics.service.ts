@@ -106,6 +106,25 @@ export type CategoryBreakdownResponse = {
   monthly: CategoryBreakdownMonthlyPoint[];
 };
 
+export type CategoryHierarchyChild = {
+  name: string;
+  total: string;
+  count: number;
+};
+
+export type CategoryHierarchyItem = {
+  spendCategory: SpendCategory;
+  total: string;
+  count: number;
+  children: CategoryHierarchyChild[];
+};
+
+export type CategoryHierarchyResponse = {
+  startDate: string;
+  endDate: string;
+  items: CategoryHierarchyItem[];
+};
+
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -578,13 +597,13 @@ export class AnalyticsService {
     };
   }
 
-    async getCategoryBreakdown(
+  async getCategoryBreakdown(
     userId: string | number | bigint,
     startDate: Date,
     endDate: Date,
     category: SpendCategory,
     opts?: { limit?: number },
-  ): Promise<CategoryBreakdownResponse> {
+   ): Promise<CategoryBreakdownResponse> {
     const uid = this.toBigInt(userId);
     const limit = Math.min(Math.max(opts?.limit ?? 12, 1), 50);
 
@@ -663,6 +682,96 @@ export class AnalyticsService {
       topMerchant: items[0]?.merchant ?? "—",
       items,
       monthly,
+    };
+  }
+
+    async getCategoryHierarchy(
+    userId: string | number | bigint,
+    startDate: Date,
+    endDate: Date,
+    opts?: { childLimit?: number },
+  ): Promise<CategoryHierarchyResponse> {
+    const uid = this.toBigInt(userId);
+    const childLimit = Math.min(Math.max(opts?.childLimit ?? 6, 1), 20);
+
+    const tx = await this.prisma.transaction.findMany({
+      where: {
+        userId: uid,
+        transactionDate: { gte: startDate, lte: endDate },
+        transactionType: "DEBIT",
+      },
+      select: {
+        amount: true,
+        description: true,
+        spendCategory: true,
+      },
+    });
+
+    const toCents = (s: string) => {
+      const n = Number(s);
+      return Number.isFinite(n) ? Math.round(n * 100) : 0;
+    };
+
+    const fromCents = (c: number) => (c / 100).toFixed(2);
+
+    const categoryMap = new Map<
+      SpendCategory,
+      {
+        cents: number;
+        count: number;
+        children: Map<string, { cents: number; count: number }>;
+      }
+    >();
+
+    for (const row of tx) {
+      const centsAbs = Math.abs(toCents(this.decToString(row.amount)));
+      const category = row.spendCategory;
+      const merchant = this.normalizeMerchant(row.description);
+
+      const existing = categoryMap.get(category);
+      if (existing) {
+        existing.cents += centsAbs;
+        existing.count += 1;
+
+        const child = existing.children.get(merchant);
+        if (child) {
+          child.cents += centsAbs;
+          child.count += 1;
+        } else {
+          existing.children.set(merchant, { cents: centsAbs, count: 1 });
+        }
+      } else {
+        const children = new Map<string, { cents: number; count: number }>();
+        children.set(merchant, { cents: centsAbs, count: 1 });
+
+        categoryMap.set(category, {
+          cents: centsAbs,
+          count: 1,
+          children,
+        });
+      }
+    }
+
+    const items: CategoryHierarchyItem[] = Array.from(categoryMap.entries())
+      .map(([spendCategory, value]) => ({
+        spendCategory,
+        total: fromCents(value.cents),
+        count: value.count,
+        children: Array.from(value.children.entries())
+          .map(([name, child]) => ({
+            name,
+            total: fromCents(child.cents),
+            count: child.count,
+          }))
+          .sort((a, b) => Number(b.total) - Number(a.total))
+          .slice(0, childLimit),
+      }))
+      .sort((a, b) => Number(b.total) - Number(a.total));
+
+    return {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      items,
     };
   }
 

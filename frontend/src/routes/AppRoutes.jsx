@@ -7,6 +7,7 @@ import Dashboard from "../pages/Dashboard";
 import UploadStatement from "../pages/UploadStatement";
 import Transactions from "../pages/Transactions";
 import Categories from "../pages/Categories";
+import CategoryExplorerPage from "../pages/CategoryExplorerPage";
 import BudgetPage from "../pages/BudgetPage";
 import InsightsPage from "../pages/InsightsPage";
 import RulesPage from "../pages/RulesPage";
@@ -32,6 +33,7 @@ export default function AppRoutes() {
         <Route path="/upload" element={<UploadStatement />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/categories" element={<Categories />} />
+        <Route path="/categories/explorer" element={<CategoryExplorerPage />} />
         <Route path="/budget" element={<BudgetPage />} />
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/rules" element={<RulesPage />} />

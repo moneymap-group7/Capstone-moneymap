@@ -266,3 +266,114 @@
     width: 100%;
   }
 }
+
+.categoryOverviewPage {
+  width: 100%;
+  min-height: 100vh;
+  padding: 24px 24px 40px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.categoryOverviewTopBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.categoryOverviewChartCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.categoryOverviewChartWrap {
+  width: 100%;
+  min-height: 620px;
+}
+
+.categoryOverviewActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.categoryOverviewSelected {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.categoryOverviewSelectedLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.categoryOverviewSelectedValue {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.categoryOverviewSelectedMeta {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.categoryOverviewLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.categoryOverviewLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.categoryOverviewLegendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.categoryOverviewEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .categoryOverviewChartWrap {
+    min-height: 500px;
+  }
+
+  .categoryOverviewSelectedValue {
+    font-size: 22px;
+  }
+}
