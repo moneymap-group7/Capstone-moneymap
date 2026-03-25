@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
@@ -23,6 +23,7 @@ function getStoredUser() {
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const isLoggedIn = !!localStorage.getItem("mm_access_token");
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -129,29 +130,69 @@ export default function Navbar() {
   const displayEmail = user?.email || "Signed in";
 
   return (
-    <>
-      <nav className="navbar">
-        <Link to="/" className="navbarLogo">
-          MoneyMap
-        </Link>
+  <>
+    <nav className="navbar">
+      <Link to={isLoggedIn ? "/dashboard" : "/"} className="navbarLogo">
+      <span className="navbarLogoText">MoneyMap</span>
+      </Link>
 
         {!isLoggedIn && (
-          <div className="navbarLinks">
-            <Link to="/login">Login</Link>
-            <Link to="/register">Register</Link>
-          </div>
-        )}
+      <div className="navbarLinks">
+        <Link
+          to="/login"
+          className={location.pathname === "/login" ? "activeNavLink" : ""}
+        >
+      Login
+      </Link>
+      <Link
+      to="/register"
+      className={location.pathname === "/register" ? "activeNavLink" : ""}
+      >
+      Register
+      </Link>
+      </div>
+    )}
 
         {isLoggedIn && (
           <>
             <div className="navbarLinks">
-              <Link to="/dashboard">Dashboard</Link>
-              <Link to="/budget">Budgets</Link>
-              <Link to="/insights">Insights</Link>
-              <Link to="/insights-visuals">Visuals</Link>
-              <Link to="/rules">Rules</Link>
-              <Link to="/categories">Categories</Link>
-            </div>
+  <Link
+    to="/dashboard"
+    className={location.pathname === "/dashboard" ? "activeNavLink" : ""}
+  >
+    Dashboard
+  </Link>
+  <Link
+    to="/budget"
+    className={location.pathname === "/budget" ? "activeNavLink" : ""}
+  >
+    Budgets
+  </Link>
+  <Link
+    to="/insights"
+    className={location.pathname === "/insights" ? "activeNavLink" : ""}
+  >
+    Insights
+  </Link>
+  <Link
+    to="/insights-visuals"
+    className={location.pathname === "/insights-visuals" ? "activeNavLink" : ""}
+  >
+    Visuals
+  </Link>
+  <Link
+    to="/rules"
+    className={location.pathname === "/rules" ? "activeNavLink" : ""}
+  >
+    Rules
+  </Link>
+  <Link
+    to="/categories"
+    className={location.pathname === "/categories" ? "activeNavLink" : ""}
+  >
+    Categories
+  </Link>
+</div>
 
             <div className="profileMenuWrap" ref={menuRef}>
               <button
