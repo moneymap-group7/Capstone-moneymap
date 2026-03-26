@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import { Eye, EyeOff, Mail, User } from "lucide-react";
+import "./register.css";
 
 const initialForm = {
   name: "",
@@ -42,40 +43,8 @@ function getPasswordChecks(pw) {
   };
 }
 
-function passwordRuleItemStyle(active) {
-  return {
-    color: active ? "#15803d" : "#94a3b8",
-    fontWeight: active ? 600 : 500,
-    transition: "color 0.2s ease, font-weight 0.2s ease",
-  };
-}
-
 function passwordRuleIcon(active) {
   return active ? "✓" : "○";
-}
-
-function inputStyle(withRightIcon = false) {
-  return {
-    width: "100%",
-    height: 48,
-    padding: withRightIcon ? "0 46px 0 14px" : "0 42px 0 14px",
-    border: "1px solid #dbe3ee",
-    borderRadius: 12,
-    background: "#ffffff",
-    color: "#0f172a",
-    fontSize: 15,
-    outline: "none",
-    boxSizing: "border-box",
-  };
-}
-
-function fieldErrorStyle() {
-  return {
-    color: "#b91c1c",
-    fontSize: 13,
-    marginTop: 6,
-    fontWeight: 500,
-  };
 }
 
 export default function Register() {
@@ -149,7 +118,9 @@ export default function Register() {
       } else if (status === 400) {
         setServerError("Please check your entered information and try again.");
       } else if (status >= 500) {
-        setServerError("Something went wrong while creating your account. Please try again later.");
+        setServerError(
+          "Something went wrong while creating your account. Please try again later."
+        );
       } else {
         setServerError("Registration failed. Please try again.");
       }
@@ -158,287 +129,189 @@ export default function Register() {
     }
   }
 
-  return (
-    <div
-      style={{
-        minHeight: "calc(100vh - 72px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        background: "#f8fafc",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 460,
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 22,
-          boxShadow: "0 12px 30px rgba(15, 23, 42, 0.08)",
-          padding: 28,
-          boxSizing: "border-box",
-        }}
-      >
-        <div style={{ marginBottom: 22 }}>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 34,
-              lineHeight: 1.1,
-              fontWeight: 800,
-              color: "#0f172a",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Create account
+      return (
+    <div className="registerPage">
+      <div className="registerShell">
+        <section className="registerHero">
+          <div className="registerBadge">Personal finance, made clearer</div>
+
+          <h1 className="registerHeroTitle">
+            Start tracking your money with confidence.
           </h1>
 
-          <p
-            style={{
-              margin: "10px 0 0",
-              fontSize: 15,
-              color: "#64748b",
-            }}
-          >
-            Register to start using MoneyMap.
+          <p className="registerHeroText">
+            Create your MoneyMap account to upload statements, organize
+            transactions, set budgets, and explore your spending insights in one
+            place.
           </p>
-        </div>
+        </section>
 
-        {serverError ? (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: "1px solid #fecaca",
-              background: "#fef2f2",
-              color: "#b91c1c",
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {serverError}
+        <div className="registerCard">
+          <div className="registerCardHeader">
+            <h1 className="registerCardTitle">Create account</h1>
+            <p className="registerCardSub">
+              Register to start using MoneyMap.
+            </p>
           </div>
-        ) : null}
 
-        <form onSubmit={onSubmit} noValidate>
-          <div style={{ display: "grid", gap: 16 }}>
-            <label style={{ display: "block" }}>
-              <div
-                style={{
-                  marginBottom: 8,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
+          {serverError ? (
+            <div className="registerServerError">{serverError}</div>
+          ) : null}
+
+          <form onSubmit={onSubmit} noValidate>
+            <div className="registerFormGrid">
+              <label className="registerField">
+                <div className="registerFieldLabel">Full Name</div>
+
+                <div className="registerInputWrap">
+                  <input
+                    name="name"
+                    value={form.name}
+                    onChange={(e) => setField("name", e.target.value)}
+                    autoComplete="name"
+                    placeholder="Enter your full name"
+                    className="registerInput"
+                  />
+                  <User size={18} className="registerInputIcon" />
+                </div>
+
+                {errors.name ? (
+                  <div className="registerFieldError">{errors.name}</div>
+                ) : null}
+              </label>
+
+              <label className="registerField">
+                <div className="registerFieldLabel">Email</div>
+
+                <div className="registerInputWrap">
+                  <input
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={(e) => setField("email", e.target.value)}
+                    autoComplete="email"
+                    inputMode="email"
+                    placeholder="Enter your email"
+                    className="registerInput"
+                  />
+                  <Mail size={18} className="registerInputIcon" />
+                </div>
+
+                {errors.email ? (
+                  <div className="registerFieldError">{errors.email}</div>
+                ) : null}
+              </label>
+
+              <label className="registerField">
+                <div className="registerFieldLabel">Password</div>
+
+                <div className="registerInputWrap">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={form.password}
+                    onChange={(e) => setField("password", e.target.value)}
+                    autoComplete="new-password"
+                    placeholder="Create a password"
+                    className="registerInput"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="registerIconButton"
+                    title={showPassword ? "Hide password" : "Show password"}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+
+                {errors.password ? (
+                  <div className="registerFieldError">{errors.password}</div>
+                ) : null}
+
+                <div className="registerRulesBox">
+                  <div className="registerRulesTitle">
+                    Your password must contain:
+                  </div>
+
+                  <div className="registerRulesList">
+                    <div
+                      className={`registerRuleItem ${
+                        passwordChecks.length ? "isActive" : ""
+                      }`}
+                    >
+                      <span className="registerRuleBullet">
+                        {passwordRuleIcon(passwordChecks.length)}
+                      </span>
+                      <span>At least 8 characters</span>
+                    </div>
+
+                    <div
+                      className={`registerRuleItem ${
+                        passwordChecks.lower ? "isActive" : ""
+                      }`}
+                    >
+                      <span className="registerRuleBullet">
+                        {passwordRuleIcon(passwordChecks.lower)}
+                      </span>
+                      <span>At least 1 lowercase letter (a-z)</span>
+                    </div>
+
+                    <div
+                      className={`registerRuleItem ${
+                        passwordChecks.upper ? "isActive" : ""
+                      }`}
+                    >
+                      <span className="registerRuleBullet">
+                        {passwordRuleIcon(passwordChecks.upper)}
+                      </span>
+                      <span>At least 1 uppercase letter (A-Z)</span>
+                    </div>
+
+                    <div
+                      className={`registerRuleItem ${
+                        passwordChecks.number ? "isActive" : ""
+                      }`}
+                    >
+                      <span className="registerRuleBullet">
+                        {passwordRuleIcon(passwordChecks.number)}
+                      </span>
+                      <span>At least 1 number (0-9)</span>
+                    </div>
+
+                    <div
+                      className={`registerRuleItem ${
+                        passwordChecks.special ? "isActive" : ""
+                      }`}
+                    >
+                      <span className="registerRuleBullet">
+                        {passwordRuleIcon(passwordChecks.special)}
+                      </span>
+                      <span>
+                        At least 1 special character (e.g. !@#$%^&*)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </label>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="registerSubmitButton"
               >
-                Full Name
-              </div>
+                {loading ? "Creating..." : "Create account"}
+              </button>
+            </div>
+          </form>
 
-              <div style={{ position: "relative" }}>
-                <input
-                  name="name"
-                  value={form.name}
-                  onChange={(e) => setField("name", e.target.value)}
-                  autoComplete="name"
-                  placeholder="Enter your full name"
-                  style={inputStyle()}
-                />
-                <User
-                  size={18}
-                  style={{
-                    position: "absolute",
-                    right: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#94a3b8",
-                    pointerEvents: "none",
-                  }}
-                />
-              </div>
-
-              {errors.name ? (
-                <div style={fieldErrorStyle()}>{errors.name}</div>
-              ) : null}
-            </label>
-
-            <label style={{ display: "block" }}>
-              <div
-                style={{
-                  marginBottom: 8,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                Email
-              </div>
-
-              <div style={{ position: "relative" }}>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={(e) => setField("email", e.target.value)}
-                  autoComplete="email"
-                  inputMode="email"
-                  placeholder="Enter your email"
-                  style={inputStyle()}
-                />
-                <Mail
-                  size={18}
-                  style={{
-                    position: "absolute",
-                    right: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#94a3b8",
-                    pointerEvents: "none",
-                  }}
-                />
-              </div>
-
-              {errors.email ? (
-                <div style={fieldErrorStyle()}>{errors.email}</div>
-              ) : null}
-            </label>
-
-            <label style={{ display: "block" }}>
-              <div
-                style={{
-                  marginBottom: 8,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                Password
-              </div>
-
-              <div style={{ position: "relative" }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={form.password}
-                  onChange={(e) => setField("password", e.target.value)}
-                  autoComplete="new-password"
-                  placeholder="Create a password"
-                  style={inputStyle(true)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  style={{
-                    position: "absolute",
-                    right: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    border: "none",
-                    background: "transparent",
-                    padding: 0,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#475569",
-                  }}
-                  title={showPassword ? "Hide password" : "Show password"}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-
-              {errors.password ? (
-                <div style={fieldErrorStyle()}>{errors.password}</div>
-              ) : null}
-
-
-  <div
-  style={{
-    marginTop: 10,
-    padding: "16px 18px",
-    border: "1px solid #e2e8f0",
-    borderRadius: 12,
-    background: "#ffffff",
-    fontSize: 15,
-    lineHeight: 1.6,
-  }}
->
-  <div
-    style={{
-      marginBottom: 10,
-      fontSize: 16,
-      fontWeight: 700,
-      color: "#334155",
-    }}
-  >
-    Your password must contain:
-  </div>
-
-  <div style={{ display: "grid", gap: 8 }}>
-    <div style={passwordRuleItemStyle(passwordChecks.length)}>
-      {passwordRuleIcon(passwordChecks.length)} At least 8 characters
-    </div>
-    <div style={passwordRuleItemStyle(passwordChecks.lower)}>
-      {passwordRuleIcon(passwordChecks.lower)} At least 1 lowercase letter (a-z)
-    </div>
-    <div style={passwordRuleItemStyle(passwordChecks.upper)}>
-      {passwordRuleIcon(passwordChecks.upper)} At least 1 uppercase letter (A-Z)
-    </div>
-    <div style={passwordRuleItemStyle(passwordChecks.number)}>
-      {passwordRuleIcon(passwordChecks.number)} At least 1 number (0-9)
-    </div>
-    <div style={passwordRuleItemStyle(passwordChecks.special)}>
-      {passwordRuleIcon(passwordChecks.special)} At least 1 special character (e.g. !@#$%^&*)
-    </div>
-  </div>
-</div>
-            </label>
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: "100%",
-                height: 48,
-                border: "1px solid #2563eb",
-                borderRadius: 12,
-                background: "#2563eb",
-                color: "#ffffff",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.7 : 1,
-                marginTop: 4,
-              }}
-            >
-              {loading ? "Creating..." : "Create account"}
-            </button>
+          <div className="registerFooter">
+            Already have an account?{" "}
+            <Link to="/login" className="registerFooterLink">
+              Log in
+            </Link>
           </div>
-        </form>
-
-        <div
-          style={{
-            marginTop: 18,
-            textAlign: "center",
-            fontSize: 14,
-            color: "#475569",
-          }}
-        >
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            style={{
-              color: "#2563eb",
-              fontWeight: 600,
-              textDecoration: "none",
-            }}
-          >
-            Log in
-          </Link>
         </div>
       </div>
     </div>
