@@ -16,7 +16,12 @@ import {
 } from "recharts";
 import ErrorBox from "../components/common/ErrorBox";
 import Spinner from "../components/common/Spinner";
-import { getSummary, getByCategory, getTopMerchants, getMonthly } from "../services/analyticsService";
+import {
+  getSummary,
+  getByCategory,
+  getTopMerchants,
+  getMonthly,
+} from "../services/analyticsService";
 import "./insights-visuals.css";
 
 function yyyyMmDd(d) {
@@ -52,6 +57,15 @@ function StatCard({ label, value, tone = "default", subtext }) {
       <div className="visualStatLabel">{label}</div>
       <div className="visualStatValue">{value}</div>
       {subtext ? <div className="visualStatSubtext">{subtext}</div> : null}
+    </div>
+  );
+}
+
+function EmptyState({ title, text }) {
+  return (
+    <div className="visualEmptyState">
+      <div className="visualEmptyTitle">{title}</div>
+      <div className="visualEmptyText">{text}</div>
     </div>
   );
 }
@@ -126,12 +140,12 @@ export default function InsightsVisualsPage() {
   }
 
   const pieData =
-  byCategory?.items
-    ?.filter((item) => item.spendCategory !== "INCOME")
-    .map((item) => ({
-      name: titleCaseCategory(item.spendCategory),
-      value: Number(item.total),
-    })) || [];
+    byCategory?.items
+      ?.filter((item) => item.spendCategory !== "INCOME")
+      .map((item) => ({
+        name: titleCaseCategory(item.spendCategory),
+        value: Number(item.total),
+      })) || [];
 
   const merchantsData =
     topMerchants?.items?.map((item) => ({
@@ -154,198 +168,244 @@ export default function InsightsVisualsPage() {
 
   return (
     <div className="insightsVisualsPage">
-      <div className="insightsVisualsTopBar">
-        <div>
-          <h1 className="insightsVisualsTitle">Insights Visuals</h1>
-          <p className="insightsVisualsSub">
-            Interactive charts for categorized spending and trends.
-          </p>
-        </div>
-
-        <div className="insightsVisualsFilterCard">
-          <div className="visualDateField">
-            <label htmlFor="visuals-start">Start</label>
-            <input
-              id="visuals-start"
-              type="date"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-            />
+      <div className="insightsVisualsShell">
+        <section className="insightsVisualsHero">
+          <div className="insightsVisualsHeroLeft">
+            <span className="insightsVisualsBadge">
+              Interactive charts for your transactions
+            </span>
+            <h1 className="insightsVisualsTitle">Insights Visuals</h1>
+            <p className="insightsVisualsSub">
+              Explore category spending, merchant activity, and monthly financial
+              trends in a more visual and organized layout.
+            </p>
+            <p className="insightsVisualsRangeText">
+              Currently viewing: {applied.start} to {applied.end}
+            </p>
           </div>
 
-          <div className="visualDateField">
-            <label htmlFor="visuals-end">End</label>
-            <input
-              id="visuals-end"
-              type="date"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-            />
-          </div>
+          <div className="insightsVisualsFilterCard">
+            <div className="visualDateGrid">
+              <div className="visualDateField">
+                <label htmlFor="visuals-start">Start</label>
+                <input
+                  id="visuals-start"
+                  type="date"
+                  value={start}
+                  onChange={(e) => setStart(e.target.value)}
+                />
+              </div>
 
-          <button className="visualApplyBtn" onClick={onApply} disabled={loading}>
-            Apply
-          </button>
-        </div>
-      </div>
-
-      {error ? (
-        <div className="insightsVisualsErrorWrap">
-          <ErrorBox title="Error" errors={[error]} />
-        </div>
-      ) : null}
-
-      <div className="visualStatsGrid">
-        <StatCard
-          label="Income"
-          value={money(summary?.totalIncome)}
-          tone="success"
-          subtext="Total credits in range"
-        />
-        <StatCard
-          label="Expense"
-          value={money(summary?.totalExpense)}
-          tone="danger"
-          subtext="Total debits in range"
-        />
-        <StatCard
-          label="Net"
-          value={money(summary?.net)}
-          tone={Number(summary?.net) < 0 ? "danger" : "success"}
-          subtext="Income minus expense"
-        />
-      </div>
-
-      {loading ? (
-        <div className="visualLoadingCard">
-          <Spinner />
-        </div>
-      ) : (
-        <div className="visualChartsGrid">
-          <section className="visualChartCard">
-            <div className="visualChartHeader">
-              <h2 className="visualChartTitle">Spend by Category</h2>
-              <p className="visualChartSub">
-                Expense distribution across categories.
-              </p>
+              <div className="visualDateField">
+                <label htmlFor="visuals-end">End</label>
+                <input
+                  id="visuals-end"
+                  type="date"
+                  value={end}
+                  onChange={(e) => setEnd(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="visualChartBody">
-              {pieData.length ? (
-                <ResponsiveContainer width="100%" height={320}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      dataKey="value"
-                      nameKey="name"
-                      outerRadius={110}
-                      innerRadius={55}
-                      paddingAngle={3}
+
+            <button
+              className="visualApplyBtn"
+              onClick={onApply}
+              disabled={loading}
+            >
+              Apply
+            </button>
+          </div>
+        </section>
+
+        {error ? (
+          <div className="insightsVisualsErrorWrap">
+            <ErrorBox title="Error" errors={[error]} />
+          </div>
+        ) : null}
+
+        <div className="visualStatsGrid">
+          <StatCard
+            label="Income"
+            value={money(summary?.totalIncome)}
+            tone="success"
+            subtext="Total credits in selected range"
+          />
+          <StatCard
+            label="Expense"
+            value={money(summary?.totalExpense)}
+            tone="danger"
+            subtext="Total debits in selected range"
+          />
+          <StatCard
+            label="Net"
+            value={money(summary?.net)}
+            tone={Number(summary?.net) < 0 ? "danger" : "success"}
+            subtext="Income minus expense"
+          />
+        </div>
+
+        {loading ? (
+          <div className="visualLoadingCard">
+            <Spinner />
+          </div>
+        ) : (
+          <div className="visualChartsGrid">
+            <section className="visualChartCard">
+              <div className="visualChartHeader">
+                <h2 className="visualChartTitle">Spend by Category</h2>
+                <p className="visualChartSub">
+                  Expense distribution across categories.
+                </p>
+              </div>
+
+              <div className="visualChartBody">
+                {pieData.length ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        dataKey="value"
+                        nameKey="name"
+                        outerRadius={110}
+                        innerRadius={55}
+                        paddingAngle={3}
+                      >
+                        {pieData.map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={PIE_COLORS[index % PIE_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => money(value)} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyState
+                    title="No category data"
+                    text="No category spending was found for the selected range."
+                  />
+                )}
+              </div>
+            </section>
+
+            <section className="visualChartCard">
+              <div className="visualChartHeader">
+                <h2 className="visualChartTitle">Top Merchants</h2>
+                <p className="visualChartSub">
+                  Highest merchant spending in the selected range.
+                </p>
+              </div>
+
+              <div className="visualChartBody">
+                {merchantsData.length ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart
+                      data={merchantsData}
+                      layout="vertical"
+                      margin={{ left: 20 }}
                     >
-                      {pieData.map((_, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={PIE_COLORS[index % PIE_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => money(value)} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="visualEmpty">No category data for this range.</div>
-              )}
-            </div>
-          </section>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis
+                        type="number"
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="merchant"
+                        width={120}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip formatter={(value) => money(value)} />
+                      <Bar dataKey="total" fill="#2563eb" radius={[0, 8, 8, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyState
+                    title="No merchant data"
+                    text="There are no merchant totals to display for this selected period."
+                  />
+                )}
+              </div>
+            </section>
 
-          <section className="visualChartCard">
-            <div className="visualChartHeader">
-              <h2 className="visualChartTitle">Top Merchants</h2>
-              <p className="visualChartSub">
-                Highest merchant spending in the selected range.
-              </p>
-            </div>
-            <div className="visualChartBody">
-              {merchantsData.length ? (
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={merchantsData} layout="vertical" margin={{ left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis type="number" tickFormatter={(value) => `$${value}`} />
-                    <YAxis
-                      type="category"
-                      dataKey="merchant"
-                      width={120}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip formatter={(value) => money(value)} />
-                    <Bar dataKey="total" fill="#2563eb" radius={[0, 8, 8, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="visualEmpty">No merchant data for this range.</div>
-              )}
-            </div>
-          </section>
+            <section className="visualChartCard">
+              <div className="visualChartHeader">
+                <h2 className="visualChartTitle">Monthly Income vs Expense</h2>
+                <p className="visualChartSub">
+                  Compare credits and debits month by month.
+                </p>
+              </div>
 
-          <section className="visualChartCard">
-            <div className="visualChartHeader">
-              <h2 className="visualChartTitle">Monthly Income vs Expense</h2>
-              <p className="visualChartSub">
-                Compare credits and debits month by month.
-              </p>
-            </div>
-            <div className="visualChartBody">
-              {monthlyIncomeExpense.length ? (
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={monthlyIncomeExpense}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => `$${value}`} />
-                    <Tooltip formatter={(value) => money(value)} />
-                    <Legend />
-                    <Bar dataKey="income" fill="#16a34a" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="expense" fill="#dc2626" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="visualEmpty">No monthly data for this range.</div>
-              )}
-            </div>
-          </section>
+              <div className="visualChartBody">
+                {monthlyIncomeExpense.length ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart data={monthlyIncomeExpense}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="month" />
+                      <YAxis tickFormatter={(value) => `$${value}`} />
+                      <Tooltip formatter={(value) => money(value)} />
+                      <Legend />
+                      <Bar
+                        dataKey="income"
+                        fill="#16a34a"
+                        radius={[8, 8, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="expense"
+                        fill="#dc2626"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyState
+                    title="No monthly comparison data"
+                    text="No monthly income and expense data was found for this date range."
+                  />
+                )}
+              </div>
+            </section>
 
-          <section className="visualChartCard">
-            <div className="visualChartHeader">
-              <h2 className="visualChartTitle">Monthly Net Trend</h2>
-              <p className="visualChartSub">
-                Net movement over time for the selected period.
-              </p>
-            </div>
-            <div className="visualChartBody">
-              {monthlyNet.length ? (
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={monthlyNet}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => `$${value}`} />
-                    <Tooltip formatter={(value) => money(value)} />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="net"
-                      stroke="#2563eb"
-                      strokeWidth={3}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="visualEmpty">No net trend data for this range.</div>
-              )}
-            </div>
-          </section>
-        </div>
-      )}
+            <section className="visualChartCard">
+              <div className="visualChartHeader">
+                <h2 className="visualChartTitle">Monthly Net Trend</h2>
+                <p className="visualChartSub">
+                  Net movement over time for the selected period.
+                </p>
+              </div>
+
+              <div className="visualChartBody">
+                {monthlyNet.length ? (
+                  <ResponsiveContainer width="100%" height={320}>
+                    <LineChart data={monthlyNet}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="month" />
+                      <YAxis tickFormatter={(value) => `$${value}`} />
+                      <Tooltip formatter={(value) => money(value)} />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="net"
+                        stroke="#2563eb"
+                        strokeWidth={3}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <EmptyState
+                    title="No net trend data"
+                    text="No monthly net trend data is available for this selected range."
+                  />
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
