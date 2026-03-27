@@ -306,12 +306,17 @@ export default function CategoryExplorerPage() {
 
   return (
     <div className="categoryExplorerPage">
+      <div className="categoryExplorerShell"></div>
       <div className="categoryExplorerTopBar">
-        <div>
+        <div className="categoryExplorerHeroCopy">
+          <span className="categoryExplorerBadge">Merchant drill-down workspace</span>
           <h1 className="categoryExplorerTitle">Category Explorer</h1>
           <p className="categoryExplorerSub">
             Drill into merchant-level spending inside a selected category.
           </p>
+          <div className="categoryExplorerAppliedRange">
+            Viewing range: {applied.start} to {applied.end}
+          </div>
         </div>
 
         <div className="categoryExplorerFilterCard">
@@ -387,7 +392,7 @@ export default function CategoryExplorerPage() {
         </div>
       ) : (
         <div className="categoryExplorerGrid">
-          <section className="categoryExplorerCard categoryExplorerCard--large">
+          <section className="categoryExplorerCard categoryExplorerCard--large categoryExplorerCard--treemap">
             <div className="categoryExplorerCardHeader">
               <h2 className="categoryExplorerCardTitle">Merchant Treemap</h2>
               <p className="categoryExplorerCardSub">
@@ -416,7 +421,7 @@ export default function CategoryExplorerPage() {
             </div>
           </section>
 
-          <section className="categoryExplorerCard">
+          <section className="categoryExplorerCard categoryExplorerCard--side">
             <div className="categoryExplorerCardHeader">
               <h2 className="categoryExplorerCardTitle">Top Merchants</h2>
               <p className="categoryExplorerCardSub">
@@ -428,14 +433,20 @@ export default function CategoryExplorerPage() {
               {breakdown?.items?.length ? (
                 breakdown.items.map((item, index) => (
                   <div className="categoryExplorerListRow" key={`${item.merchant}-${index}`}>
-                    <div>
-                      <div className="categoryExplorerMerchant">{item.merchant}</div>
-                      <div className="categoryExplorerMeta">
-                        {item.count} transaction{item.count === 1 ? "" : "s"}
-                      </div>
-                    </div>
-                    <div className="categoryExplorerAmount">{money(item.total)}</div>
-                  </div>
+  <div className="categoryExplorerListLeft">
+    <div
+      className="categoryExplorerMerchantDot"
+      style={{ background: TILE_COLORS[index % TILE_COLORS.length] }}
+    />
+    <div>
+      <div className="categoryExplorerMerchant">{item.merchant}</div>
+      <div className="categoryExplorerMeta">
+        {item.count} transaction{item.count === 1 ? "" : "s"}
+      </div>
+    </div>
+  </div>
+  <div className="categoryExplorerAmount">{money(item.total)}</div>
+</div>
                 ))
               ) : (
                 <div className="categoryExplorerEmpty">
@@ -445,7 +456,7 @@ export default function CategoryExplorerPage() {
             </div>
           </section>
 
-          <section className="categoryExplorerCard categoryExplorerCard--wide">
+          <section className="categoryExplorerCard categoryExplorerCard--wide categoryExplorerCard--trend">
             <div className="categoryExplorerCardHeader">
               <h2 className="categoryExplorerCardTitle">Monthly Trend</h2>
               <p className="categoryExplorerCardSub">
