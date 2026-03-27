@@ -7,6 +7,7 @@ import {
   deleteTransactions,
 } from "../services/transactionService";
 import { Trash2 } from "lucide-react";
+import "./transactions.css";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -91,10 +92,12 @@ function getCategoryTone(category) {
 
 function StatCard({ label, value, subtext }) {
   return (
-    <div style={styles.statCard}>
-      <div style={styles.statValue}>{value}</div>
-      <div style={styles.statLabel}>{label}</div>
-      {subtext ? <div style={styles.statSubtext}>{subtext}</div> : null}
+    <div className="transactionsStatCard">
+      <div className="transactionsStatValue">{value}</div>
+      <div className="transactionsStatLabel">{label}</div>
+      {subtext ? (
+        <div className="transactionsStatSubtext">{subtext}</div>
+      ) : null}
     </div>
   );
 }
@@ -259,871 +262,404 @@ export default function Transactions() {
     );
   }
 
-  function handleSelectAll() {
-    const currentPageIds = filteredRows.map((tx) => String(tx.id));
-    const allSelected =
-      currentPageIds.length > 0 &&
-      currentPageIds.every((id) => selectedIds.includes(id));
-
-    if (allSelected) {
-      setSelectedIds((prev) =>
-        prev.filter((id) => !currentPageIds.includes(id))
-      );
-    } else {
-      setSelectedIds((prev) => [...new Set([...prev, ...currentPageIds])]);
-    }
-  }
-
   function toggleEditMode() {
     setEditMode((prev) => {
       const next = !prev;
-      if (!next) {
-        setSelectedIds([]);
-      }
+      if (!next) setSelectedIds([]);
       return next;
     });
   }
 
   async function handleDeleteSelected() {
-  if (!selectedIds.length) return;
+    if (!selectedIds.length) return;
 
-  const confirmDelete = window.confirm(
-    `Delete ${selectedIds.length} selected transaction(s)?`
-  );
-
-  if (!confirmDelete) return;
-
-  try {
-    await deleteTransactions(selectedIds);
-
-    // remove deleted rows from UI
-    setData((prev) =>
-      prev.filter((tx) => !selectedIds.includes(String(tx.transactionId)))
+    const confirmDelete = window.confirm(
+      `Delete ${selectedIds.length} selected transaction(s)?`
     );
 
-    setSelectedIds([]);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to delete transactions.");
-  }
-}
+    if (!confirmDelete) return;
 
-  const allVisibleSelected =
-    filteredRows.length > 0 &&
-    filteredRows.every((tx) => selectedIds.includes(String(tx.id)));
+    try {
+      await deleteTransactions(selectedIds);
+
+      setData((prev) =>
+        prev.filter((tx) => !selectedIds.includes(String(tx.transactionId)))
+      );
+
+      setSelectedIds([]);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete transactions.");
+    }
+  }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.pageTitle}>Transactions</h1>
-          <p style={styles.pageSubtitle}>
-            Track, search, and recategorize your spending and income history.
-          </p>
+    <main className="transactionsPageShell">
+      <div className="transactionsPageContainer">
+        <section className="transactionsHero">
+          <div className="transactionsHeroCard">
+            <span className="transactionsBadge">Transaction history workspace</span>
+            <h1 className="transactionsPageTitle">Transactions</h1>
+            <p className="transactionsPageSubtitle">
+              Track, search, and recategorize your spending and income history.
+              Filter by description, type, and date range, then manage categories
+              directly from the results list.
+            </p>
+          </div>
+
+          <div className="transactionsHeroSideCard">
+            <div className="transactionsHeroSideLabel">Current results</div>
+            <div className="transactionsHeroSideValue">
+              {meta?.total ?? rows.length}
+            </div>
+            <div className="transactionsHeroSideText">
+              {rows.length} on this page · Page {meta?.page ?? 1} of{" "}
+              {meta?.totalPages ?? 1}
+            </div>
+          </div>
+        </section>
+
+        <div className="transactionsStatsGrid">
+          <StatCard
+            label="Total Transactions"
+            value={meta?.total ?? rows.length}
+            subtext="Available in results"
+          />
+          <StatCard
+            label="Debits"
+            value={debitCount}
+            subtext="Shown on this page"
+          />
+          <StatCard
+            label="Credits"
+            value={creditCount}
+            subtext="Shown on this page"
+          />
+          <StatCard
+            label="Page"
+            value={`${meta?.page ?? 1}/${meta?.totalPages ?? 1}`}
+            subtext={`${pageSize} rows per page`}
+          />
         </div>
 
-        <div style={styles.headerPill}>
-          {meta?.total ?? rows.length} total · {rows.length} on this page
-        </div>
-      </div>
+        {errors.length > 0 && <ErrorBox title="Error" errors={errors} />}
 
-      <div style={styles.statsGrid}>
-        <StatCard
-          label="Total Transactions"
-          value={meta?.total ?? rows.length}
-          subtext="Available in results"
-        />
-        <StatCard
-          label="Debits"
-          value={debitCount}
-          subtext="Shown on this page"
-        />
-        <StatCard
-          label="Credits"
-          value={creditCount}
-          subtext="Shown on this page"
-        />
-        <StatCard
-          label="Page"
-          value={`${meta?.page ?? 1}/${meta?.totalPages ?? 1}`}
-          subtext={`${pageSize} rows per page`}
-        />
-      </div>
-
-      {errors.length > 0 && <ErrorBox title="Error" errors={errors} />}
-
-      <div style={styles.filterCard}>
-        <div style={styles.filterHeader}>
-          <div>
-            <div style={styles.cardTitle}>Filters</div>
-            <div style={styles.cardSubtitle}>
+        <div className="transactionsFilterCard">
+          <div className="transactionsSectionHeader">
+            <div className="transactionsCardTitle">Filters</div>
+            <div className="transactionsCardSubtitle">
               Search by description, transaction type, or date range.
             </div>
           </div>
-        </div>
 
-        <div style={styles.filterGrid}>
-          <input
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Search description..."
-            style={{ ...styles.input, ...styles.searchInput }}
-          />
+          <div className="transactionsFilterGrid">
+            <input
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search description..."
+              className="transactionsInput"
+            />
 
-          <select
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setPage(1);
-            }}
-            style={styles.input}
-            title="Type"
-          >
-            <option value="ALL">All types</option>
-            <option value="DEBIT">Debit</option>
-            <option value="CREDIT">Credit</option>
-          </select>
+            <select
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value);
+                setPage(1);
+              }}
+              className="transactionsSelect"
+              title="Type"
+            >
+              <option value="ALL">All types</option>
+              <option value="DEBIT">Debit</option>
+              <option value="CREDIT">Credit</option>
+            </select>
 
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => {
-              setFromDate(e.target.value);
-              setPage(1);
-            }}
-            style={styles.input}
-            title="From date"
-          />
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setPage(1);
+              }}
+              className="transactionsDateInput"
+              title="From date"
+            />
 
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => {
-              setToDate(e.target.value);
-              setPage(1);
-            }}
-            style={styles.input}
-            title="To date"
-          />
-
-          <button
-            onClick={() => {
-              setQ("");
-              setTypeFilter("ALL");
-              setFromDate("");
-              setToDate("");
-              setPage(1);
-            }}
-            style={styles.clearButton}
-            title="Clear filters"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
-
-      <div style={styles.tableCard}>
-        <div style={styles.tableHeader}>
-          <div>
-            <div style={styles.cardTitle}>Transaction List</div>
-            <div style={styles.cardSubtitle}>
-              {editMode
-                ? "Edit mode is on. Select transactions to delete or change categories."
-                : "Click Edit to select transactions or change categories."}
-            </div>
-          </div>
-
-          <div style={styles.tableActions}>
-           {editMode && selectedIds.length > 0 && (
-              <button
-                onClick={handleDeleteSelected}
-                style={styles.deleteIconButton}
-                title={`Delete ${selectedIds.length} selected transaction(s)`}
-              >
-                <Trash2 size={18} />
-              </button>
-            )}
-
-            {editMode && selectedIds.length > 0 && (
-              <div style={styles.selectionSummary}>
-                {selectedIds.length} selected
-              </div>
-            )}
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setPage(1);
+              }}
+              className="transactionsDateInput"
+              title="To date"
+            />
 
             <button
-              onClick={toggleEditMode}
-              style={editMode ? styles.editButtonActive : styles.editButton}
-              title={editMode ? "Exit edit mode" : "Enter edit mode"}
+              onClick={() => {
+                setQ("");
+                setTypeFilter("ALL");
+                setFromDate("");
+                setToDate("");
+                setPage(1);
+              }}
+              className="transactionsClearButton"
+              title="Clear filters"
             >
-              {editMode ? "Done" : "Edit"}
+              Clear
             </button>
           </div>
         </div>
 
-        {loading ? (
-          <div style={styles.centerBlock}>
-            <Spinner />
+        <div className="transactionsTableCard">
+          <div className="transactionsTableHeader">
+            <div>
+              <div className="transactionsCardTitle">Transaction List</div>
+              <div className="transactionsCardSubtitle">
+                {editMode
+                  ? "Edit mode is on. Select transactions to delete or change categories."
+                  : "Click Edit to select transactions or change categories."}
+              </div>
+            </div>
+
+            <div className="transactionsTableActions">
+              {editMode && selectedIds.length > 0 && (
+                <button
+                  onClick={handleDeleteSelected}
+                  className="transactionsDeleteIconButton"
+                  title={`Delete ${selectedIds.length} selected transaction(s)`}
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+
+              {editMode && selectedIds.length > 0 && (
+                <div className="transactionsSelectionSummary">
+                  {selectedIds.length} selected
+                </div>
+              )}
+
+              <button
+                onClick={toggleEditMode}
+                className={
+                  editMode
+                    ? "transactionsEditButtonActive"
+                    : "transactionsEditButton"
+                }
+                title={editMode ? "Exit edit mode" : "Enter edit mode"}
+              >
+                {editMode ? "Done" : "Edit"}
+              </button>
+            </div>
           </div>
-        ) : errors.length > 0 ? (
-          <div style={styles.emptyState}>Fix the errors above.</div>
-        ) : filteredRows.length === 0 ? (
-          <div style={styles.emptyState}>No transactions found.</div>
-        ) : (
-          <div style={styles.tableScroll}>
-            <table style={styles.table}>
-             <thead>
-                <tr style={styles.tableHeadRow}>
-                  {editMode && <th style={styles.thCheckbox}></th>}
-                  <th style={styles.thLeft}>Date</th>
-                  <th style={styles.thLeft}>Description</th>
-                  <th style={styles.thRight}>Amount (CAD)</th>
-                  <th style={styles.thLeft}>Type</th>
-                  <th style={styles.thLeft}>Category</th>
-                </tr>
-              </thead>
 
-              <tbody>
-                {filteredRows.map((tx) => {
-                  const state = saveState[tx.id] || "idle";
-                  const err = saveError[tx.id] || "";
+          {loading ? (
+            <div className="transactionsCenterBlock">
+              <Spinner />
+            </div>
+          ) : errors.length > 0 ? (
+            <div className="transactionsEmptyState">Fix the errors above.</div>
+          ) : filteredRows.length === 0 ? (
+            <div className="transactionsEmptyState">No transactions found.</div>
+          ) : (
+            <div className="transactionsTableScroll">
+              <table className="transactionsTable">
+                <thead>
+                  <tr className="transactionsTableHeadRow">
+                    {editMode && <th className="transactionsThCheckbox"></th>}
+                    <th className="transactionsThLeft">Date</th>
+                    <th className="transactionsThLeft">Description</th>
+                    <th className="transactionsThRight">Amount (CAD)</th>
+                    <th className="transactionsThLeft">Type</th>
+                    <th className="transactionsThLeft">Category</th>
+                  </tr>
+                </thead>
 
-                  const selectBorder =
-                    state === "error"
-                      ? "#ef4444"
-                      : state === "saved"
-                      ? "#22c55e"
-                      : "#d1d5db";
+                <tbody>
+                  {filteredRows.map((tx) => {
+                    const state = saveState[tx.id] || "idle";
+                    const err = saveError[tx.id] || "";
 
-                  const categoryTone = getCategoryTone(tx.category);
-                  const isSelected = selectedIds.includes(String(tx.id));
+                    const selectBorder =
+                      state === "error"
+                        ? "#ef4444"
+                        : state === "saved"
+                        ? "#22c55e"
+                        : "#d1d5db";
 
-                  return (
-                    <tr
-                      key={tx.id}
-                      style={{
-                        ...styles.tr,
-                        ...(editMode && isSelected ? styles.trSelected : {}),
-                      }}
-                    >
-                      {editMode && (
-                        <td style={styles.tdCheckbox}>
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleSelectOne(String(tx.id))}
-                            title="Select this transaction"
-                            style={styles.checkbox}
-                          />
+                    const categoryTone = getCategoryTone(tx.category);
+                    const isSelected = selectedIds.includes(String(tx.id));
+
+                    return (
+                      <tr
+                        key={tx.id}
+                        className={
+                          isSelected && editMode
+                            ? "transactionsTr transactionsTrSelected"
+                            : "transactionsTr"
+                        }
+                      >
+                        {editMode && (
+                          <td className="transactionsTdCheckbox">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleSelectOne(String(tx.id))}
+                              title="Select this transaction"
+                              className="transactionsCheckbox"
+                            />
+                          </td>
+                        )}
+
+                        <td className="transactionsTdDate">{tx.date}</td>
+
+                        <td className="transactionsTd" style={{ maxWidth: 460 }}>
+                          <div className="transactionsDescriptionCell">
+                            {tx.description}
+                          </div>
                         </td>
-                      )}
 
-                      <td style={styles.tdDate}>{tx.date}</td>
-
-                      <td style={{ ...styles.td, maxWidth: 460 }}>
-                        <div style={styles.descriptionCell}>{tx.description}</div>
-                      </td>
-
-                      <td style={styles.tdAmount}>
-                        <span
-                          style={{
-                            ...styles.amount,
-                            color: tx.isDebit ? "#dc2626" : "#16a34a",
-                          }}
-                        >
-                          {tx.isDebit ? "-" : "+"}${tx.amount}
-                        </span>
-                      </td>
-
-                      <td style={styles.td}>
-                        <span
-                          style={{
-                            ...styles.typeBadge,
-                            ...getTypeBadgeStyle(tx.type),
-                          }}
-                        >
-                          {tx.type}
-                        </span>
-                      </td>
-
-                      <td style={styles.td}>
-                        <div style={styles.categoryCell}>
-                          <div
+                        <td className="transactionsTdAmount">
+                          <span
+                            className="transactionsAmount"
                             style={{
-                              ...styles.categoryPreview,
-                              background: categoryTone.background,
-                              color: categoryTone.color,
-                              border: `1px solid ${categoryTone.border}`,
+                              color: tx.isDebit ? "#dc2626" : "#16a34a",
                             }}
                           >
-                            {getCategoryLabel(tx.category)}
-                          </div>
+                            {tx.isDebit ? "-" : "+"}${tx.amount}
+                          </span>
+                        </td>
 
-                          {editMode && (
-                            <>
-                              <select
-                                value={tx.category}
-                                disabled={state === "saving"}
-                                onChange={(e) =>
-                                  handleCategoryChange(tx, e.target.value)
-                                }
-                                style={{
-                                  ...styles.categorySelect,
-                                  borderColor: selectBorder,
-                                }}
-                                title="Change category"
-                              >
-                                {CATEGORY_OPTIONS.map((c) => (
-                                  <option key={c.value} value={c.value}>
-                                    {c.label}
-                                  </option>
-                                ))}
-                              </select>
+                        <td className="transactionsTd">
+                          <span
+                            className="transactionsTypeBadge"
+                            style={getTypeBadgeStyle(tx.type)}
+                          >
+                            {tx.type}
+                          </span>
+                        </td>
 
-                              {state !== "idle" && (
-                                <span
-                                  style={{
-                                    ...styles.saveBadge,
-                                    ...(state === "saving"
-                                      ? styles.saveBadgeSaving
-                                      : {}),
-                                    ...(state === "saved"
-                                      ? styles.saveBadgeSaved
-                                      : {}),
-                                    ...(state === "error"
-                                      ? styles.saveBadgeError
-                                      : {}),
-                                  }}
-                                  title={state === "error" ? err : ""}
+                        <td className="transactionsTd">
+                          <div className="transactionsCategoryCell">
+                            <div
+                              className="transactionsCategoryPreview"
+                              style={{
+                                background: categoryTone.background,
+                                color: categoryTone.color,
+                                border: `1px solid ${categoryTone.border}`,
+                              }}
+                            >
+                              {getCategoryLabel(tx.category)}
+                            </div>
+
+                            {editMode && (
+                              <>
+                                <select
+                                  value={tx.category}
+                                  disabled={state === "saving"}
+                                  onChange={(e) =>
+                                    handleCategoryChange(tx, e.target.value)
+                                  }
+                                  className="transactionsCategorySelect"
+                                  style={{ borderColor: selectBorder }}
+                                  title="Change category"
                                 >
-                                  {state === "saving"
-                                    ? "Saving..."
-                                    : state === "saved"
-                                    ? "Saved"
-                                    : "Error"}
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </div>
+                                  {CATEGORY_OPTIONS.map((c) => (
+                                    <option key={c.value} value={c.value}>
+                                      {c.label}
+                                    </option>
+                                  ))}
+                                </select>
 
-                        {editMode && state === "error" && (
-                          <div style={styles.errorText}>
-                            {err || "Update failed"}
+                                {state !== "idle" && (
+                                  <span
+                                    className={[
+                                      "transactionsSaveBadge",
+                                      state === "saving"
+                                        ? "transactionsSaveBadgeSaving"
+                                        : "",
+                                      state === "saved"
+                                        ? "transactionsSaveBadgeSaved"
+                                        : "",
+                                      state === "error"
+                                        ? "transactionsSaveBadgeError"
+                                        : "",
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" ")}
+                                    title={state === "error" ? err : ""}
+                                  >
+                                    {state === "saving"
+                                      ? "Saving..."
+                                      : state === "saved"
+                                      ? "Saved"
+                                      : "Error"}
+                                  </span>
+                                )}
+                              </>
+                            )}
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+
+                          {editMode && state === "error" && (
+                            <div className="transactionsErrorText">
+                              {err || "Update failed"}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="transactionsPaginationBar">
+          <div className="transactionsPaginationText">
+            Page <b>{meta.page}</b> of <b>{meta.totalPages}</b> · Total{" "}
+            <b>{meta.total}</b>
           </div>
-        )}
-      </div>
 
-      <div style={styles.paginationBar}>
-        <div style={styles.paginationText}>
-          Page <b>{meta.page}</b> of <b>{meta.totalPages}</b> · Total{" "}
-          <b>{meta.total}</b>
-        </div>
+          <div className="transactionsPaginationControls">
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="transactionsPageSizeSelect"
+              title="Rows per page"
+            >
+              {[10, 20, 50, 100].map((n) => (
+                <option key={n} value={n}>
+                  {n}/page
+                </option>
+              ))}
+            </select>
 
-        <div style={styles.paginationControls}>
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setPage(1);
-            }}
-            style={styles.paginationSelect}
-            title="Rows per page"
-          >
-            {[10, 20, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n}/page
-              </option>
-            ))}
-          </select>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1 || loading}
+              className="transactionsSecondaryButton"
+            >
+              Prev
+            </button>
 
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1 || loading}
-            style={{
-              ...styles.secondaryButton,
-              opacity: page <= 1 || loading ? 0.55 : 1,
-              cursor: page <= 1 || loading ? "not-allowed" : "pointer",
-            }}
-          >
-            Prev
-          </button>
-
-          <button
-            onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
-            disabled={page >= (meta.totalPages || 1) || loading}
-            style={{
-              ...styles.primaryButton,
-              opacity: page >= (meta.totalPages || 1) || loading ? 0.55 : 1,
-              cursor:
-                page >= (meta.totalPages || 1) || loading
-                  ? "not-allowed"
-                  : "pointer",
-            }}
-          >
-            Next
-          </button>
+            <button
+              onClick={() => setPage((p) => Math.min(meta.totalPages || 1, p + 1))}
+              disabled={page >= (meta.totalPages || 1) || loading}
+              className="transactionsPrimaryButton"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
-
-const styles = {
-  page: {
-    width: "100%",
-    maxWidth: "100%",
-    margin: 0,
-    padding: "24px 24px 40px",
-    background: "#f8fafc",
-    minHeight: "100vh",
-    boxSizing: "border-box",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 16,
-    flexWrap: "wrap",
-    marginBottom: 20,
-  },
-  pageTitle: {
-    margin: 0,
-    fontSize: 36,
-    lineHeight: 1.1,
-    fontWeight: 800,
-    color: "#0f172a",
-    letterSpacing: "-0.02em",
-  },
-  pageSubtitle: {
-    margin: "8px 0 0",
-    fontSize: 15,
-    color: "#64748b",
-  },
-  headerPill: {
-    alignSelf: "center",
-    padding: "10px 14px",
-    borderRadius: 999,
-    border: "1px solid #e2e8f0",
-    background: "#ffffff",
-    color: "#334155",
-    fontSize: 13,
-    fontWeight: 600,
-    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
-  },
-
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: 14,
-    marginBottom: 20,
-  },
-  statCard: {
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: 18,
-    padding: "18px 18px 16px",
-    boxShadow: "0 6px 20px rgba(15, 23, 42, 0.05)",
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: 800,
-    color: "#0f172a",
-    lineHeight: 1,
-  },
-  statLabel: {
-    marginTop: 10,
-    fontSize: 14,
-    fontWeight: 700,
-    color: "#334155",
-  },
-  statSubtext: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#64748b",
-  },
-
-  filterCard: {
-    width: "100%",
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: 20,
-    padding: 18,
-    boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
-    marginBottom: 18,
-    boxSizing: "border-box",
-  },
-  filterHeader: {
-    marginBottom: 14,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: "#0f172a",
-  },
-  cardSubtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#64748b",
-  },
-  filterGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "minmax(260px, 2fr) repeat(3, minmax(140px, 1fr)) auto",
-    gap: 12,
-    alignItems: "center",
-  },
-  input: {
-    height: 46,
-    borderRadius: 12,
-    border: "1px solid #dbe3ee",
-    background: "#ffffff",
-    color: "#0f172a",
-    fontSize: 14,
-    padding: "0 14px",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-  searchInput: {
-    minWidth: 220,
-  },
-  clearButton: {
-    height: 46,
-    padding: "0 16px",
-    borderRadius: 12,
-    border: "1px solid #dbe3ee",
-    background: "#f8fafc",
-    color: "#0f172a",
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-
-  tableCard: {
-    width: "100%",
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: 20,
-    overflow: "hidden",
-    boxShadow: "0 8px 28px rgba(15, 23, 42, 0.06)",
-    boxSizing: "border-box",
-  },
-
-  tableHeader: {
-    padding: "18px 18px 14px",
-    borderBottom: "1px solid #eef2f7",
-    background: "#ffffff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-  tableActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  selectionSummary: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#475569",
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    borderRadius: 999,
-    padding: "8px 12px",
-    whiteSpace: "nowrap",
-  },
-  editButton: {
-    height: 40,
-    padding: "0 16px",
-    borderRadius: 12,
-    border: "1px solid #dbe3ee",
-    background: "#ffffff",
-    color: "#0f172a",
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: "pointer",
-  },
-  editButtonActive: {
-    height: 40,
-    padding: "0 16px",
-    borderRadius: 12,
-    border: "1px solid #2563eb",
-    background: "#eff6ff",
-    color: "#1d4ed8",
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: "pointer",
-  },
-  deleteButton: {
-    height: 40,
-    padding: "0 16px",
-    borderRadius: 12,
-    border: "1px solid #ef4444",
-    background: "#fef2f2",
-    color: "#b91c1c",
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-  centerBlock: {
-    padding: 30,
-  },
-  emptyState: {
-    padding: 24,
-    color: "#64748b",
-    fontSize: 14,
-  },
-  tableScroll: {
-    overflowX: "auto",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "separate",
-    borderSpacing: 0,
-    minWidth: 980,
-  },
-  tableHeadRow: {
-    background: "#f8fafc",
-  },
-  thCheckbox: {
-    textAlign: "center",
-    width: 56,
-    minWidth: 56,
-    padding: "14px 10px",
-    fontSize: 12,
-    fontWeight: 800,
-    color: "#475569",
-    borderBottom: "1px solid #e2e8f0",
-  },
-  thLeft: {
-    textAlign: "left",
-    padding: "14px 18px",
-    fontSize: 12,
-    fontWeight: 800,
-    color: "#475569",
-    borderBottom: "1px solid #e2e8f0",
-    letterSpacing: "0.03em",
-    textTransform: "uppercase",
-    whiteSpace: "nowrap",
-  },
-  thRight: {
-    textAlign: "right",
-    padding: "14px 18px",
-    fontSize: 12,
-    fontWeight: 800,
-    color: "#475569",
-    borderBottom: "1px solid #e2e8f0",
-    letterSpacing: "0.03em",
-    textTransform: "uppercase",
-    whiteSpace: "nowrap",
-  },
-  tr: {
-    background: "#ffffff",
-  },
-  trSelected: {
-    background: "#f8fbff",
-  },
-  tdCheckbox: {
-    padding: "16px 10px",
-    borderBottom: "1px solid #f1f5f9",
-    textAlign: "center",
-    verticalAlign: "middle",
-  },
-  checkbox: {
-    width: 16,
-    height: 16,
-    cursor: "pointer",
-    accentColor: "#2563eb",
-  },
-  td: {
-    padding: "16px 18px",
-    borderBottom: "1px solid #f1f5f9",
-    fontSize: 14,
-    color: "#0f172a",
-    verticalAlign: "middle",
-    whiteSpace: "nowrap",
-  },
-  tdDate: {
-    padding: "16px 18px",
-    borderBottom: "1px solid #f1f5f9",
-    fontSize: 14,
-    color: "#334155",
-    verticalAlign: "middle",
-    whiteSpace: "nowrap",
-    fontWeight: 600,
-  },
-  tdAmount: {
-    padding: "16px 18px",
-    borderBottom: "1px solid #f1f5f9",
-    fontSize: 14,
-    textAlign: "right",
-    verticalAlign: "middle",
-    whiteSpace: "nowrap",
-    fontVariantNumeric: "tabular-nums",
-  },
-  descriptionCell: {
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    color: "#0f172a",
-    fontWeight: 500,
-  },
-  amount: {
-    fontSize: 16,
-    fontWeight: 800,
-    letterSpacing: "-0.01em",
-  },
-
-  typeBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "6px 12px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 800,
-    letterSpacing: "0.02em",
-  },
-
-  categoryCell: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    flexWrap: "nowrap",
-  },
-
-  categoryPreview: {
-    width: 130,
-    minWidth: 130,
-    textAlign: "center",
-    fontSize: 12,
-    fontWeight: 700,
-    padding: "6px 10px",
-    borderRadius: 999,
-    whiteSpace: "nowrap",
-    boxSizing: "border-box",
-  },
-
-  categorySelect: {
-    width: 190,
-    minWidth: 190,
-    height: 40,
-    padding: "0 12px",
-    borderRadius: 12,
-    border: "1px solid #d1d5db",
-    background: "#ffffff",
-    fontSize: 13,
-    color: "#0f172a",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-
-  saveBadge: {
-    fontSize: 12,
-    fontWeight: 700,
-    padding: "6px 10px",
-    borderRadius: 999,
-    border: "1px solid #e5e7eb",
-    background: "#ffffff",
-    color: "#374151",
-    whiteSpace: "nowrap",
-  },
-  saveBadgeSaving: {
-    borderColor: "#bfdbfe",
-    background: "#eff6ff",
-    color: "#1d4ed8",
-  },
-  saveBadgeSaved: {
-    borderColor: "#86efac",
-    background: "#f0fdf4",
-    color: "#166534",
-  },
-  saveBadgeError: {
-    borderColor: "#fecaca",
-    background: "#fef2f2",
-    color: "#b91c1c",
-  },
-  errorText: {
-    marginTop: 8,
-    fontSize: 12,
-    color: "#b91c1c",
-  },
-
-  paginationBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-    flexWrap: "wrap",
-    marginTop: 18,
-    padding: "0 4px",
-  },
-  paginationText: {
-    color: "#64748b",
-    fontSize: 14,
-  },
-  paginationControls: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  paginationSelect: {
-    height: 44,
-    padding: "0 12px",
-    borderRadius: 12,
-    border: "1px solid #dbe3ee",
-    background: "#ffffff",
-    color: "#0f172a",
-    fontSize: 14,
-  },
-  secondaryButton: {
-    height: 44,
-    padding: "0 16px",
-    borderRadius: 12,
-    border: "1px solid #dbe3ee",
-    background: "#ffffff",
-    color: "#0f172a",
-    fontSize: 14,
-    fontWeight: 700,
-  },
-  primaryButton: {
-    height: 44,
-    padding: "0 16px",
-    borderRadius: 12,
-    border: "1px solid #2563eb",
-    background: "#2563eb",
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: 700,
-  },
-  deleteIconButton: {
-  width: 40,
-  height: 40,
-  borderRadius: 10,
-  border: "1px solid #ef4444",
-  background: "#fef2f2",
-  color: "#b91c1c",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  transition: "all 0.15s ease",
-},
-};
