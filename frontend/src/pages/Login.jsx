@@ -2,25 +2,12 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import { Eye, EyeOff, Mail } from "lucide-react";
+import "./login.css";
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function inputStyle(withRightIcon = false) {
-  return {
-    width: "100%",
-    height: 48,
-    padding: withRightIcon ? "0 46px 0 14px" : "0 42px 0 14px",
-    border: "1px solid #dbe3ee",
-    borderRadius: 12,
-    background: "#ffffff",
-    color: "#0f172a",
-    fontSize: 15,
-    outline: "none",
-    boxSizing: "border-box",
-  };
-}
 
 export default function Login() {
   const navigate = useNavigate();
@@ -101,85 +88,39 @@ export default function Login() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "calc(100vh - 72px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        background: "#f8fafc",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 460,
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 22,
-          boxShadow: "0 12px 30px rgba(15, 23, 42, 0.08)",
-          padding: 28,
-          boxSizing: "border-box",
-        }}
-      >
-        <div style={{ marginBottom: 22 }}>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 34,
-              lineHeight: 1.1,
-              fontWeight: 800,
-              color: "#0f172a",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Login
-          </h1>
+  <div className="loginPage">
+    <main className="loginShell">
+      <section className="loginHero">
+        <div className="loginBadge">Secure personal finance access</div>
 
-          <p
-            style={{
-              margin: "10px 0 0",
-              fontSize: 15,
-              color: "#64748b",
-            }}
-          >
-            Sign in to continue using MoneyMap.
-          </p>
-        </div>
+        <h1 className="loginHeroTitle">
+          Welcome back to
+          <br />
+          MoneyMap.
+        </h1>
 
-        {error ? (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: "1px solid #fecaca",
-              background: "#fef2f2",
-              color: "#b91c1c",
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {error}
+        <p className="loginHeroText">
+          Sign in to upload statements, review transactions, manage budgets,
+          and explore your spending insights in one place.
+        </p>
+      </section>
+
+      <section className="loginPanel">
+        <div className="loginCard">
+          <div className="loginHeader">
+            <h1 className="loginTitle">Login</h1>
+            <p className="loginSubtitle">
+              Sign in to continue using MoneyMap.
+            </p>
           </div>
-        ) : null}
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div style={{ display: "grid", gap: 16 }}>
-            <label style={{ display: "block" }}>
-              <div
-                style={{
-                  marginBottom: 8,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                Email
-              </div>
+          {error ? <div className="loginError">{error}</div> : null}
 
-              <div style={{ position: "relative" }}>
+          <form onSubmit={handleSubmit} noValidate className="loginForm">
+            <div className="loginField">
+              <label className="loginLabel">Email</label>
+
+              <div className="loginInputWrap">
                 <input
                   type="email"
                   value={email}
@@ -187,125 +128,61 @@ export default function Login() {
                   autoComplete="email"
                   inputMode="email"
                   placeholder="Enter your email"
-                  style={inputStyle()}
+                  className="loginInput"
                 />
-                <Mail
-                  size={18}
-                  style={{
-                    position: "absolute",
-                    right: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#94a3b8",
-                    pointerEvents: "none",
-                  }}
-                />
+                <Mail size={18} className="loginInputIcon" />
               </div>
-            </label>
+            </div>
 
-            <label style={{ display: "block" }}>
-              <div
-                style={{
-                  marginBottom: 8,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                Password
+            <div className="loginField">
+              <div className="loginLabelRow">
+                <label className="loginLabel">Password</label>
+
+                <Link to="/forgot-password" className="loginForgotLink">
+                  Forgot password?
+                </Link>
               </div>
 
-              <div style={{ position: "relative" }}>
+              <div className="loginInputWrap">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   placeholder="Enter your password"
-                  style={inputStyle(true)}
+                  className="loginInput loginInputPassword"
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  style={{
-                    position: "absolute",
-                    right: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    border: "none",
-                    background: "transparent",
-                    padding: 0,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#475569",
-                  }}
+                  className="loginToggle"
                   title={showPassword ? "Hide password" : "Show password"}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-            </label>
-
-            <div style={{ textAlign: "right", marginTop: -4 }}>
-              <Link
-                to="/forgot-password"
-                style={{
-                  color: "#2563eb",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  textDecoration: "none",
-                }}
-              >
-                Forgot password?
-              </Link>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              style={{
-                width: "100%",
-                height: 48,
-                border: "1px solid #2563eb",
-                borderRadius: 12,
-                background: "#2563eb",
-                color: "#ffffff",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.7 : 1,
-                marginTop: 4,
-              }}
+              className="loginButton"
             >
               {loading ? "Logging in..." : "Login"}
             </button>
-          </div>
-        </form>
+          </form>
 
-        <div
-          style={{
-            marginTop: 18,
-            textAlign: "center",
-            fontSize: 14,
-            color: "#475569",
-          }}
-        >
-          Don't have an account?{" "}
-          <Link
-            to="/register"
-            style={{
-              color: "#2563eb",
-              fontWeight: 600,
-              textDecoration: "none",
-            }}
-          >
-            Register
-          </Link>
+          <div className="loginFooter">
+            Don&apos;t have an account?{" "}
+            <Link to="/register" className="loginFooterLink">
+              Register
+            </Link>
+          </div>
         </div>
-      </div>
-    </div>
-  );
+      </section>
+    </main>
+  </div>
+);
 }
