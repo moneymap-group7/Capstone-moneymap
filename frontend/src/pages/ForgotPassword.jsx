@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Eye, EyeOff, Mail, ShieldCheck, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, ShieldCheck } from "lucide-react";
+import "./forgot-password.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -34,31 +35,9 @@ function getPasswordChecks(pw) {
   };
 }
 
-function passwordRuleItemStyle(active) {
-  return {
-    color: active ? "#15803d" : "#94a3b8",
-    fontWeight: active ? 600 : 500,
-    transition: "color 0.2s ease, font-weight 0.2s ease",
-  };
-}
 
 function passwordRuleIcon(active) {
   return active ? "✓" : "○";
-}
-
-function inputBaseStyle(hasIconRight = false) {
-  return {
-    width: "100%",
-    height: 48,
-    padding: hasIconRight ? "0 44px 0 14px" : "0 14px",
-    border: "1px solid #dbe3ee",
-    borderRadius: 12,
-    background: "#ffffff",
-    color: "#0f172a",
-    fontSize: 15,
-    outline: "none",
-    boxSizing: "border-box",
-  };
 }
 
 export default function ForgotPassword() {
@@ -160,241 +139,105 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "calc(100vh - 72px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        background: "#f8fafc",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 460,
-          background: "#ffffff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 22,
-          boxShadow: "0 12px 30px rgba(15, 23, 42, 0.08)",
-          padding: 28,
-          boxSizing: "border-box",
-        }}
-      >
-        <div style={{ marginBottom: 22 }}>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 34,
-              lineHeight: 1.1,
-              fontWeight: 800,
-              color: "#0f172a",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Forgot Password
-          </h1>
+  <div className="forgotPage">
+    <main className="forgotShell">
+      <section className="forgotHero">
+        <div className="forgotBadge">Secure account recovery</div>
 
-          <p
-            style={{
-              margin: "10px 0 0",
-              fontSize: 15,
-              color: "#64748b",
-            }}
-          >
-            {step === 1
-              ? "Enter your email address and we'll send you a reset code."
-              : "Enter the verification code and choose your new password."}
-          </p>
-        </div>
+        <h1 className="forgotHeroTitle">
+          Reset your
+          <br />
+          MoneyMap access.
+        </h1>
 
-        {message ? (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: "1px solid #bbf7d0",
-              background: "#f0fdf4",
-              color: "#166534",
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {message}
+        <p className="forgotHeroText">
+          Recover access securely by verifying your email and setting a new
+          password. This keeps your account protected while making the reset
+          process simple.
+        </p>
+      </section>
+
+      <section className="forgotPanel">
+        <div className="forgotCard">
+          <div className="forgotHeader">
+            <h1 className="forgotTitle">Forgot Password</h1>
+
+            <p className="forgotSubtitle">
+              {step === 1
+                ? "Enter your email address and we'll send you a reset code."
+                : "Enter the verification code and choose your new password."}
+            </p>
           </div>
-        ) : null}
 
-        {error ? (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "12px 14px",
-              borderRadius: 12,
-              border: "1px solid #fecaca",
-              background: "#fef2f2",
-              color: "#b91c1c",
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {error}
-          </div>
-        ) : null}
+          {message ? <div className="forgotSuccess">{message}</div> : null}
 
-        {step === 1 && (
-          <form onSubmit={sendCode}>
-            <label
-              style={{
-                display: "block",
-                marginBottom: 16,
-              }}
-            >
-              <div
-                style={{
-                  marginBottom: 8,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#334155",
-                }}
-              >
-                Email Address
-              </div>
+          {error ? <div className="forgotError">{error}</div> : null}
 
-              <div style={{ position: "relative" }}>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  style={inputBaseStyle()}
-                />
-                <Mail
-                  size={18}
-                  style={{
-                    position: "absolute",
-                    right: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#94a3b8",
-                    pointerEvents: "none",
-                  }}
-                />
-              </div>
-            </label>
+          {step === 1 && (
+            <form onSubmit={sendCode} className="forgotForm">
+              <div className="forgotField">
+                <label className="forgotLabel">Email Address</label>
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: "100%",
-                height: 48,
-                border: "1px solid #2563eb",
-                borderRadius: 12,
-                background: "#2563eb",
-                color: "#ffffff",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: loading ? "not-allowed" : "pointer",
-                opacity: loading ? 0.7 : 1,
-              }}
-            >
-              {loading ? "Sending..." : "Send Reset Code"}
-            </button>
-          </form>
-        )}
-
-        {step === 2 && (
-          <form onSubmit={resetPassword}>
-            <div style={{ display: "grid", gap: 16 }}>
-              <label style={{ display: "block" }}>
-                <div
-                  style={{
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#334155",
-                  }}
-                >
-                  Email Address
+                <div className="forgotInputWrap">
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    className="forgotInput"
+                  />
+                  <Mail size={18} className="forgotInputIcon" />
                 </div>
+              </div>
 
-                <div style={{ position: "relative" }}>
+              <button
+                type="submit"
+                disabled={loading}
+                className="forgotButton"
+              >
+                {loading ? "Sending..." : "Send Reset Code"}
+              </button>
+            </form>
+          )}
+
+          {step === 2 && (
+            <form onSubmit={resetPassword} className="forgotForm">
+              <div className="forgotField">
+                <label className="forgotLabel">Email Address</label>
+
+                <div className="forgotInputWrap">
                   <input
                     type="email"
                     value={email}
                     readOnly
-                    style={{
-                      ...inputBaseStyle(),
-                      background: "#f8fafc",
-                      color: "#475569",
-                    }}
+                    className="forgotInput forgotInputReadonly"
                   />
-                  <Mail
-                    size={18}
-                    style={{
-                      position: "absolute",
-                      right: 14,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "#94a3b8",
-                      pointerEvents: "none",
-                    }}
-                  />
+                  <Mail size={18} className="forgotInputIcon" />
                 </div>
-              </label>
+              </div>
 
-              <label style={{ display: "block" }}>
-                <div
-                  style={{
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#334155",
-                  }}
-                >
-                  Verification Code
-                </div>
+              <div className="forgotField">
+                <label className="forgotLabel">Verification Code</label>
 
-                <div style={{ position: "relative" }}>
+                <div className="forgotInputWrap">
                   <input
                     type="text"
                     placeholder="Enter verification code"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     required
-                    style={inputBaseStyle()}
+                    className="forgotInput"
                   />
-                  <ShieldCheck
-                    size={18}
-                    style={{
-                      position: "absolute",
-                      right: 14,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: "#94a3b8",
-                      pointerEvents: "none",
-                    }}
-                  />
+                  <ShieldCheck size={18} className="forgotInputIcon" />
                 </div>
-              </label>
+              </div>
 
-              <label style={{ display: "block" }}>
-                <div
-                  style={{
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#334155",
-                  }}
-                >
-                  New Password
-                </div>
+              <div className="forgotField">
+                <label className="forgotLabel">New Password</label>
 
-                <div style={{ position: "relative" }}>
+                <div className="forgotInputWrap">
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter new password"
@@ -402,87 +245,77 @@ export default function ForgotPassword() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
                     autoComplete="new-password"
-                    style={inputBaseStyle(true)}
+                    className="forgotInput forgotInputPassword"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    style={{
-                      position: "absolute",
-                      right: 14,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      border: "none",
-                      background: "transparent",
-                      padding: 0,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#475569",
-                    }}
+                    className="forgotToggle"
                     title={showPassword ? "Hide password" : "Show password"}
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
-              </label>
+              </div>
 
-              <div
-  style={{
-    marginTop: -4,
-    padding: "16px 18px",
-    border: "1px solid #e2e8f0",
-    borderRadius: 12,
-    background: "#ffffff",
-    fontSize: 15,
-    lineHeight: 1.6,
-  }}
->
-  <div
-    style={{
-      marginBottom: 10,
-      fontSize: 16,
-      fontWeight: 700,
-      color: "#334155",
-    }}
-  >
-    Your password must contain:
-  </div>
-
-  <div style={{ display: "grid", gap: 8 }}>
-    <div style={passwordRuleItemStyle(passwordChecks.length)}>
-      {passwordRuleIcon(passwordChecks.length)} At least 8 characters
-    </div>
-    <div style={passwordRuleItemStyle(passwordChecks.lower)}>
-      {passwordRuleIcon(passwordChecks.lower)} At least 1 lowercase letter (a-z)
-    </div>
-    <div style={passwordRuleItemStyle(passwordChecks.upper)}>
-      {passwordRuleIcon(passwordChecks.upper)} At least 1 uppercase letter (A-Z)
-    </div>
-    <div style={passwordRuleItemStyle(passwordChecks.number)}>
-      {passwordRuleIcon(passwordChecks.number)} At least 1 number (0-9)
-    </div>
-    <div style={passwordRuleItemStyle(passwordChecks.special)}>
-      {passwordRuleIcon(passwordChecks.special)} At least 1 special character (e.g. !@#$%^&*)
-    </div>
-  </div>
-</div>
-
-              <label style={{ display: "block" }}>
-                <div
-                  style={{
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#334155",
-                  }}
-                >
-                  Confirm Password
+              <div className="forgotRulesCard">
+                <div className="forgotRulesTitle">
+                  Your password must contain:
                 </div>
 
-                <div style={{ position: "relative" }}>
+                <div className="forgotRulesList">
+                  <div
+                    className={`forgotRuleItem ${
+                      passwordChecks.length ? "active" : ""
+                    }`}
+                  >
+                    {passwordRuleIcon(passwordChecks.length)} At least 8
+                    characters
+                  </div>
+
+                  <div
+                    className={`forgotRuleItem ${
+                      passwordChecks.lower ? "active" : ""
+                    }`}
+                  >
+                    {passwordRuleIcon(passwordChecks.lower)} At least 1 lowercase
+                    letter (a-z)
+                  </div>
+
+                  <div
+                    className={`forgotRuleItem ${
+                      passwordChecks.upper ? "active" : ""
+                    }`}
+                  >
+                    {passwordRuleIcon(passwordChecks.upper)} At least 1 uppercase
+                    letter (A-Z)
+                  </div>
+
+                  <div
+                    className={`forgotRuleItem ${
+                      passwordChecks.number ? "active" : ""
+                    }`}
+                  >
+                    {passwordRuleIcon(passwordChecks.number)} At least 1 number
+                    (0-9)
+                  </div>
+
+                  <div
+                    className={`forgotRuleItem ${
+                      passwordChecks.special ? "active" : ""
+                    }`}
+                  >
+                    {passwordRuleIcon(passwordChecks.special)} At least 1 special
+                    character (e.g. !@#$%^&*)
+                  </div>
+                </div>
+              </div>
+
+              <div className="forgotField">
+                <label className="forgotLabel">Confirm Password</label>
+
+                <div className="forgotInputWrap">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm new password"
@@ -490,25 +323,12 @@ export default function ForgotPassword() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     autoComplete="new-password"
-                    style={inputBaseStyle(true)}
+                    className="forgotInput forgotInputPassword"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    style={{
-                      position: "absolute",
-                      right: 14,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      border: "none",
-                      background: "transparent",
-                      padding: 0,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#475569",
-                    }}
+                    className="forgotToggle"
                     title={
                       showConfirmPassword ? "Hide password" : "Show password"
                     }
@@ -523,50 +343,26 @@ export default function ForgotPassword() {
                     )}
                   </button>
                 </div>
-              </label>
+              </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                style={{
-                  width: "100%",
-                  height: 48,
-                  border: "1px solid #2563eb",
-                  borderRadius: 12,
-                  background: "#2563eb",
-                  color: "#ffffff",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1,
-                  marginTop: 4,
-                }}
+                className="forgotButton"
               >
                 {loading ? "Resetting..." : "Reset Password"}
               </button>
-            </div>
-          </form>
-        )}
+            </form>
+          )}
 
-        <div
-          style={{
-            marginTop: 18,
-            textAlign: "center",
-            fontSize: 14,
-          }}
-        >
-          <Link
-            to="/login"
-            style={{
-              color: "#2563eb",
-              fontWeight: 600,
-              textDecoration: "none",
-            }}
-          >
-            Back to Login
-          </Link>
+          <div className="forgotFooter">
+            <Link to="/login" className="forgotFooterLink">
+              Back to Login
+            </Link>
+          </div>
         </div>
-      </div>
-    </div>
-  );
+      </section>
+    </main>
+  </div>
+);
 }
