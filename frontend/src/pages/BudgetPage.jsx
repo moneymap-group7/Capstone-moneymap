@@ -181,10 +181,19 @@ export default function BudgetPage() {
   };
 
   return (
+  <div className="budgetPageShell">
+    <div className="budgetGlow budgetGlowOne" />
+    <div className="budgetGlow budgetGlowTwo" />
+
     <div className="budgetPage">
-      <div className="budgetHeader">
-        <div>
+      <section className="budgetHero card">
+        <div className="budgetHeroLeft">
+          <span className="budgetEyebrow">Your personal finance workspace</span>
           <h1 className="budgetTitle">Budget</h1>
+          <p className="budgetHeroText">
+            Plan monthly spending, monitor category limits, and stay ahead of
+            overspending with a cleaner budget overview.
+          </p>
           <p className="budgetSub">{monthLabel(monthStart)}</p>
         </div>
 
@@ -199,56 +208,70 @@ export default function BudgetPage() {
             Add / Edit Budgets
           </button>
         </div>
-      </div>
+      </section>
 
       {error ? <div className="errorBox">{error}</div> : null}
 
       <div className="budgetStats">
-        <div className="statCard">
+        <div className="statCard card">
           <div className="statLabel">Total Budget</div>
           <div className="statValue">{formatMoney(totalBudget)}</div>
+          <div className="statHelp">Planned category limits for this month</div>
         </div>
 
-        <div className="statCard">
+        <div className="statCard card">
           <div className="statLabel">Total Spent</div>
           <div className="statValue">{formatMoney(totalSpent)}</div>
+          <div className="statHelp">Current spending recorded so far</div>
         </div>
 
-        <div className="statCard">
+        <div className="statCard card">
           <div className="statLabel">Utilization</div>
           <div className="statValue">{overallUtilization.toFixed(1)}%</div>
+          <div className="statHelp">Overall usage of your monthly budget</div>
         </div>
       </div>
 
       <div className="budgetGrid">
         <section className="card budgetTableCard">
-          <h2>Budgets</h2>
-          <p className="sectionSub">
-            Set limits and monitor utilization per category.
-          </p>
+          <div className="sectionHead">
+            <div>
+              <h2>Budgets</h2>
+              <p className="sectionSub">
+                Set limits and monitor utilization per category.
+              </p>
+            </div>
+          </div>
 
-          <div className="budgetTableWrap">
-            <table className="budgetTable">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Limit</th>
-                  <th>Spent</th>
-                  <th>Utilization</th>
-                  <th>Remaining</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
+          {loading ? (
+            <div className="budgetStateBox">
+              <div className="budgetStateTitle">Loading budget data...</div>
+              <div className="budgetStateText">
+                We are fetching your monthly budget utilization now.
+              </div>
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="budgetStateBox">
+              <div className="budgetStateTitle">No budgets found for this month</div>
+              <div className="budgetStateText">
+                Add category budgets to start tracking planned versus actual
+                spending.
+              </div>
+            </div>
+          ) : (
+            <div className="budgetTableWrap">
+              <table className="budgetTable">
+                <thead>
                   <tr>
-                    <td colSpan="5">Loading...</td>
+                    <th>Category</th>
+                    <th>Limit</th>
+                    <th>Spent</th>
+                    <th>Utilization</th>
+                    <th>Remaining</th>
                   </tr>
-                ) : rows.length === 0 ? (
-                  <tr>
-                    <td colSpan="5">No budgets found for this month.</td>
-                  </tr>
-                ) : (
-                  rows.map((row, index) => (
+                </thead>
+                <tbody>
+                  {rows.map((row, index) => (
                     <tr key={`${row.spendCategory}-${index}`}>
                       <td className="categoryCell">
                         <div className="categoryName">{row.spendCategory}</div>
@@ -288,11 +311,11 @@ export default function BudgetPage() {
                       </td>
                       <td>{formatMoney(row.remainingAmount)}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         <section className="card alertsCard">
@@ -307,9 +330,19 @@ export default function BudgetPage() {
           </div>
 
           {loading ? (
-            <div>Loading...</div>
+            <div className="budgetStateBox compact">
+              <div className="budgetStateTitle">Loading alerts...</div>
+              <div className="budgetStateText">
+                Budget warning data will appear here shortly.
+              </div>
+            </div>
           ) : alerts.length === 0 ? (
-            <div className="alertsEmpty">No alerts for this month.</div>
+            <div className="budgetStateBox compact">
+              <div className="budgetStateTitle">No alerts for this month</div>
+              <div className="budgetStateText">
+                You are within safe spending limits so far.
+              </div>
+            </div>
           ) : (
             <div className="alertsList">
               {alerts.map((alert, idx) => (
@@ -359,5 +392,6 @@ export default function BudgetPage() {
         onSaved={fetchUtilization}
       />
     </div>
-  );
+  </div>
+);
 }
