@@ -123,12 +123,21 @@ export default function InsightsPage() {
   const topCategory = getTopCategory(byCategory?.items);
 
   return (
+  <div className="insightsPageShell">
+    <div className="insightsGlow insightsGlowOne" />
+    <div className="insightsGlow insightsGlowTwo" />
+
     <div className="insightsPage">
-      <div className="insightsTopBar">
-        <div>
+      <section className="insightsHero insightCard">
+        <div className="insightsHeroLeft">
+          <span className="insightsEyebrow">Analytics for your transactions</span>
           <h1 className="insightsTitle">Insights</h1>
+          <p className="insightsHeroText">
+            Review high-level financial trends, category spending, merchant
+            activity, and recurring patterns for your selected date range.
+          </p>
           <p className="insightsSub">
-            Analytics for your selected date range.
+            Currently viewing: {applied.start} to {applied.end}
           </p>
         </div>
 
@@ -154,10 +163,10 @@ export default function InsightsPage() {
           </div>
 
           <button className="applyBtn" onClick={onApply} disabled={loading}>
-            Apply
+            {loading ? "Loading..." : "Apply"}
           </button>
         </div>
-      </div>
+      </section>
 
       {error ? (
         <div className="insightsErrorWrap">
@@ -193,7 +202,13 @@ export default function InsightsPage() {
 
       {loading ? (
         <div className="insightsLoadingCard">
-          <Spinner />
+          <div className="insightStateBox">
+            <Spinner />
+            <div className="insightStateTitle">Loading insights...</div>
+            <div className="insightStateText">
+              We are analyzing your selected transaction range now.
+            </div>
+          </div>
         </div>
       ) : (
         <div className="insightsGrid">
@@ -208,7 +223,12 @@ export default function InsightsPage() {
             </div>
 
             {!summary ? (
-              <div className="insightEmpty">No data for this date range.</div>
+              <div className="insightStateBox compact">
+                <div className="insightStateTitle">No summary data available</div>
+                <div className="insightStateText">
+                  There is no transaction activity for this date range yet.
+                </div>
+              </div>
             ) : (
               <div className="summaryList">
                 <div className="summaryRow">
@@ -286,8 +306,11 @@ export default function InsightsPage() {
                 </table>
               </div>
             ) : (
-              <div className="insightEmpty">
-                No categorized spending in this range.
+              <div className="insightStateBox compact">
+                <div className="insightStateTitle">No categorized spending</div>
+                <div className="insightStateText">
+                  No categorized transactions were found in this selected range.
+                </div>
               </div>
             )}
           </section>
@@ -324,8 +347,11 @@ export default function InsightsPage() {
                 </table>
               </div>
             ) : (
-              <div className="insightEmpty">
-                No merchant activity in this range.
+              <div className="insightStateBox compact">
+                <div className="insightStateTitle">No merchant activity</div>
+                <div className="insightStateText">
+                  There are no merchant trends to show for this date range.
+                </div>
               </div>
             )}
           </section>
@@ -361,21 +387,27 @@ export default function InsightsPage() {
                         <td className="right amountCell">
                           {money(it.avgAmount)}
                         </td>
-                        <td className="right">{formatDate(it.nextEstimatedDate)}</td>
+                        <td className="right">
+                          {formatDate(it.nextEstimatedDate)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <div className="insightEmpty">
-                No recurring patterns found. Try a later end date or more months
-                of history.
+              <div className="insightStateBox compact">
+                <div className="insightStateTitle">No recurring patterns found</div>
+                <div className="insightStateText">
+                  Try a later end date or include more history for recurring
+                  analysis.
+                </div>
               </div>
             )}
           </section>
         </div>
       )}
     </div>
-  );
+  </div>
+);
 }
