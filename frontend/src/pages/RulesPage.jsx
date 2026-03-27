@@ -15,7 +15,6 @@ const TRANSACTION_TYPE_OPTIONS = [
   { value: "CREDIT", label: "CREDIT" },
 ];
 
-
 const EMPTY_FORM = {
   isActive: true,
   priority: 100,
@@ -48,6 +47,24 @@ function buildPayload(form, userId) {
 function formatValue(value) {
   if (value === null || value === undefined || value === "") return "—";
   return String(value);
+}
+
+function formatCategory(value) {
+  if (!value) return "—";
+  return String(value)
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function RuleSummaryCard({ label, value, tone = "default" }) {
+  return (
+    <div className={`ruleSummaryCard ruleSummaryCard--${tone}`}>
+      <div className="ruleSummaryLabel">{label}</div>
+      <div className="ruleSummaryValue">{value}</div>
+    </div>
+  );
 }
 
 export default function RulesPage() {
@@ -194,195 +211,237 @@ export default function RulesPage() {
     await loadRules();
   }
 
+  const activeCount = rules.filter((rule) => rule.isActive).length;
+  const inactiveCount = rules.length - activeCount;
+
   return (
     <div className="rulesPage">
-      <div className="rulesHeader">
-        <div>
-          <h1 className="rulesTitle">Rule Management</h1>
-          <p className="rulesSub">
-            Create, edit, and delete custom categorization rules. Lower priority number runs first.
-          </p>
-        </div>
-      </div>
+      <div className="rulesShell">
+        <section className="rulesHero">
+          <div className="rulesHeroLeft">
+            <span className="rulesBadge">Custom transaction categorization</span>
+            <h1 className="rulesTitle">Rule Management</h1>
+            <p className="rulesSub">
+              Create, edit, and manage custom categorization rules. Lower priority
+              numbers run first, so more specific rules should usually come earlier.
+            </p>
+          </div>
 
-      <div className="rulesGrid">
-        <section className="rulesCard">
-          <h2>{editingRuleId ? "Edit Rule" : "Add Rule"}</h2>
+          <div className="rulesHeroStats">
+            <RuleSummaryCard label="Total Rules" value={rules.length} tone="blue" />
+            <RuleSummaryCard label="Active Rules" value={activeCount} tone="green" />
+            <RuleSummaryCard label="Inactive Rules" value={inactiveCount} tone="red" />
+          </div>
+        </section>
 
-          {pageError ? <div className="rulesAlert error">{pageError}</div> : null}
-          {successMessage ? <div className="rulesAlert success">{successMessage}</div> : null}
+        <div className="rulesGrid">
+          <section className="rulesCard">
+            <div className="rulesCardHeader">
+              <div>
+                <h2>{editingRuleId ? "Edit Rule" : "Add Rule"}</h2>
+                <p>
+                  Define matching conditions and choose the category to assign.
+                </p>
+              </div>
 
-          <form className="rulesForm" onSubmit={handleSubmit}>
-            <label>
-              <span>Priority</span>
-              <input
-                type="number"
-                name="priority"
-                value={form.priority}
-                onChange={handleChange}
-                min="1"
-                required
-              />
-            </label>
+              <label className="rulesToggle">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={form.isActive}
+                  onChange={handleChange}
+                />
+                <span>Rule is active</span>
+              </label>
+            </div>
 
-            <label className="checkboxRow">
-              <input
-                type="checkbox"
-                name="isActive"
-                checked={form.isActive}
-                onChange={handleChange}
-              />
-              <span>Rule is active</span>
-            </label>
+            {pageError ? <div className="rulesAlert error">{pageError}</div> : null}
+            {successMessage ? <div className="rulesAlert success">{successMessage}</div> : null}
 
-            <label>
-              <span>Merchant Contains</span>
-              <input
-                type="text"
-                name="merchantContains"
-                value={form.merchantContains}
-                onChange={handleChange}
-                placeholder="Example: uber"
-              />
-            </label>
+            <form className="rulesForm" onSubmit={handleSubmit}>
+              <div className="rulesFormGrid">
+                <label>
+                  <span>Priority</span>
+                  <input
+                    type="number"
+                    name="priority"
+                    value={form.priority}
+                    onChange={handleChange}
+                    min="1"
+                    required
+                  />
+                </label>
 
-            <label>
-              <span>Merchant Equals</span>
-              <input
-                type="text"
-                name="merchantEquals"
-                value={form.merchantEquals}
-                onChange={handleChange}
-                placeholder="Example: TIM HORTONS"
-              />
-            </label>
+                <label>
+                  <span>Transaction Type</span>
+                  <select
+                    name="transactionType"
+                    value={form.transactionType}
+                    onChange={handleChange}
+                  >
+                    {TRANSACTION_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value || "any"} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-            <label>
-              <span>Minimum Amount</span>
-              <input
-                type="number"
-                step="0.01"
-                name="minAmount"
-                value={form.minAmount}
-                onChange={handleChange}
-                placeholder="Optional"
-              />
-            </label>
+                <label>
+                  <span>Merchant Contains</span>
+                  <input
+                    type="text"
+                    name="merchantContains"
+                    value={form.merchantContains}
+                    onChange={handleChange}
+                    placeholder="Example: uber"
+                  />
+                </label>
 
-            <label>
-              <span>Maximum Amount</span>
-              <input
-                type="number"
-                step="0.01"
-                name="maxAmount"
-                value={form.maxAmount}
-                onChange={handleChange}
-                placeholder="Optional"
-              />
-            </label>
+                <label>
+                  <span>Merchant Equals</span>
+                  <input
+                    type="text"
+                    name="merchantEquals"
+                    value={form.merchantEquals}
+                    onChange={handleChange}
+                    placeholder="Example: TIM HORTONS"
+                  />
+                </label>
 
-            <label>
-              <span>Transaction Type</span>
-              <select
-                name="transactionType"
-                value={form.transactionType}
-                onChange={handleChange}
-              >
-                {TRANSACTION_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value || "any"} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <label>
+                  <span>Minimum Amount</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="minAmount"
+                    value={form.minAmount}
+                    onChange={handleChange}
+                    placeholder="Optional"
+                  />
+                </label>
 
-            <label>
-              <span>Spend Category</span>
-              <select
-                name="spendCategory"
-                value={form.spendCategory}
-                onChange={handleChange}
-                required
-              >
-                {SPEND_CATEGORY_OPTIONS.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <label>
+                  <span>Maximum Amount</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="maxAmount"
+                    value={form.maxAmount}
+                    onChange={handleChange}
+                    placeholder="Optional"
+                  />
+                </label>
 
-            <div className="rulesActions">
-              <button type="submit" disabled={submitting}>
-                {submitting
-                  ? "Saving..."
-                  : editingRuleId
-                  ? "Update Rule"
-                  : "Create Rule"}
-              </button>
+                <label className="rulesFormGridFull">
+                  <span>Spend Category</span>
+                  <select
+                    name="spendCategory"
+                    value={form.spendCategory}
+                    onChange={handleChange}
+                    required
+                  >
+                    {SPEND_CATEGORY_OPTIONS.map((category) => (
+                      <option key={category} value={category}>
+                        {formatCategory(category)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
-              {editingRuleId ? (
-                <button type="button" className="secondaryBtn" onClick={resetForm}>
-                  Cancel Edit
+              <div className="rulesHintBox">
+                A rule should usually have at least one meaningful matcher such as
+                merchant text, amount range, or transaction type.
+              </div>
+
+              <div className="rulesActions">
+                <button type="submit" className="primaryBtn" disabled={submitting}>
+                  {submitting
+                    ? "Saving..."
+                    : editingRuleId
+                    ? "Update Rule"
+                    : "Create Rule"}
                 </button>
-              ) : null}
+
+                {editingRuleId ? (
+                  <button type="button" className="secondaryBtn" onClick={resetForm}>
+                    Cancel Edit
+                  </button>
+                ) : null}
+              </div>
+            </form>
+          </section>
+
+          <section className="rulesCard">
+            <div className="rulesCardHeader">
+              <div>
+                <h2>Existing Rules</h2>
+                <p>Review, edit, or delete saved categorization rules.</p>
+              </div>
             </div>
-          </form>
-        </section>
 
-        <section className="rulesCard">
-          <h2>Existing Rules</h2>
-
-          {loading ? (
-            <p>Loading rules...</p>
-          ) : rules.length === 0 ? (
-            <p>No rules found.</p>
-          ) : (
-            <div className="rulesTableWrap">
-              <table className="rulesTable">
-                <thead>
-                  <tr>
-                    <th>Active</th>
-                    <th>Priority</th>
-                    <th>Contains</th>
-                    <th>Equals</th>
-                    <th>Min</th>
-                    <th>Max</th>
-                    <th>Type</th>
-                    <th>Category</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rules.map((rule) => (
-                    <tr key={String(rule.ruleId)}>
-                      <td>{rule.isActive ? "Yes" : "No"}</td>
-                      <td>{formatValue(rule.priority)}</td>
-                      <td>{formatValue(rule.merchantContains)}</td>
-                      <td>{formatValue(rule.merchantEquals)}</td>
-                      <td>{formatValue(rule.minAmount)}</td>
-                      <td>{formatValue(rule.maxAmount)}</td>
-                      <td>{formatValue(rule.transactionType)}</td>
-                      <td>{formatValue(rule.spendCategory)}</td>
-                      <td className="actionCell">
-                        <button type="button" onClick={() => startEdit(rule)}>
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="dangerBtn"
-                          onClick={() => handleDelete(rule.ruleId)}
-                        >
-                          Delete
-                        </button>
-                      </td>
+            {loading ? (
+              <div className="rulesEmptyState">
+                <strong>Loading rules...</strong>
+                <p>Please wait while your rules are being loaded.</p>
+              </div>
+            ) : rules.length === 0 ? (
+              <div className="rulesEmptyState">
+                <strong>No rules found</strong>
+                <p>Create your first rule to automatically categorize transactions.</p>
+              </div>
+            ) : (
+              <div className="rulesTableWrap">
+                <table className="rulesTable">
+                  <thead>
+                    <tr>
+                      <th>Active</th>
+                      <th>Priority</th>
+                      <th>Contains</th>
+                      <th>Equals</th>
+                      <th>Min</th>
+                      <th>Max</th>
+                      <th>Type</th>
+                      <th>Category</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                  </thead>
+                  <tbody>
+                    {rules.map((rule) => (
+                      <tr key={String(rule.ruleId)}>
+                        <td>
+                          <span className={rule.isActive ? "statusBadge active" : "statusBadge inactive"}>
+                            {rule.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td>{formatValue(rule.priority)}</td>
+                        <td>{formatValue(rule.merchantContains)}</td>
+                        <td>{formatValue(rule.merchantEquals)}</td>
+                        <td>{formatValue(rule.minAmount)}</td>
+                        <td>{formatValue(rule.maxAmount)}</td>
+                        <td>{formatValue(rule.transactionType)}</td>
+                        <td>{formatCategory(rule.spendCategory)}</td>
+                        <td className="actionCell">
+                          <button type="button" className="tableBtn" onClick={() => startEdit(rule)}>
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="tableBtn dangerBtn"
+                            onClick={() => handleDelete(rule.ruleId)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </div>
   );
