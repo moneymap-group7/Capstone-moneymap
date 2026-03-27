@@ -1,4 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  Upload,
+  FileText,
+  CheckCircle2,
+  Info,
+  Database,
+  Trash2,
+} from "lucide-react";
 import { uploadStatement } from "../services/statementService";
 import {
   getAllStatementFiles,
@@ -7,6 +15,7 @@ import {
 import ErrorBox from "../components/common/ErrorBox";
 import StatusBanner from "../components/common/StatusBanner";
 import StatementFilesTable from "../components/StatementFilesTable";
+import "./upload-statement.css";
 
 const STATUS = {
   IDLE: "IDLE",
@@ -80,14 +89,9 @@ export default function UploadStatement() {
       setFilesError("");
 
       const data = await getAllStatementFiles();
-      console.log("GET /statements/admin/files response:", data);
-
       const normalizedFiles = normalizeFilesResponse(data);
       setUploadedFiles(normalizedFiles);
     } catch (error) {
-      console.error("Failed to load uploaded files:", error);
-      console.error("Backend error response:", error?.response?.data);
-
       const statusCode = error?.response?.status;
 
       if (statusCode === 401) {
@@ -119,7 +123,6 @@ export default function UploadStatement() {
       );
     } catch (error) {
       console.error("Failed to delete file:", error);
-      console.error("Delete backend response:", error?.response?.data);
       alert("Failed to delete CSV file.");
     } finally {
       setDeletingId(null);
@@ -220,8 +223,6 @@ export default function UploadStatement() {
       setErrorList(list.length ? list : ["Upload failed."]);
     } catch (error) {
       console.error("Upload failed:", error);
-      console.error("Upload backend response:", error?.response?.data);
-
       setStatus(STATUS.ERROR);
       setStatusMsg("");
       setErrorList(["Something went wrong during upload. Please try again."]);
@@ -246,581 +247,280 @@ export default function UploadStatement() {
       ? meta.warning
       : null;
 
+  function getStatusLabel() {
+    if (status === STATUS.IDLE) return "Waiting";
+    if (status === STATUS.READY) return "Ready";
+    if (status === STATUS.UPLOADING) return "Uploading";
+    if (status === STATUS.SUCCESS) return "Completed";
+    if (status === STATUS.ERROR) return "Failed";
+    return "Waiting";
+  }
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f8fafc",
-        padding: "36px 24px 56px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1180,
-          margin: "0 auto",
-        }}
-      >
-        <div style={{ marginBottom: 28 }}>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: 56,
-              lineHeight: 1.05,
-              fontWeight: 800,
-              color: "#0f172a",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Upload Statement
-          </h1>
+    <main className="uploadPageShell">
+      <div className="uploadPageContainer">
+        <section className="uploadHero">
+          <div className="uploadHeroCard">
+            <span className="uploadBadge">Statement import workspace</span>
+            <h1 className="uploadHeroTitle">Upload Statements</h1>
+            <p className="uploadHeroText">
+              Import a bank CSV file and add transactions into MoneyMap. This
+              page keeps statement uploads, processing feedback, and uploaded
+              file management in one place.
+            </p>
+          </div>
 
-          <p
-            style={{
-              margin: "14px 0 0",
-              fontSize: 18,
-              color: "#64748b",
-            }}
-          >
-            Import a bank CSV file and add transactions into MoneyMap.
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 2fr) minmax(320px, 1fr)",
-            gap: 24,
-            alignItems: "start",
-          }}
-        >
-          <section
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: 24,
-              boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding: "28px 28px 18px",
-                borderBottom: "1px solid #e2e8f0",
-              }}
-            >
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: 32,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                }}
-              >
-                Upload Bank Statement
-              </h2>
-              <p
-                style={{
-                  margin: "10px 0 0",
-                  fontSize: 16,
-                  color: "#64748b",
-                }}
-              >
-                Choose a CSV file exported from your bank. The file will be
-                processed and summarized below.
-              </p>
+          <div className="uploadHeroSide">
+            <div className="uploadMiniCard">
+              <div className="uploadMiniIcon uploadMiniIconBlue">
+                <Upload size={16} />
+              </div>
+              <div>
+                <h3>Supported input</h3>
+                <p>CSV exports from supported banks and statement providers.</p>
+              </div>
             </div>
 
-            <div style={{ padding: 28 }}>
-              <input
-                ref={inputRef}
-                type="file"
-                accept=".csv"
-                onChange={onFileChange}
-                disabled={status === STATUS.UPLOADING}
-                style={{ display: "none" }}
-              />
+            <div className="uploadMiniCard">
+              <div className="uploadMiniIcon uploadMiniIconGreen">
+                <CheckCircle2 size={16} />
+              </div>
+              <div>
+                <h3>After import</h3>
+                <p>
+                  Transactions are parsed and made available for categories,
+                  budgets, insights, and rules.
+                </p>
+              </div>
+            </div>
 
-              <div
-                style={{
-                  border: "2px dashed #cbd5e1",
-                  borderRadius: 20,
-                  background: file ? "#f8fafc" : "#ffffff",
-                  padding: 24,
-                  transition: "all 0.2s ease",
-                }}
-              >
+            <div className="uploadMiniCard">
+              <div className="uploadMiniIcon uploadMiniIconPurple">
+                <Database size={16} />
+              </div>
+              <div>
+                <h3>Manage files</h3>
+                <p>Review previously uploaded CSV files and delete them if needed.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="uploadMainGrid">
+          <section>
+            <div className="uploadMainCard">
+              <div className="uploadCardHeader">
+                <h2 className="uploadCardTitle">Upload Bank Statement</h2>
+                <p className="uploadCardText">
+                  Choose a CSV file exported from your bank. Once uploaded, the
+                  page will show processing status, import counts, and any
+                  warnings returned by the backend.
+                </p>
+              </div>
+
+              <div className="uploadCardBody">
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={onFileChange}
+                  disabled={status === STATUS.UPLOADING}
+                  style={{ display: "none" }}
+                />
+
                 <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 16,
-                  }}
+                  className={`uploadDropzone ${file ? "isReady" : ""}`}
                 >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 700,
-                        color: "#0f172a",
-                        marginBottom: 6,
-                      }}
-                    >
-                      Select CSV File
+                  <div className="uploadDropzoneTop">
+                    <div>
+                      <h3 className="uploadDropzoneTitle">Select CSV File</h3>
+                      <p className="uploadDropzoneSub">
+                        Supported format: <strong>.csv</strong>
+                      </p>
                     </div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        color: "#64748b",
-                      }}
+
+                    <button
+                      type="button"
+                      className="uploadPrimaryBtn"
+                      onClick={() => inputRef.current?.click()}
+                      disabled={status === STATUS.UPLOADING}
                     >
-                      Supported format: <strong>.csv</strong>
-                    </div>
+                      Choose File
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => inputRef.current?.click()}
-                    disabled={status === STATUS.UPLOADING}
-                    style={{
-                      border: "none",
-                      borderRadius: 14,
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      fontSize: 15,
-                      fontWeight: 700,
-                      padding: "12px 18px",
-                      cursor:
-                        status === STATUS.UPLOADING ? "not-allowed" : "pointer",
-                      opacity: status === STATUS.UPLOADING ? 0.7 : 1,
-                    }}
-                  >
-                    Choose File
-                  </button>
+                  <div className="uploadSelectedFile">
+                    {file ? (
+                      <div className="uploadSelectedFileRow">
+                        <div className="uploadFileInfo">
+                          <div className="uploadFileIconWrap">
+                            <FileText size={18} />
+                          </div>
+
+                          <div>
+                            <p className="uploadFileName">{file.name}</p>
+                            <p className="uploadFileMeta">
+                              File size: {formatBytes(file.size)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="uploadReadyPill">Ready to upload</div>
+                      </div>
+                    ) : (
+                      <div className="uploadSelectedFileRow">
+                        <div className="uploadFileInfo">
+                          <div className="uploadFileIconWrap">
+                            <FileText size={18} />
+                          </div>
+
+                          <div>
+                            <p className="uploadFileName">No file selected yet</p>
+                            <p className="uploadFileMeta">
+                              Choose a bank CSV file to begin.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="uploadActionRow">
+                    <button
+                      type="button"
+                      className="uploadPrimaryBtn"
+                      onClick={handleUpload}
+                      disabled={!canUpload}
+                    >
+                      {status === STATUS.UPLOADING ? "Uploading..." : "Upload CSV"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="uploadSecondaryBtn"
+                      onClick={reset}
+                      disabled={status === STATUS.UPLOADING}
+                    >
+                      Reset
+                    </button>
+                  </div>
                 </div>
 
-                <div
-                  style={{
-                    marginTop: 18,
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 16,
-                    background: "#ffffff",
-                    padding: "16px 18px",
-                  }}
-                >
-                  {file ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 15,
-                            fontWeight: 700,
-                            color: "#0f172a",
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {file.name}
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 4,
-                            fontSize: 14,
-                            color: "#64748b",
-                          }}
-                        >
-                          File size: {formatBytes(file.size)}
-                        </div>
-                      </div>
+                <div className="uploadBannerWrap">
+                  {status === STATUS.UPLOADING && (
+                    <StatusBanner type="info" message={statusMsg || "Uploading…"} />
+                  )}
 
-                      <div
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 999,
-                          background: "#eff6ff",
-                          color: "#2563eb",
-                          fontSize: 13,
-                          fontWeight: 700,
-                        }}
-                      >
-                        Ready to upload
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        fontSize: 15,
-                        color: "#64748b",
-                      }}
-                    >
-                      No file selected yet.
-                    </div>
+                  {status === STATUS.SUCCESS && (
+                    <StatusBanner
+                      type="success"
+                      message={statusMsg || "Upload successful."}
+                    />
+                  )}
+
+                  {status === STATUS.ERROR && (
+                    <ErrorBox title="Upload failed" errors={errorList} />
                   )}
                 </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 12,
-                    marginTop: 20,
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={handleUpload}
-                    disabled={!canUpload}
-                    style={{
-                      border: "none",
-                      borderRadius: 14,
-                      background: canUpload ? "#2563eb" : "#cbd5e1",
-                      color: "#ffffff",
-                      fontSize: 15,
-                      fontWeight: 700,
-                      padding: "12px 18px",
-                      cursor: canUpload ? "pointer" : "not-allowed",
-                    }}
-                  >
-                    {status === STATUS.UPLOADING ? "Uploading..." : "Upload CSV"}
-                  </button>
+                {status === STATUS.SUCCESS && meta && typeof meta === "object" && (
+                  <div className="uploadSummaryCard">
+                    <div className="uploadCardHeader">
+                      <h3 className="uploadCardTitle">Import Summary</h3>
+                      <p className="uploadCardText">
+                        Overview of the processed statement file.
+                      </p>
+                    </div>
 
-                  <button
-                    type="button"
-                    onClick={reset}
-                    disabled={status === STATUS.UPLOADING}
-                    style={{
-                      border: "1px solid #cbd5e1",
-                      borderRadius: 14,
-                      background: "#ffffff",
-                      color: "#0f172a",
-                      fontSize: 15,
-                      fontWeight: 700,
-                      padding: "12px 18px",
-                      cursor:
-                        status === STATUS.UPLOADING ? "not-allowed" : "pointer",
-                      opacity: status === STATUS.UPLOADING ? 0.7 : 1,
-                    }}
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
+                    <div className="uploadCardBody">
+                      <div className="uploadSummaryGrid">
+                        <div className="uploadMetricCard blue">
+                          <div className="uploadMetricLabel">Total Rows</div>
+                          <div className="uploadMetricValue">{total ?? "—"}</div>
+                        </div>
 
-              <div style={{ marginTop: 18 }}>
-                {status === STATUS.UPLOADING && (
-                  <StatusBanner type="info" message={statusMsg || "Uploading…"} />
+                        <div className="uploadMetricCard green">
+                          <div className="uploadMetricLabel">Imported</div>
+                          <div className="uploadMetricValue">
+                            {imported ?? "—"}
+                          </div>
+                        </div>
+
+                        <div className="uploadMetricCard">
+                          <div className="uploadMetricLabel">Skipped</div>
+                          <div className="uploadMetricValue">{skipped ?? "—"}</div>
+                        </div>
+                      </div>
+
+                      {total === null && imported === null && skipped === null && (
+                        <div className="uploadInfoNote">
+                          Upload completed, but the backend did not return
+                          standard summary fields.
+                        </div>
+                      )}
+
+                      {warnings && warnings.length > 0 && (
+                        <div className="uploadWarningsBox">
+                          <h4 className="uploadWarningsTitle">Warnings</h4>
+
+                          <ul className="uploadWarningsList">
+                            {warnings.slice(0, 5).map((w, i) => (
+                              <li key={i}>
+                                {typeof w === "string" ? w : JSON.stringify(w)}
+                              </li>
+                            ))}
+                          </ul>
+
+                          {warnings.length > 5 && (
+                            <div className="uploadSideText" style={{ marginTop: 10 }}>
+                              Showing first 5 warnings.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
 
-                {status === STATUS.SUCCESS && (
-                  <StatusBanner
-                    type="success"
-                    message={statusMsg || "Upload successful."}
-                  />
-                )}
-
-                {status === STATUS.ERROR && (
-                  <ErrorBox title="Upload failed" errors={errorList} />
-                )}
-              </div>
-
-              {status === STATUS.SUCCESS && meta && typeof meta === "object" && (
-                <div
-                  style={{
-                    marginTop: 22,
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 20,
-                    background: "#ffffff",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "20px 22px",
-                      borderBottom: "1px solid #e2e8f0",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        margin: 0,
-                        fontSize: 24,
-                        fontWeight: 800,
-                        color: "#0f172a",
-                      }}
-                    >
-                      Import Summary
-                    </h3>
-                    <p
-                      style={{
-                        margin: "8px 0 0",
-                        fontSize: 15,
-                        color: "#64748b",
-                      }}
-                    >
-                      Overview of the processed statement file.
+                <div className="uploadFilesCard">
+                  <div className="uploadCardHeader">
+                    <h3 className="uploadCardTitle">Uploaded CSV Files</h3>
+                    <p className="uploadCardText">
+                      Review previously uploaded statement files and delete them
+                      if needed.
                     </p>
                   </div>
 
-                  <div style={{ padding: 22 }}>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: 14,
-                        marginBottom: 18,
-                      }}
-                    >
-                      <div
-                        style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 16,
-                          padding: 16,
-                          background: "#f8fafc",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: "#64748b",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.04em",
-                          }}
-                        >
-                          Total Rows
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 8,
-                            fontSize: 32,
-                            fontWeight: 800,
-                            color: "#0f172a",
-                          }}
-                        >
-                          {total ?? "—"}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          border: "1px solid #d1fae5",
-                          borderRadius: 16,
-                          padding: 16,
-                          background: "#f0fdf4",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: "#166534",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.04em",
-                          }}
-                        >
-                          Imported
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 8,
-                            fontSize: 32,
-                            fontWeight: 800,
-                            color: "#166534",
-                          }}
-                        >
-                          {imported ?? "—"}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          border: "1px solid #f1f5f9",
-                          borderRadius: 16,
-                          padding: 16,
-                          background: "#f8fafc",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: "#64748b",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.04em",
-                          }}
-                        >
-                          Skipped
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 8,
-                            fontSize: 32,
-                            fontWeight: 800,
-                            color: "#0f172a",
-                          }}
-                        >
-                          {skipped ?? "—"}
-                        </div>
-                      </div>
-                    </div>
-
-                    {total === null && imported === null && skipped === null && (
-                      <div
-                        style={{
-                          marginBottom: 16,
-                          padding: 14,
-                          borderRadius: 14,
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          color: "#475569",
-                          fontSize: 14,
-                        }}
-                      >
-                        Upload completed, but the backend did not return standard
-                        summary fields.
-                      </div>
+                  <div className="uploadFilesBody">
+                    {filesLoading && (
+                      <StatusBanner
+                        type="info"
+                        message="Loading uploaded CSV files..."
+                      />
                     )}
 
-                    {warnings && warnings.length > 0 && (
-                      <div
-                        style={{
-                          marginTop: 10,
-                          border: "1px solid #fde68a",
-                          background: "#fffbeb",
-                          borderRadius: 16,
-                          padding: 16,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 16,
-                            fontWeight: 800,
-                            color: "#92400e",
-                            marginBottom: 8,
-                          }}
-                        >
-                          Warnings
-                        </div>
+                    {!filesLoading && filesError && (
+                      <ErrorBox title="Could not load files" errors={[filesError]} />
+                    )}
 
-                        <ul
-                          style={{
-                            margin: 0,
-                            paddingLeft: 18,
-                            color: "#78350f",
-                          }}
-                        >
-                          {warnings.slice(0, 5).map((w, i) => (
-                            <li key={i} style={{ marginBottom: 6 }}>
-                              {typeof w === "string" ? w : JSON.stringify(w)}
-                            </li>
-                          ))}
-                        </ul>
-
-                        {warnings.length > 5 && (
-                          <div
-                            style={{
-                              marginTop: 10,
-                              fontSize: 13,
-                              color: "#92400e",
-                            }}
-                          >
-                            Showing first 5 warnings.
-                          </div>
-                        )}
-                      </div>
+                    {!filesLoading && !filesError && (
+                      <StatementFilesTable
+                        files={uploadedFiles}
+                        onDelete={handleDeleteFile}
+                        deletingId={deletingId}
+                      />
                     )}
                   </div>
                 </div>
-              )}
-
-              <div style={{ marginTop: 24 }}>
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: 24,
-                    fontWeight: 800,
-                    color: "#0f172a",
-                  }}
-                >
-                  Uploaded CSV Files
-                </h3>
-
-                <p
-                  style={{
-                    margin: "8px 0 0",
-                    fontSize: 15,
-                    color: "#64748b",
-                  }}
-                >
-                  Review previously uploaded statement files and delete them if
-                  needed.
-                </p>
-
-                {filesLoading && (
-                  <div style={{ marginTop: 16 }}>
-                    <StatusBanner type="info" message="Loading uploaded CSV files..." />
-                  </div>
-                )}
-
-                {!filesLoading && filesError && (
-                  <div style={{ marginTop: 16 }}>
-                    <ErrorBox title="Could not load files" errors={[filesError]} />
-                  </div>
-                )}
-
-                {!filesLoading && !filesError && (
-                  <StatementFilesTable
-                    files={uploadedFiles}
-                    onDelete={handleDeleteFile}
-                    deletingId={deletingId}
-                  />
-                )}
               </div>
             </div>
           </section>
 
-          <aside
-            style={{
-              display: "grid",
-              gap: 24,
-            }}
-          >
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 24,
-                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
-                padding: 24,
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: 24,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                }}
-              >
-                Upload Tips
-              </h3>
+          <aside className="uploadSideColumn">
+            <div className="uploadSideCard">
+              <h3 className="uploadSideTitle">Upload Tips</h3>
 
-              <ul
-                style={{
-                  margin: "16px 0 0",
-                  paddingLeft: 18,
-                  color: "#475569",
-                  lineHeight: 1.7,
-                  fontSize: 15,
-                }}
-              >
+              <ul className="uploadTipsList">
                 <li>Use a CSV exported directly from your bank.</li>
                 <li>Upload one statement file at a time.</li>
                 <li>Review warnings after import for skipped rows.</li>
@@ -828,53 +528,20 @@ export default function UploadStatement() {
               </ul>
             </div>
 
-            <div
-              style={{
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: 24,
-                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04)",
-                padding: 24,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Current Status
+            <div className="uploadSideCard">
+              <div className="uploadStatusLabel">Current Status</div>
+              <div className="uploadStatusValue">{getStatusLabel()}</div>
+              <div className="uploadStatusText">
+                {file ? `Selected file: ${file.name}` : "No file selected yet."}
               </div>
+            </div>
 
-              <div
-                style={{
-                  marginTop: 12,
-                  fontSize: 28,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                }}
-              >
-                {status === STATUS.IDLE && "Waiting"}
-                {status === STATUS.READY && "Ready"}
-                {status === STATUS.UPLOADING && "Uploading"}
-                {status === STATUS.SUCCESS && "Completed"}
-                {status === STATUS.ERROR && "Failed"}
-              </div>
-
-              <div
-                style={{
-                  marginTop: 8,
-                  fontSize: 15,
-                  color: "#64748b",
-                }}
-              >
-                {file
-                  ? `Selected file: ${file.name}`
-                  : "No file selected yet."}
-              </div>
+            <div className="uploadSideCard">
+              <h3 className="uploadSideTitle">How this fits the app</h3>
+              <p className="uploadSideText">
+                Imported transactions become the foundation for your dashboard,
+                spending categories, recurring detection, budgets, and analytics.
+              </p>
             </div>
           </aside>
         </div>
