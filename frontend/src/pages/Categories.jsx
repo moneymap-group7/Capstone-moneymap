@@ -62,7 +62,16 @@ function withOpacity(hex, opacity = 0.55) {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
-function renderInnerLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, payload }) {
+function renderInnerLabel({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+  name,
+  payload,
+}) {
   if (!payload || percent < 0.025) return null;
 
   const label = payload.label || name || "";
@@ -89,14 +98,27 @@ function renderInnerLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent,
           textShadow: "0 1px 2px rgba(0,0,0,0.35)",
         }}
       >
-        <tspan x="0" dy="-0.35em">{label}</tspan>
-        <tspan x="0" dy="1.1em">{percentText}</tspan>
+        <tspan x="0" dy="-0.35em">
+          {label}
+        </tspan>
+        <tspan x="0" dy="1.1em">
+          {percentText}
+        </tspan>
       </text>
     </g>
   );
 }
 
-function renderOuterLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, payload }) {
+function renderOuterLabel({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+  name,
+  payload,
+}) {
   if (!payload || percent < 0.01) return null;
 
   const raw = payload.label || name || "";
@@ -136,31 +158,31 @@ function ChartTooltip({ active, payload }) {
   if (!item) return null;
 
   return (
-    <div
-      style={{
-        background: "#ffffff",
-        border: "1px solid #e2e8f0",
-        borderRadius: 12,
-        padding: "10px 12px",
-        boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
-      }}
-    >
-      <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>
-        {item.label}
-      </div>
-      <div style={{ fontSize: 14, color: "#475569" }}>
-        Total: <strong style={{ color: "#0f172a" }}>{money(item.value)}</strong>
+    <div className="categoryTooltip">
+      <div className="categoryTooltipTitle">{item.label}</div>
+      <div className="categoryTooltipRow">
+        Total: <strong>{money(item.value)}</strong>
       </div>
       {item.parentLabel ? (
-        <div style={{ fontSize: 14, color: "#475569" }}>
-          Category: <strong style={{ color: "#0f172a" }}>{item.parentLabel}</strong>
+        <div className="categoryTooltipRow">
+          Category: <strong>{item.parentLabel}</strong>
         </div>
       ) : null}
       {typeof item.count === "number" ? (
-        <div style={{ fontSize: 14, color: "#475569" }}>
-          Transactions: <strong style={{ color: "#0f172a" }}>{item.count}</strong>
+        <div className="categoryTooltipRow">
+          Transactions: <strong>{item.count}</strong>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function StatCard({ label, value, subtext, tone = "default" }) {
+  return (
+    <div className={`categoryStatCard categoryStatCard--${tone}`}>
+      <div className="categoryStatLabel">{label}</div>
+      <div className="categoryStatValue">{value}</div>
+      <div className="categoryStatSub">{subtext}</div>
     </div>
   );
 }
@@ -195,7 +217,10 @@ export default function Categories() {
 
       const items = Array.isArray(data.items) ? data.items : [];
       setHierarchy(items);
-      setSelectedCategory((prev) => prev || items[0]?.spendCategory || "");
+      setSelectedCategory((prev) => {
+        if (prev && items.some((item) => item.spendCategory === prev)) return prev;
+        return items[0]?.spendCategory || "";
+      });
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -248,6 +273,9 @@ export default function Categories() {
   const selectedSummary =
     hierarchy.find((item) => item.spendCategory === selectedCategory) || hierarchy[0] || null;
 
+  const totalSpend = hierarchy.reduce((sum, item) => sum + Number(item.total || 0), 0);
+  const totalTransactions = hierarchy.reduce((sum, item) => sum + Number(item.count || 0), 0);
+
   function openExplorer(category) {
     if (!category) return;
     navigate("/categories/explorer", { state: { category } });
@@ -256,8 +284,10 @@ export default function Categories() {
   if (loading) {
     return (
       <div className="categoryOverviewPage">
-        <div className="categoryExplorerLoadingCard">
-          <Spinner />
+        <div className="categoryOverviewShell">
+          <div className="categoryExplorerLoadingCard">
+            <Spinner />
+          </div>
         </div>
       </div>
     );
@@ -265,159 +295,215 @@ export default function Categories() {
 
   return (
     <div className="categoryOverviewPage">
-      <div className="categoryOverviewTopBar">
-        <div>
-          <h1 className="categoryExplorerTitle">Category Overview</h1>
-          <p className="categoryExplorerSub">
-            Explore category totals and their merchant-level breakdown.
-          </p>
-        </div>
-
-        <div className="categoryExplorerFilterCard">
-          <div className="categoryExplorerDateField">
-            <label htmlFor="overview-start">Start</label>
-            <input
-              id="overview-start"
-              type="date"
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-            />
-          </div>
-
-          <div className="categoryExplorerDateField">
-            <label htmlFor="overview-end">End</label>
-            <input
-              id="overview-end"
-              type="date"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-            />
-          </div>
-
-          <button className="categoryExplorerApplyBtn" onClick={onApply}>
-            Apply
-          </button>
-        </div>
-      </div>
-
-      {error ? (
-        <div className="categoryExplorerErrorWrap">
-          <ErrorBox title="Error" errors={[error]} />
-        </div>
-      ) : null}
-
-      <div className="categoryOverviewChartCard">
-        <div className="categoryExplorerCardHeader">
-          <h2 className="categoryExplorerCardTitle">Category Breakdown Chart</h2>
-          <p className="categoryExplorerCardSub">
-            Inner ring shows categories. Outer ring shows merchant breakdown inside each category.
-          </p>
-        </div>
-
-        {innerData.length ? (
-          <div className="categoryOverviewChartWrap">
-            <ResponsiveContainer width="100%" height={700}>
-              <PieChart>
-                <Pie
-                  data={innerData}
-                  dataKey="value"
-                  nameKey="label"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={95}
-                  outerRadius={205}
-                  paddingAngle={1}
-                  labelLine={false}
-                  label={renderInnerLabel}
-                  onClick={(entry) => {
-                    setSelectedCategory(entry.rawCategory);
-                    openExplorer(entry.rawCategory);
-                  }}
-                >
-                  {innerData.map((entry) => (
-                    <Cell
-                      key={entry.key}
-                      fill={entry.fill}
-                      cursor="pointer"
-                      onMouseEnter={() => setSelectedCategory(entry.rawCategory)}
-                    />
-                  ))}
-                </Pie>
-
-                <Pie
-                  data={outerData}
-                  dataKey="value"
-                  nameKey="label"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={212}
-                  outerRadius={340}
-                  paddingAngle={0.6}
-                  labelLine={false}
-                  label={renderOuterLabel}
-                  onClick={(entry) => {
-                    setSelectedCategory(entry.rawCategory);
-                    openExplorer(entry.rawCategory);
-                  }}
-                >
-                  {outerData.map((entry) => (
-                    <Cell
-                      key={entry.key}
-                      fill={entry.fill}
-                      cursor="pointer"
-                      onMouseEnter={() => setSelectedCategory(entry.rawCategory)}
-                    />
-                  ))}
-                </Pie>
-
-                <Tooltip content={<ChartTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <div className="categoryOverviewEmpty">
-            No category data found for the selected date range.
-          </div>
-        )}
-
-        <div className="categoryOverviewActions">
-          <div className="categoryOverviewSelected">
-            <div className="categoryOverviewSelectedLabel">Selected</div>
-            <div className="categoryOverviewSelectedValue">
-              {titleCaseCategory(selectedSummary?.spendCategory)}
-            </div>
-            <div className="categoryOverviewSelectedMeta">
-              Total: {money(selectedSummary?.total)} · Transactions: {selectedSummary?.count ?? 0}
+      <div className="categoryOverviewShell">
+        <div className="categoryOverviewHero">
+          <div className="categoryOverviewHeroLeft">
+            <div className="categoryOverviewBadge">Category insights for your transactions</div>
+            <h1 className="categoryOverviewHeading">Category Overview</h1>
+            <p className="categoryOverviewSubheading">
+              Explore category totals and merchant-level breakdown for your selected
+              transaction range.
+            </p>
+            <div className="categoryOverviewAppliedRange">
+              Currently viewing: {applied.start} to {applied.end}
             </div>
           </div>
 
-          <button
-            className="categoryExplorerApplyBtn"
-            onClick={() => openExplorer(selectedSummary?.spendCategory)}
-            disabled={!selectedSummary?.spendCategory}
-          >
-            View Detailed Breakdown
-          </button>
-        </div>
-
-        <div className="categoryOverviewLegend">
-          {innerData.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className="categoryOverviewLegendItem"
-              onClick={() => {
-                setSelectedCategory(item.rawCategory);
-                openExplorer(item.rawCategory);
-              }}
-            >
-              <span
-                className="categoryOverviewLegendDot"
-                style={{ background: item.fill }}
+          <div className="categoryExplorerFilterCard categoryOverviewFilterCard">
+            <div className="categoryExplorerDateField">
+              <label htmlFor="overview-start">Start</label>
+              <input
+                id="overview-start"
+                type="date"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
               />
-              <span>{item.label}</span>
+            </div>
+
+            <div className="categoryExplorerDateField">
+              <label htmlFor="overview-end">End</label>
+              <input
+                id="overview-end"
+                type="date"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+              />
+            </div>
+
+            <button className="categoryExplorerApplyBtn" onClick={onApply}>
+              Apply
             </button>
-          ))}
+          </div>
+        </div>
+
+        {error ? (
+          <div className="categoryExplorerErrorWrap">
+            <ErrorBox title="Error" errors={[error]} />
+          </div>
+        ) : null}
+
+        <div className="categoryOverviewStatsGrid">
+          <StatCard
+            label="Total Spend"
+            value={money(totalSpend)}
+            subtext="Total categorized spend in this range"
+            tone="green"
+          />
+          <StatCard
+            label="Categories"
+            value={String(innerData.length)}
+            subtext="Categories found in selected date range"
+            tone="blue"
+          />
+          <StatCard
+            label="Selected"
+            value={titleCaseCategory(selectedSummary?.spendCategory)}
+            subtext={`Transactions: ${selectedSummary?.count ?? 0}`}
+            tone="purple"
+          />
+        </div>
+
+        <div className="categoryOverviewChartCard">
+          <div className="categoryExplorerCardHeader">
+            <div>
+              <h2 className="categoryExplorerCardTitle">Category Breakdown Chart</h2>
+              <p className="categoryExplorerCardSub">
+                Inner ring shows main categories. Outer ring shows merchant breakdown
+                within each category.
+              </p>
+            </div>
+          </div>
+
+          {innerData.length ? (
+            <>
+              <div className="categoryOverviewChartWrap">
+                <ResponsiveContainer width="100%" height={640}>
+                  <PieChart>
+                    <Pie
+                      data={innerData}
+                      dataKey="value"
+                      nameKey="label"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={90}
+                      outerRadius={190}
+                      paddingAngle={1}
+                      labelLine={false}
+                      label={renderInnerLabel}
+                      onClick={(entry) => {
+                        setSelectedCategory(entry.rawCategory);
+                        openExplorer(entry.rawCategory);
+                      }}
+                    >
+                      {innerData.map((entry) => (
+                        <Cell
+                          key={entry.key}
+                          fill={entry.fill}
+                          cursor="pointer"
+                          onMouseEnter={() => setSelectedCategory(entry.rawCategory)}
+                        />
+                      ))}
+                    </Pie>
+
+                    <Pie
+                      data={outerData}
+                      dataKey="value"
+                      nameKey="label"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={198}
+                      outerRadius={312}
+                      paddingAngle={0.6}
+                      labelLine={false}
+                      label={renderOuterLabel}
+                      onClick={(entry) => {
+                        setSelectedCategory(entry.rawCategory);
+                        openExplorer(entry.rawCategory);
+                      }}
+                    >
+                      {outerData.map((entry) => (
+                        <Cell
+                          key={entry.key}
+                          fill={entry.fill}
+                          cursor="pointer"
+                          onMouseEnter={() => setSelectedCategory(entry.rawCategory)}
+                        />
+                      ))}
+                    </Pie>
+
+                    <Tooltip content={<ChartTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="categoryOverviewBottomRow">
+                <div className="categoryOverviewSelectedCard">
+                  <div className="categoryOverviewSelectedLabel">Selected Category</div>
+                  <div className="categoryOverviewSelectedValue">
+                    {titleCaseCategory(selectedSummary?.spendCategory)}
+                  </div>
+                  <div className="categoryOverviewSelectedMeta">
+                    Total: {money(selectedSummary?.total)} · Transactions:{" "}
+                    {selectedSummary?.count ?? 0}
+                  </div>
+                  <div className="categoryOverviewSelectedHint">
+                    Click a chart section or legend item to switch the selected category.
+                  </div>
+                </div>
+
+                <div className="categoryOverviewActionArea">
+                  <button
+                    className="categoryExplorerApplyBtn"
+                    onClick={() => openExplorer(selectedSummary?.spendCategory)}
+                    disabled={!selectedSummary?.spendCategory}
+                  >
+                    View Detailed Breakdown
+                  </button>
+                </div>
+              </div>
+
+              <div className="categoryOverviewLegend">
+                {innerData.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`categoryOverviewLegendItem ${
+                      selectedCategory === item.rawCategory ? "is-active" : ""
+                    }`}
+                    onClick={() => {
+                      setSelectedCategory(item.rawCategory);
+                      openExplorer(item.rawCategory);
+                    }}
+                  >
+                    <span
+                      className="categoryOverviewLegendDot"
+                      style={{ background: item.fill }}
+                    />
+                    <span className="categoryOverviewLegendText">{item.label}</span>
+                    <span className="categoryOverviewLegendAmount">
+                      {money(item.value)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="categoryOverviewEmptyState">
+              <div className="categoryOverviewEmptyIcon">◌</div>
+              <div className="categoryOverviewEmptyTitle">No category data yet</div>
+              <div className="categoryOverviewEmptyText">
+                No categorized transactions were found for the selected date range.
+                Try widening the range or upload statement data first.
+              </div>
+              <div className="categoryOverviewEmptyMeta">
+                Current range: {applied.start} to {applied.end}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="categoryOverviewFootNote">
+          Total transactions in range: {totalTransactions}
         </div>
       </div>
     </div>
