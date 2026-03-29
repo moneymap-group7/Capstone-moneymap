@@ -111,6 +111,8 @@ export default function Transactions() {
   const [saveError, setSaveError] = useState({});
   const [selectedIds, setSelectedIds] = useState([]);
   const [editMode, setEditMode] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -190,6 +192,17 @@ export default function Transactions() {
     };
   }, [page, pageSize, q, typeFilter, fromDate, toDate]);
 
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape" && deleteOpen && !deleting) {
+        setDeleteOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteOpen, deleting]);
+
   async function handleCategoryChange(rowView, newCategory) {
     const id = String(rowView.id);
 
@@ -265,21 +278,31 @@ export default function Transactions() {
   function toggleEditMode() {
     setEditMode((prev) => {
       const next = !prev;
-      if (!next) setSelectedIds([]);
+      if (!next) {
+        setSelectedIds([]);
+        setDeleteOpen(false);
+      }
       return next;
     });
   }
 
-  async function handleDeleteSelected() {
+  function openDeleteModal() {
+    if (!selectedIds.length) return;
+    setDeleteOpen(true);
+  }
+
+  function closeDeleteModal() {
+    if (deleting) return;
+    setDeleteOpen(false);
+  }
+
+  async function confirmDeleteSelected() {
     if (!selectedIds.length) return;
 
-    const confirmDelete = window.confirm(
-      `Delete ${selectedIds.length} selected transaction(s)?`
-    );
-
-    if (!confirmDelete) return;
-
     try {
+      setDeleting(true);
+      setErrors([]);
+
       await deleteTransactions(selectedIds);
 
       setData((prev) =>
@@ -287,9 +310,12 @@ export default function Transactions() {
       );
 
       setSelectedIds([]);
+      setDeleteOpen(false);
     } catch (err) {
       console.error(err);
-      alert("Failed to delete transactions.");
+      setErrors(["Failed to delete selected transactions."]);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -429,7 +455,7 @@ export default function Transactions() {
             <div className="transactionsTableActions">
               {editMode && selectedIds.length > 0 && (
                 <button
-                  onClick={handleDeleteSelected}
+                  onClick={openDeleteModal}
                   className="transactionsDeleteIconButton"
                   title={`Delete ${selectedIds.length} selected transaction(s)`}
                 >
@@ -659,6 +685,59 @@ export default function Transactions() {
             </button>
           </div>
         </div>
+
+        {deleteOpen ? (
+          <div
+            className="transactionsModalOverlay"
+            onMouseDown={closeDeleteModal}
+          >
+            <div
+              className="transactionsModalCard"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="transactionsModalHeader">
+                <div>
+                  <div className="transactionsModalTitle">
+                    Delete Transactions
+                  </div>
+                  <div className="transactionsModalSub">
+                    {selectedIds.length} selected
+                  </div>
+                </div>
+
+                <button
+                  className="transactionsModalButton"
+                  onClick={closeDeleteModal}
+                  disabled={deleting}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="transactionsModalBody">
+                Are you sure you want to delete the selected transaction(s)?
+              </div>
+
+              <div className="transactionsModalActions">
+                <button
+                  className="transactionsModalButton"
+                  onClick={closeDeleteModal}
+                  disabled={deleting}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="transactionsModalDeleteButton"
+                  onClick={confirmDeleteSelected}
+                  disabled={deleting}
+                >
+                  {deleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </main>
   );
