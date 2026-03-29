@@ -188,7 +188,9 @@
 .transactionsEditButtonActive,
 .transactionsPrimaryButton,
 .transactionsSecondaryButton,
-.transactionsDeleteIconButton {
+.transactionsDeleteIconButton,
+.transactionsModalButton,
+.transactionsModalDeleteButton {
   border-radius: 12px;
   font-size: 14px;
   font-weight: 700;
@@ -200,7 +202,9 @@
 .transactionsEditButtonActive:hover,
 .transactionsPrimaryButton:hover,
 .transactionsSecondaryButton:hover,
-.transactionsDeleteIconButton:hover {
+.transactionsDeleteIconButton:hover,
+.transactionsModalButton:hover,
+.transactionsModalDeleteButton:hover {
   transform: translateY(-1px);
 }
 
@@ -514,11 +518,95 @@
 .transactionsEditButton:disabled,
 .transactionsEditButtonActive:disabled,
 .transactionsClearButton:disabled,
-.transactionsDeleteIconButton:disabled {
+.transactionsDeleteIconButton:disabled,
+.transactionsModalButton:disabled,
+.transactionsModalDeleteButton:disabled {
   opacity: 0.55;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* delete confirm modal */
+.transactionsModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+
+.transactionsModalCard {
+  width: min(420px, 100%);
+  background: #ffffff;
+  border: 1px solid rgba(220, 227, 240, 0.95);
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+  padding: 18px 18px 16px;
+}
+
+.transactionsModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.transactionsModalTitle {
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+}
+
+.transactionsModalSub {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.transactionsModalBody {
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 0 0 14px;
+}
+
+.transactionsModalActions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.transactionsModalButton {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.transactionsModalDeleteButton {
+  height: 38px;
+  padding: 0 14px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.22);
+}
+
+.transactionsModalDeleteButton:hover {
+  box-shadow: 0 14px 28px rgba(220, 38, 38, 0.28);
 }
 
 @media (max-width: 980px) {
@@ -561,5 +649,29 @@
 
   .transactionsPageTitle {
     font-size: 34px;
+  }
+
+  .transactionsModalOverlay {
+    padding: 14px;
+  }
+
+  .transactionsModalCard {
+    width: 100%;
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .transactionsModalHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .transactionsModalActions {
+    width: 100%;
+  }
+
+  .transactionsModalButton,
+  .transactionsModalDeleteButton {
+    flex: 1 1 auto;
   }
 }
