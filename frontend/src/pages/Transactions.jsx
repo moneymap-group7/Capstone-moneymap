@@ -453,22 +453,6 @@ export default function Transactions() {
             </div>
 
             <div className="transactionsTableActions">
-              {editMode && selectedIds.length > 0 && (
-                <button
-                  onClick={openDeleteModal}
-                  className="transactionsDeleteIconButton"
-                  title={`Delete ${selectedIds.length} selected transaction(s)`}
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
-
-              {editMode && selectedIds.length > 0 && (
-                <div className="transactionsSelectionSummary">
-                  {selectedIds.length} selected
-                </div>
-              )}
-
               <button
                 onClick={toggleEditMode}
                 className={
@@ -644,7 +628,39 @@ export default function Transactions() {
             </div>
           )}
         </div>
+        
+        {editMode && selectedIds.length > 0 && (
+          <div className="transactionsBulkBar">
+            <div className="transactionsBulkBarText">
+              {selectedIds.length} selected
+            </div>
 
+            <div className="transactionsBulkBarActions">
+              <button
+                onClick={openDeleteModal}
+                className="transactionsBulkDeleteButton"
+                title={`Delete ${selectedIds.length} selected transaction(s)`}
+              >
+                <Trash2 size={18} />
+                <span>Delete</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedIds([])}
+                className="transactionsBulkSecondaryButton"
+              >
+                Clear selection
+              </button>
+
+              <button
+                onClick={toggleEditMode}
+                className="transactionsBulkDoneButton"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
         <div className="transactionsPaginationBar">
           <div className="transactionsPaginationText">
             Page <b>{meta.page}</b> of <b>{meta.totalPages}</b> · Total{" "}
