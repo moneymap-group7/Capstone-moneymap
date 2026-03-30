@@ -441,7 +441,7 @@ export default function BudgetPage() {
                               title="Delete budget"
                               aria-label="Delete budget"
                             >
-                              {isDeleting ? "⏳" : "🗑️"}
+                              {isDeleting ? "..." : "🗑"}
                             </button>
                           </td>
                         </tr>
