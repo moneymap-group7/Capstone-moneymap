@@ -675,3 +675,47 @@
     flex: 1 1 auto;
   }
 }
+
+.bulkActionBar {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(920px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dbe3f0;
+  border-radius: 18px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+}
+
+.bulkActionBarActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.dangerBtn,
+.secondaryBtn {
+  border: none;
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dangerBtn {
+  background: #ef4444;
+  color: white;
+}
+
+.secondaryBtn {
+  background: #eef2ff;
+  color: #1e3a8a;
+}

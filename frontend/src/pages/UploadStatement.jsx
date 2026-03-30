@@ -3,7 +3,6 @@ import {
   Upload,
   FileText,
   CheckCircle2,
-  Info,
   Database,
   Trash2,
 } from "lucide-react";
@@ -64,6 +63,16 @@ function getFileId(item) {
   return item?.statementId ?? item?.id ?? item?._id ?? null;
 }
 
+function getFileName(item) {
+  return (
+    item?.originalFileName ??
+    item?.fileName ??
+    item?.name ??
+    item?.storedFileName ??
+    "this file"
+  );
+}
+
 export default function UploadStatement() {
   const inputRef = useRef(null);
 
@@ -78,6 +87,9 @@ export default function UploadStatement() {
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+
+  const [fileToDelete, setFileToDelete] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     loadUploadedFiles();
@@ -108,22 +120,41 @@ export default function UploadStatement() {
     }
   }
 
-  async function handleDeleteFile(statementId) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this CSV file?"
-    );
-    if (!confirmed) return;
+  function askDeleteFile(statementId) {
+    const item = uploadedFiles.find((f) => getFileId(f) === statementId) || null;
+    setDeleteError("");
+    setFileToDelete(item);
+  }
+
+  function closeDeleteModal() {
+    if (deletingId) return;
+    setFileToDelete(null);
+    setDeleteError("");
+  }
+
+  async function confirmDeleteFile() {
+    if (!fileToDelete) return;
+
+    const statementId = getFileId(fileToDelete);
+    if (!statementId) {
+      setDeleteError("Could not determine which file to delete.");
+      return;
+    }
 
     try {
       setDeletingId(statementId);
+      setDeleteError("");
+
       await deleteStatementFile(statementId);
 
       setUploadedFiles((prev) =>
         prev.filter((item) => getFileId(item) !== statementId)
       );
+
+      setFileToDelete(null);
     } catch (error) {
       console.error("Failed to delete file:", error);
-      alert("Failed to delete CSV file.");
+      setDeleteError("Failed to delete CSV file.");
     } finally {
       setDeletingId(null);
     }
@@ -328,9 +359,7 @@ export default function UploadStatement() {
                   style={{ display: "none" }}
                 />
 
-                <div
-                  className={`uploadDropzone ${file ? "isReady" : ""}`}
-                >
+                <div className={`uploadDropzone ${file ? "isReady" : ""}`}>
                   <div className="uploadDropzoneTop">
                     <div>
                       <h3 className="uploadDropzoneTitle">Select CSV File</h3>
@@ -506,7 +535,7 @@ export default function UploadStatement() {
                     {!filesLoading && !filesError && (
                       <StatementFilesTable
                         files={uploadedFiles}
-                        onDelete={handleDeleteFile}
+                        onDelete={askDeleteFile}
                         deletingId={deletingId}
                       />
                     )}
@@ -546,6 +575,53 @@ export default function UploadStatement() {
           </aside>
         </div>
       </div>
+
+      {fileToDelete && (
+        <div className="confirmOverlay" onClick={closeDeleteModal}>
+          <div
+            className="confirmModal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+          >
+            <div className="confirmIconWrap">
+              <Trash2 size={20} />
+            </div>
+
+            <h3 id="delete-modal-title" className="confirmTitle">
+              Delete CSV file?
+            </h3>
+
+            <p className="confirmText">
+              Are you sure you want to delete{" "}
+              <strong>{getFileName(fileToDelete)}</strong>?
+            </p>
+
+            {deleteError ? <div className="confirmError">{deleteError}</div> : null}
+
+            <div className="confirmActions">
+              <button
+                type="button"
+                className="uploadSecondaryBtn"
+                onClick={closeDeleteModal}
+                disabled={!!deletingId}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="confirmDangerBtn"
+                onClick={confirmDeleteFile}
+                disabled={!!deletingId}
+              >
+                {deletingId ? "Deleting..." : "Delete File"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
