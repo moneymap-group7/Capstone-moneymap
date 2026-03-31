@@ -10,6 +10,7 @@ import { Prisma, TransactionSource, TransactionType } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
+import { NotFoundException } from "@nestjs/common";
 
 @Injectable()
 export class StatementsService {
@@ -40,6 +41,8 @@ export class StatementsService {
         transactionsInserted: 0,
       },
     };
+
+    
 
     let detectedBank: string | null = null;
 
@@ -275,4 +278,49 @@ export class StatementsService {
       };
     }
   }
+  async deleteStatement(userId: string, statementId: string) {
+  const userIdBigInt = BigInt(userId);
+  const statementIdBigInt = BigInt(statementId);
+
+  const statement = await this.prisma.statement.findFirst({
+    where: {
+      statementId: statementIdBigInt,
+      userId: userIdBigInt,
+    },
+  });
+
+  if (!statement) {
+    throw new NotFoundException("Statement not found.");
+  }
+
+  await this.prisma.$transaction(async (tx) => {
+    await tx.transaction.deleteMany({
+      where: {
+        userId: userIdBigInt,
+        statementId: statementIdBigInt,
+      },
+    });
+
+    await tx.statement.delete({
+      where: {
+        statementId: statementIdBigInt,
+      },
+    });
+  });
+
+  const absPath = path.join(process.cwd(), statement.relativePath);
+
+  if (fs.existsSync(absPath)) {
+    try {
+      fs.unlinkSync(absPath);
+    } catch (error) {
+      console.warn("Failed to delete CSV file from disk:", absPath);
+    }
+  }
+
+  return {
+    ok: true,
+    message: "Statement and related transactions deleted successfully.",
+  };
+}
 }
