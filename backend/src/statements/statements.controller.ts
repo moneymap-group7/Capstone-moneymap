@@ -137,4 +137,5 @@ export class StatementsController {
     const userId = getUserIdOrThrow(req);
     return this.statementsAdminService.deleteStatementFile(userId, id);
   }
+  
 }

@@ -32,41 +32,48 @@ export class StatementsAdminService {
   }
 
   async deleteStatementFile(userId: string, id: string) {
-    let statementId: bigint;
+  const userIdBigInt = BigInt(userId);
+  const statementIdBigInt = BigInt(id);
 
-    try {
-      statementId = BigInt(id);
-    } catch {
-      throw new BadRequestException("Invalid file id.");
-    }
+  const statement = await this.prisma.statement.findFirst({
+    where: {
+      statementId: statementIdBigInt,
+      userId: userIdBigInt,
+    },
+  });
 
-    const file = await this.prisma.statement.findFirst({
-      where: {
-        statementId,
-        userId: BigInt(userId),
-      },
-      select: {
-        statementId: true,
-        relativePath: true,
-      },
-    });
-
-    if (!file) {
-      throw new BadRequestException("File not found.");
-    }
-
-    const absolutePath = path.join(process.cwd(), file.relativePath);
-
-    if (fs.existsSync(absolutePath)) {
-      fs.unlinkSync(absolutePath);
-    }
-
-    await this.prisma.statement.delete({
-      where: {
-        statementId,
-      },
-    });
-
-    return { message: "File deleted successfully." };
+  if (!statement) {
+    throw new Error("Statement not found");
   }
+
+  await this.prisma.$transaction(async (tx) => {
+    await tx.transaction.deleteMany({
+      where: {
+        userId: userIdBigInt,
+        statementId: statementIdBigInt,
+      },
+    });
+
+    await tx.statement.delete({
+      where: {
+        statementId: statementIdBigInt,
+      },
+    });
+  });
+
+  const absPath = path.join(process.cwd(), statement.relativePath);
+
+  if (fs.existsSync(absPath)) {
+    try {
+      fs.unlinkSync(absPath);
+    } catch (err) {
+      console.warn("File delete failed:", absPath);
+    }
+  }
+
+  return {
+    ok: true,
+    message: "Statement and related transactions deleted successfully",
+  };
+}
 }
