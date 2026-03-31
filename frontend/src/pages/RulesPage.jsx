@@ -67,6 +67,17 @@ function RuleSummaryCard({ label, value, tone = "default" }) {
   );
 }
 
+function CategoryBadge({ value }) {
+  return <span className="ruleCategoryBadge">{formatCategory(value)}</span>;
+}
+
+function MutedValue({ value }) {
+  if (value === null || value === undefined || value === "") {
+    return <span className="ruleMutedValue">—</span>;
+  }
+  return <span>{String(value)}</span>;
+}
+
 export default function RulesPage() {
   const userId = useMemo(() => getCurrentUserId(), []);
   const [rules, setRules] = useState([]);
@@ -81,6 +92,9 @@ export default function RulesPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deletingRuleId, setDeletingRuleId] = useState(null);
 
   async function loadRules() {
     if (!userId) {
@@ -108,6 +122,19 @@ export default function RulesPage() {
   useEffect(() => {
     loadRules();
   }, [userId]);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (deleteTarget && !deletingRuleId) {
+          setDeleteTarget(null);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteTarget, deletingRuleId]);
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
@@ -189,29 +216,45 @@ export default function RulesPage() {
     }
 
     setSubmitting(false);
-    setSuccessMessage(editingRuleId ? "Rule updated successfully." : "Rule created successfully.");
+    setSuccessMessage(
+      editingRuleId ? "Rule updated successfully." : "Rule created successfully."
+    );
     resetForm();
     await loadRules();
   }
 
-  async function handleDelete(ruleId) {
-    const confirmed = window.confirm("Delete this rule?");
-    if (!confirmed) return;
+  function openDeleteModal(rule) {
+    setDeleteTarget(rule);
+    setPageError("");
+    setSuccessMessage("");
+  }
 
+  function closeDeleteModal() {
+    if (deletingRuleId) return;
+    setDeleteTarget(null);
+  }
+
+  async function confirmDeleteRule() {
+    if (!deleteTarget?.ruleId) return;
+
+    setDeletingRuleId(deleteTarget.ruleId);
     setPageError("");
     setSuccessMessage("");
 
-    const result = await deleteRule(ruleId);
+    const result = await deleteRule(deleteTarget.ruleId);
 
     if (!result.ok) {
+      setDeletingRuleId(null);
       setPageError(result.message || "Failed to delete rule.");
       return;
     }
 
-    if (editingRuleId === ruleId) {
+    if (editingRuleId === deleteTarget.ruleId) {
       resetForm();
     }
 
+    setDeletingRuleId(null);
+    setDeleteTarget(null);
     setSuccessMessage("Rule deleted successfully.");
     await loadRules();
   }
@@ -522,40 +565,132 @@ export default function RulesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRules.map((rule) => (
-                      <tr key={String(rule.ruleId)}>
-                        <td>
-                          <span className={rule.isActive ? "statusBadge active" : "statusBadge inactive"}>
-                            {rule.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        <td>{formatValue(rule.priority)}</td>
-                        <td>{formatValue(rule.merchantContains)}</td>
-                        <td>{formatValue(rule.merchantEquals)}</td>
-                        <td>{formatValue(rule.minAmount)}</td>
-                        <td>{formatValue(rule.maxAmount)}</td>
-                        <td>{formatValue(rule.transactionType)}</td>
-                        <td>{formatCategory(rule.spendCategory)}</td>
-                        <td className="actionCell">
-                          <button type="button" className="tableBtn" onClick={() => startEdit(rule)}>
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="tableBtn dangerBtn"
-                            onClick={() => handleDelete(rule.ruleId)}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredRules.map((rule) => {
+                      const isDeleting =
+                        deleteTarget?.ruleId === rule.ruleId && !!deletingRuleId;
+
+                      return (
+                        <tr key={String(rule.ruleId)}>
+                          <td>
+                            <span
+                              className={
+                                rule.isActive
+                                  ? "statusBadge active"
+                                  : "statusBadge inactive"
+                              }
+                            >
+                              {rule.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td>{formatValue(rule.priority)}</td>
+                          <td><MutedValue value={rule.merchantContains} /></td>
+                          <td><MutedValue value={rule.merchantEquals} /></td>
+                          <td><MutedValue value={rule.minAmount} /></td>
+                          <td><MutedValue value={rule.maxAmount} /></td>
+                          <td><MutedValue value={rule.transactionType} /></td>
+                          <td>
+                            <CategoryBadge value={rule.spendCategory} />
+                          </td>
+                          <td className="actionCell">
+                            <button
+                              type="button"
+                              className="tableBtn"
+                              onClick={() => startEdit(rule)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="tableBtn dangerBtn"
+                              onClick={() => openDeleteModal(rule)}
+                              disabled={!!deletingRuleId}
+                            >
+                              {isDeleting ? "Deleting..." : "Delete"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
           </section>
         </div>
+
+        {deleteTarget ? (
+          <div className="rulesModalOverlay" onMouseDown={closeDeleteModal}>
+            <div
+              className="rulesModalCard"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="rulesModalHeader">
+                <div>
+                  <div className="rulesModalTitle">Delete Rule</div>
+                  <div className="rulesModalSub">
+                    {formatCategory(deleteTarget?.spendCategory)} · Priority{" "}
+                    {formatValue(deleteTarget?.priority)}
+                  </div>
+                </div>
+
+               <button
+                  type="button"
+                  className="rulesModalClose"
+                  onClick={closeDeleteModal}
+                  disabled={!!deletingRuleId}
+                  aria-label="Close delete modal"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="rulesModalBody">
+                <p className="rulesModalText">
+                  Are you sure you want to delete this rule?
+                </p>
+
+                <div className="rulesDeletePreview">
+                  <div className="rulesDeletePreviewRow">
+                    <span>Contains</span>
+                    <strong>{formatValue(deleteTarget?.merchantContains)}</strong>
+                  </div>
+                  <div className="rulesDeletePreviewRow">
+                    <span>Equals</span>
+                    <strong>{formatValue(deleteTarget?.merchantEquals)}</strong>
+                  </div>
+                  <div className="rulesDeletePreviewRow">
+                    <span>Type</span>
+                    <strong>{formatValue(deleteTarget?.transactionType)}</strong>
+                  </div>
+                  <div className="rulesDeletePreviewRow">
+                    <span>Category</span>
+                    <strong>{formatCategory(deleteTarget?.spendCategory)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rulesModalActions">
+                <button
+                  type="button"
+                  className="secondaryBtn"
+                  onClick={closeDeleteModal}
+                  disabled={!!deletingRuleId}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className="tableBtn dangerBtn rulesDeleteConfirmBtn"
+                  onClick={confirmDeleteRule}
+                  disabled={!!deletingRuleId}
+                >
+                  {deletingRuleId ? "Deleting..." : "Delete Rule"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
