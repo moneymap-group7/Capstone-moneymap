@@ -26,6 +26,17 @@ const EMPTY_FORM = {
   spendCategory: "OTHER",
 };
 
+const EMPTY_FIELD_ERRORS = {
+  priority: "",
+  merchantContains: "",
+  merchantEquals: "",
+  minAmount: "",
+  maxAmount: "",
+  transactionType: "",
+  spendCategory: "",
+  matcherGroup: "",
+};
+
 function cleanNumber(value) {
   return value === "" || value === null || value === undefined ? null : Number(value);
 }
@@ -82,6 +93,7 @@ export default function RulesPage() {
   const userId = useMemo(() => getCurrentUserId(), []);
   const [rules, setRules] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [fieldErrors, setFieldErrors] = useState(EMPTY_FIELD_ERRORS);
   const [editingRuleId, setEditingRuleId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -136,25 +148,92 @@ export default function RulesPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [deleteTarget, deletingRuleId]);
 
+  function validateForm(nextForm) {
+    const errors = { ...EMPTY_FIELD_ERRORS };
+
+    const priorityNum = Number(nextForm.priority);
+    const minAmount = cleanNumber(nextForm.minAmount);
+    const maxAmount = cleanNumber(nextForm.maxAmount);
+
+    if (!Number.isFinite(priorityNum) || priorityNum < 1) {
+      errors.priority = "Priority must be at least 1.";
+    }
+
+    if (!nextForm.spendCategory) {
+      errors.spendCategory = "Spend category is required.";
+    }
+
+    const hasMatcher =
+      !!nextForm.merchantContains.trim() ||
+      !!nextForm.merchantEquals.trim() ||
+      nextForm.minAmount !== "" ||
+      nextForm.maxAmount !== "" ||
+      !!nextForm.transactionType;
+
+    if (!hasMatcher) {
+      errors.matcherGroup =
+        "Add at least one matching condition: merchant text, amount range, or transaction type.";
+      errors.merchantContains = "Enter at least one rule condition.";
+      errors.merchantEquals = "Enter at least one rule condition.";
+      errors.transactionType = "Or select a transaction type.";
+    }
+
+    if (minAmount !== null && maxAmount !== null && minAmount > maxAmount) {
+      errors.minAmount = "Minimum amount cannot be greater than maximum amount.";
+      errors.maxAmount = "Maximum amount must be greater than or equal to minimum amount.";
+    }
+
+    return errors;
+  }
+
+  function hasAnyFieldError(errors) {
+    return Object.values(errors).some(Boolean);
+  }
+
+  function clearRelatedFieldError(name) {
+    setFieldErrors((prev) => ({
+      ...prev,
+      [name]: "",
+      ...(name === "merchantContains" ||
+      name === "merchantEquals" ||
+      name === "transactionType" ||
+      name === "minAmount" ||
+      name === "maxAmount"
+        ? { matcherGroup: "" }
+        : {}),
+    }));
+  }
+
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const nextValue = type === "checkbox" ? checked : value;
+
+    setForm((prev) => {
+      const nextForm = {
+        ...prev,
+        [name]: nextValue,
+      };
+
+      const nextErrors = validateForm(nextForm);
+      setFieldErrors(nextErrors);
+
+      return nextForm;
+    });
+
+    clearRelatedFieldError(name);
+    setPageError("");
+    setSuccessMessage("");
   }
 
   function resetForm() {
     setForm(EMPTY_FORM);
+    setFieldErrors(EMPTY_FIELD_ERRORS);
     setEditingRuleId(null);
     setPageError("");
   }
 
   function startEdit(rule) {
-    setEditingRuleId(rule.ruleId);
-    setSuccessMessage("");
-    setPageError("");
-    setForm({
+    const nextForm = {
       isActive: !!rule.isActive,
       priority: rule.priority ?? 100,
       merchantContains: rule.merchantContains ?? "",
@@ -163,7 +242,13 @@ export default function RulesPage() {
       maxAmount: rule.maxAmount ?? "",
       transactionType: rule.transactionType ?? "",
       spendCategory: rule.spendCategory ?? "OTHER",
-    });
+    };
+
+    setEditingRuleId(rule.ruleId);
+    setSuccessMessage("");
+    setPageError("");
+    setForm(nextForm);
+    setFieldErrors(validateForm(nextForm));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -175,27 +260,11 @@ export default function RulesPage() {
       return;
     }
 
-    if (!form.spendCategory) {
-      setPageError("Spend category is required.");
-      return;
-    }
+    const validationErrors = validateForm(form);
+    setFieldErrors(validationErrors);
 
-    if (
-      !form.merchantContains.trim() &&
-      !form.merchantEquals.trim() &&
-      form.minAmount === "" &&
-      form.maxAmount === "" &&
-      !form.transactionType
-    ) {
-      setPageError("Add at least one matching condition for the rule.");
-      return;
-    }
-
-    const minAmount = cleanNumber(form.minAmount);
-    const maxAmount = cleanNumber(form.maxAmount);
-
-    if (minAmount !== null && maxAmount !== null && minAmount > maxAmount) {
-      setPageError("Minimum amount cannot be greater than maximum amount.");
+    if (hasAnyFieldError(validationErrors)) {
+      setPageError("Please fix the highlighted form errors.");
       return;
     }
 
@@ -353,7 +422,11 @@ export default function RulesPage() {
                     onChange={handleChange}
                     min="1"
                     required
+                    className={fieldErrors.priority ? "rulesInputError" : ""}
                   />
+                  {fieldErrors.priority ? (
+                    <div className="rulesFieldError">{fieldErrors.priority}</div>
+                  ) : null}
                 </label>
 
                 <label>
@@ -362,6 +435,7 @@ export default function RulesPage() {
                     name="transactionType"
                     value={form.transactionType}
                     onChange={handleChange}
+                    className={fieldErrors.transactionType ? "rulesInputError" : ""}
                   >
                     {TRANSACTION_TYPE_OPTIONS.map((option) => (
                       <option key={option.value || "any"} value={option.value}>
@@ -369,6 +443,9 @@ export default function RulesPage() {
                       </option>
                     ))}
                   </select>
+                  {fieldErrors.transactionType ? (
+                    <div className="rulesFieldError">{fieldErrors.transactionType}</div>
+                  ) : null}
                 </label>
 
                 <label>
@@ -379,7 +456,11 @@ export default function RulesPage() {
                     value={form.merchantContains}
                     onChange={handleChange}
                     placeholder="Example: uber"
+                    className={fieldErrors.merchantContains ? "rulesInputError" : ""}
                   />
+                  {fieldErrors.merchantContains ? (
+                    <div className="rulesFieldError">{fieldErrors.merchantContains}</div>
+                  ) : null}
                 </label>
 
                 <label>
@@ -390,7 +471,11 @@ export default function RulesPage() {
                     value={form.merchantEquals}
                     onChange={handleChange}
                     placeholder="Example: TIM HORTONS"
+                    className={fieldErrors.merchantEquals ? "rulesInputError" : ""}
                   />
+                  {fieldErrors.merchantEquals ? (
+                    <div className="rulesFieldError">{fieldErrors.merchantEquals}</div>
+                  ) : null}
                 </label>
 
                 <label>
@@ -402,7 +487,11 @@ export default function RulesPage() {
                     value={form.minAmount}
                     onChange={handleChange}
                     placeholder="Optional"
+                    className={fieldErrors.minAmount ? "rulesInputError" : ""}
                   />
+                  {fieldErrors.minAmount ? (
+                    <div className="rulesFieldError">{fieldErrors.minAmount}</div>
+                  ) : null}
                 </label>
 
                 <label>
@@ -414,7 +503,11 @@ export default function RulesPage() {
                     value={form.maxAmount}
                     onChange={handleChange}
                     placeholder="Optional"
+                    className={fieldErrors.maxAmount ? "rulesInputError" : ""}
                   />
+                  {fieldErrors.maxAmount ? (
+                    <div className="rulesFieldError">{fieldErrors.maxAmount}</div>
+                  ) : null}
                 </label>
 
                 <label className="rulesFormGridFull">
@@ -424,6 +517,7 @@ export default function RulesPage() {
                     value={form.spendCategory}
                     onChange={handleChange}
                     required
+                    className={fieldErrors.spendCategory ? "rulesInputError" : ""}
                   >
                     {SPEND_CATEGORY_OPTIONS.map((category) => (
                       <option key={category} value={category}>
@@ -431,12 +525,19 @@ export default function RulesPage() {
                       </option>
                     ))}
                   </select>
+                  {fieldErrors.spendCategory ? (
+                    <div className="rulesFieldError">{fieldErrors.spendCategory}</div>
+                  ) : null}
                 </label>
               </div>
 
-              <div className="rulesHintBox">
-                A rule should usually have at least one meaningful matcher such as
-                merchant text, amount range, or transaction type.
+              <div
+                className={`rulesHintBox ${
+                  fieldErrors.matcherGroup ? "rulesHintBoxError" : ""
+                }`}
+              >
+                {fieldErrors.matcherGroup ||
+                  "A rule should usually have at least one meaningful matcher such as merchant text, amount range, or transaction type."}
               </div>
 
               <div className="rulesActions">
@@ -633,7 +734,7 @@ export default function RulesPage() {
                   </div>
                 </div>
 
-               <button
+                <button
                   type="button"
                   className="rulesModalClose"
                   onClick={closeDeleteModal}
