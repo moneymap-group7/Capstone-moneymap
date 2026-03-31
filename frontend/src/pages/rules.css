@@ -346,7 +346,71 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.rulesFilterBar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid #e7edf5;
+  border-radius: 16px;
+  background: #fbfdff;
+}
 
+.rulesFilterGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.2fr;
+  gap: 16px;
+}
+
+.rulesFilterField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rulesFilterField span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.rulesFilterField input,
+.rulesFilterField select {
+  width: 100%;
+  height: 46px;
+  border: 1px solid #dbe3ee;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 15px;
+  padding: 0 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.rulesFilterField input:focus,
+.rulesFilterField select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.rulesFilterActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rulesFilterResults {
+  color: #475569;
+  font-size: 14px;
+}
+
+.rulesFilterResults strong {
+  color: #0f172a;
+}
 .statusBadge {
   display: inline-flex;
   align-items: center;
@@ -412,5 +476,47 @@
   .rulesCard,
   .ruleSummaryCard {
     border-radius: 16px;
+  }
+}
+@media (max-width: 1024px) {
+  .rulesHero {
+    grid-template-columns: 1fr;
+  }
+
+  .rulesTitle {
+    font-size: 38px;
+  }
+
+  .rulesFilterGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .rulesFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .rulesCardHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rulesActions {
+    flex-direction: column;
+  }
+
+  .primaryBtn,
+  .secondaryBtn {
+    width: 100%;
+  }
+
+  .rulesFilterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .rulesFilterActions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

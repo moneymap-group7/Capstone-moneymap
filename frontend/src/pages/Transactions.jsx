@@ -453,6 +453,22 @@ export default function Transactions() {
             </div>
 
             <div className="transactionsTableActions">
+              {editMode && selectedIds.length > 0 && (
+                <button
+                  onClick={openDeleteModal}
+                  className="transactionsDeleteIconButton"
+                  title={`Delete ${selectedIds.length} selected transaction(s)`}
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+
+              {editMode && selectedIds.length > 0 && (
+                <div className="transactionsSelectionSummary">
+                  {selectedIds.length} selected
+                </div>
+              )}
+
               <button
                 onClick={toggleEditMode}
                 className={

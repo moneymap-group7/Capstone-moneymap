@@ -77,6 +77,11 @@ export default function RulesPage() {
   const [pageError, setPageError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+
   async function loadRules() {
     if (!userId) {
       setPageError("Could not find logged-in user information.");
@@ -211,8 +216,44 @@ export default function RulesPage() {
     await loadRules();
   }
 
+  function clearFilters() {
+    setSearchTerm("");
+    setStatusFilter("ALL");
+    setTypeFilter("ALL");
+    setCategoryFilter("ALL");
+  }
+
   const activeCount = rules.filter((rule) => rule.isActive).length;
   const inactiveCount = rules.length - activeCount;
+
+  const filteredRules = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+
+    return rules.filter((rule) => {
+      const matchesSearch =
+        !q ||
+        String(rule.merchantContains || "").toLowerCase().includes(q) ||
+        String(rule.merchantEquals || "").toLowerCase().includes(q) ||
+        String(rule.spendCategory || "").toLowerCase().includes(q) ||
+        String(rule.transactionType || "").toLowerCase().includes(q) ||
+        String(rule.priority || "").toLowerCase().includes(q);
+
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && rule.isActive) ||
+        (statusFilter === "INACTIVE" && !rule.isActive);
+
+      const matchesType =
+        typeFilter === "ALL" ||
+        String(rule.transactionType || "") === typeFilter;
+
+      const matchesCategory =
+        categoryFilter === "ALL" ||
+        String(rule.spendCategory || "") === categoryFilter;
+
+      return matchesSearch && matchesStatus && matchesType && matchesCategory;
+    });
+  }, [rules, searchTerm, statusFilter, typeFilter, categoryFilter]);
 
   return (
     <div className="rulesPage">
@@ -381,6 +422,74 @@ export default function RulesPage() {
               </div>
             </div>
 
+            <div className="rulesFilterBar">
+              <div className="rulesFilterGrid">
+                <label className="rulesFilterField rulesFilterFieldSearch">
+                  <span>Search</span>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search merchant, category, type, or priority"
+                  />
+                </label>
+
+                <label className="rulesFilterField">
+                  <span>Status</span>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="ALL">All</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                </label>
+
+                <label className="rulesFilterField">
+                  <span>Type</span>
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                  >
+                    <option value="ALL">All</option>
+                    <option value="DEBIT">DEBIT</option>
+                    <option value="CREDIT">CREDIT</option>
+                  </select>
+                </label>
+
+                <label className="rulesFilterField">
+                  <span>Category</span>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                  >
+                    <option value="ALL">All</option>
+                    {SPEND_CATEGORY_OPTIONS.map((category) => (
+                      <option key={category} value={category}>
+                        {formatCategory(category)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="rulesFilterActions">
+                <div className="rulesFilterResults">
+                  Showing <strong>{filteredRules.length}</strong> of{" "}
+                  <strong>{rules.length}</strong> rules
+                </div>
+
+                <button
+                  type="button"
+                  className="secondaryBtn"
+                  onClick={clearFilters}
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+
             {loading ? (
               <div className="rulesEmptyState">
                 <strong>Loading rules...</strong>
@@ -390,6 +499,11 @@ export default function RulesPage() {
               <div className="rulesEmptyState">
                 <strong>No rules found</strong>
                 <p>Create your first rule to automatically categorize transactions.</p>
+              </div>
+            ) : filteredRules.length === 0 ? (
+              <div className="rulesEmptyState">
+                <strong>No matching rules</strong>
+                <p>Try changing or clearing the current search and filter values.</p>
               </div>
             ) : (
               <div className="rulesTableWrap">
@@ -408,7 +522,7 @@ export default function RulesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rules.map((rule) => (
+                    {filteredRules.map((rule) => (
                       <tr key={String(rule.ruleId)}>
                         <td>
                           <span className={rule.isActive ? "statusBadge active" : "statusBadge inactive"}>
