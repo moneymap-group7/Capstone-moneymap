@@ -49,8 +49,7 @@ model Transaction {
   spendCategory   SpendCategory     @default(UNCATEGORIZED)
   user            User              @relation(fields: [userId], references: [userId])
 statementId BigInt?
-statement   Statement? @relation(fields: [statementId], references: [statementId])
-
+statement   Statement? @relation(fields: [statementId], references: [statementId], onDelete: Cascade)
   @@index([userId])
   @@index([statementId])
   @@index([transactionDate])
