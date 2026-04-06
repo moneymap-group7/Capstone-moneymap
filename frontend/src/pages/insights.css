@@ -197,11 +197,14 @@
 }
 
 .insightStatValue {
-  font-size: clamp(28px, 3vw, 38px);
-  line-height: 1.1;
+  font-size: clamp(24px, 2.2vw, 38px);
+  line-height: 1.02;
   font-weight: 900;
   color: #0f172a;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .insightStatSubtext {
