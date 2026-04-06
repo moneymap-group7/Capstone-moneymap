@@ -295,43 +295,49 @@ export default function UploadStatement() {
             <span className="uploadBadge">Statement import workspace</span>
             <h1 className="uploadHeroTitle">Upload Statements</h1>
             <p className="uploadHeroText">
-              Import a bank CSV file and add transactions into MoneyMap. This
-              page keeps statement uploads, processing feedback, and uploaded
-              file management in one place.
+              Upload supported bank CSV files to import transactions into
+              MoneyMap. This page helps you bring statement data into the app,
+              review processing feedback, and manage uploaded files in one place.
             </p>
           </div>
 
           <div className="uploadHeroSide">
-            <div className="uploadMiniCard">
+            <div className="uploadMiniCard uploadMiniCardInfo">
               <div className="uploadMiniIcon uploadMiniIconBlue">
                 <Upload size={16} />
               </div>
               <div>
                 <h3>Supported input</h3>
-                <p>CSV exports from supported banks and statement providers.</p>
-              </div>
-            </div>
-
-            <div className="uploadMiniCard">
-              <div className="uploadMiniIcon uploadMiniIconGreen">
-                <CheckCircle2 size={16} />
-              </div>
-              <div>
-                <h3>After import</h3>
                 <p>
-                  Transactions are parsed and made available for categories,
-                  budgets, insights, and rules.
+                  Upload CSV files exported from supported banks and statement
+                  providers.
                 </p>
               </div>
             </div>
 
-            <div className="uploadMiniCard">
+            <div className="uploadMiniCard uploadMiniCardInfo">
+              <div className="uploadMiniIcon uploadMiniIconGreen">
+                <CheckCircle2 size={16} />
+              </div>
+              <div>
+                <h3>What happens after upload</h3>
+                <p>
+                  Transactions are parsed and prepared for categories, budgets,
+                  insights, and rules across the app.
+                </p>
+              </div>
+            </div>
+
+            <div className="uploadMiniCard uploadMiniCardInfo">
               <div className="uploadMiniIcon uploadMiniIconPurple">
                 <Database size={16} />
               </div>
               <div>
-                <h3>Manage files</h3>
-                <p>Review previously uploaded CSV files and delete them if needed.</p>
+                <h3>File management</h3>
+                <p>
+                  Review previously uploaded CSV files and remove old statement
+                  files when needed.
+                </p>
               </div>
             </div>
           </div>

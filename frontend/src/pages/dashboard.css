@@ -171,11 +171,11 @@
 }
 
 .dashboardFeatureCard {
-  background: rgba(255, 255, 255, 0.84);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(224, 230, 240, 0.95);
   border-radius: 22px;
   padding: 24px;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
 }
 
 .featureIcon {
@@ -209,11 +209,13 @@
   color: #0f172a;
 }
 
-.dashboardFeatureCard p {
-  margin: 0 0 18px;
-  color: #607086;
-  line-height: 1.7;
-  font-size: 14px;
+.dashboardFeatureMeta {
+  margin-top: -4px;
+  margin-bottom: 16px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 600;
 }
 
 .featureLink {
@@ -224,6 +226,60 @@
   text-decoration: none;
   font-weight: 700;
   font-size: 14px;
+  padding-top: 2px;
+}
+
+.featureLink:hover {
+  text-decoration: underline;
+}
+
+.dashboardHero {
+  max-width: 1200px;
+  margin: 0 auto 22px;
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.dashboardTitle {
+  margin: 0 0 14px;
+  font-size: clamp(32px, 4.2vw, 54px);
+  line-height: 0.98;
+}
+
+.dashboardSubtitle {
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.dashboardFeatureCard p {
+  margin: 0 0 10px;
+}
+
+.dashboardFeatureMeta {
+  margin-top: 0;
+  margin-bottom: 18px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.dashboardFeatureCard p {
+  margin: 0 0 18px;
+  color: #607086;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.featureMeta {
+  display: block;
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 600;
 }
 
 .dashboardStepsSection {
