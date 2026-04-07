@@ -82,6 +82,7 @@ function TreemapTooltip({ active, payload }) {
         borderRadius: 12,
         padding: "10px 12px",
         boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+        pointerEvents: "none",
       }}
     >
       <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>
@@ -111,6 +112,7 @@ function MonthlyTooltip({ active, payload, label }) {
         borderRadius: 12,
         padding: "10px 12px",
         boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+        pointerEvents: "none",
       }}
     >
       <div style={{ fontWeight: 700, color: "#0f172a", marginBottom: 6 }}>
@@ -135,7 +137,7 @@ const TILE_COLORS = [
 ];
 
 function CustomTreemapContent(props) {
-  const { x, y, width, height, index, name, value } = props;
+  const { x, y, width, height, name, value, color } = props;
 
   if (width < 70 || height < 45) {
     return (
@@ -147,7 +149,7 @@ function CustomTreemapContent(props) {
           height={height}
           rx={10}
           ry={10}
-          fill={TILE_COLORS[index % TILE_COLORS.length]}
+          fill={color || "#2563eb"}
           stroke="#ffffff"
           strokeWidth={2}
         />
@@ -164,7 +166,7 @@ function CustomTreemapContent(props) {
         height={height}
         rx={10}
         ry={10}
-        fill={TILE_COLORS[index % TILE_COLORS.length]}
+        fill={color || "#2563eb"}
         stroke="#ffffff"
         strokeWidth={2}
       />
@@ -203,6 +205,21 @@ export default function CategoryExplorerPage() {
   const [loadingBreakdown, setLoadingBreakdown] = useState(false);
   const [error, setError] = useState("");
   const [breakdown, setBreakdown] = useState(null);
+
+  function getCategoryPalette(category) {
+    const palettes = {
+      GROCERIES: ["#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe"],
+      TRANSPORTATION: ["#15803d", "#16a34a", "#22c55e", "#4ade80", "#86efac", "#bbf7d0"],
+      EDUCATION: ["#7c3aed", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ddd6fe", "#ede9fe"],
+      FOOD_AND_DINING: ["#ea580c", "#f97316", "#fb923c", "#fdba74", "#fed7aa", "#ffedd5"],
+      UTILITIES: ["#0891b2", "#06b6d4", "#22d3ee", "#67e8f9", "#a5f3fc", "#cffafe"],
+      UNCATEGORIZED: ["#dc2626", "#ef4444", "#f87171", "#fca5a5", "#fecaca", "#fee2e2"],
+      SHOPPING: ["#65a30d", "#84cc16", "#a3e635", "#bef264", "#d9f99d", "#ecfccb"],
+      OTHER: ["#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9"],
+    };
+
+    return palettes[category] || palettes.OTHER;
+  }
 
   const sorted = useMemo(() => {
     return [...categories].sort((a, b) => a.localeCompare(b));
@@ -280,12 +297,15 @@ export default function CategoryExplorerPage() {
     setApplied({ start, end });
   }
 
+  const palette = getCategoryPalette(selected);
+
   const treemapData =
-    breakdown?.items?.map((item) => ({
+    breakdown?.items?.map((item, index) => ({
       name: formatMerchantLabel(item.merchant),
       fullName: item.merchant,
       value: Number(item.total),
       count: item.count,
+      color: palette[index % palette.length],
     })) || [];
 
   const monthlyData =
@@ -348,7 +368,7 @@ export default function CategoryExplorerPage() {
           </div>
 
           <button
-            className="categoryExplorerApplyBtn"
+            className="categoryOverviewDetailBtn"
             onClick={onApply}
             disabled={loadingBreakdown}
           >
@@ -410,7 +430,12 @@ export default function CategoryExplorerPage() {
                     fill="#2563eb"
                     content={<CustomTreemapContent />}
                   >
-                    <Tooltip content={<TreemapTooltip />} />
+                    <Tooltip
+                      content={<TreemapTooltip />}
+                      isAnimationActive={false}
+                      wrapperStyle={{ pointerEvents: "none" }}
+                      cursor={false}
+                    />
                   </Treemap>
                 </ResponsiveContainer>
               ) : (
@@ -436,8 +461,7 @@ export default function CategoryExplorerPage() {
   <div className="categoryExplorerListLeft">
     <div
       className="categoryExplorerMerchantDot"
-      style={{ background: TILE_COLORS[index % TILE_COLORS.length] }}
-    />
+      style={{ background: palette[index % palette.length] }}    />
     <div>
       <div className="categoryExplorerMerchant">{item.merchant}</div>
       <div className="categoryExplorerMeta">
@@ -471,13 +495,18 @@ export default function CategoryExplorerPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="month" />
                     <YAxis tickFormatter={(value) => `$${value}`} />
-                    <Tooltip content={<MonthlyTooltip />} />
+                    <Tooltip
+                      content={<MonthlyTooltip />}
+                      isAnimationActive={false}
+                      wrapperStyle={{ pointerEvents: "none" }}
+                      cursor={{ fill: "rgba(15, 23, 42, 0.04)" }}
+                      animationDuration={0}
+                    />
                     <Bar dataKey="total" radius={[8, 8, 0, 0]}>
                       {monthlyData.map((_, index) => (
                         <Cell
                           key={`monthly-cell-${index}`}
-                          fill={TILE_COLORS[index % TILE_COLORS.length]}
-                        />
+                          fill={palette[index % palette.length]}                        />
                       ))}
                     </Bar>
                   </BarChart>

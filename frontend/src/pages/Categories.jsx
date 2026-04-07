@@ -119,14 +119,14 @@ function renderOuterLabel({
   name,
   payload,
 }) {
-  if (!payload || percent < 0.01) return null;
+  if (!payload || percent < 0.04) return null;
 
   const raw = payload.label || name || "";
-  const shortLabel = raw.length > 15 ? `${raw.slice(0, 15)}…` : raw;
+  const shortLabel = raw.length > 12 ? `${raw.slice(0, 12)}…` : raw;
 
   const RADIAN = Math.PI / 180;
   const angle = -midAngle;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.56;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.58;
   const x = cx + radius * Math.cos(angle * RADIAN);
   const y = cy + radius * Math.sin(angle * RADIAN);
 
@@ -139,10 +139,10 @@ function renderOuterLabel({
         dominantBaseline="middle"
         fill="#ffffff"
         style={{
-          fontSize: 10,
-          fontWeight: 700,
+          fontSize: 11,
+          fontWeight: 800,
           pointerEvents: "none",
-          textShadow: "0 1px 2px rgba(0,0,0,0.4)",
+          textShadow: "0 1px 2px rgba(0,0,0,0.45)",
         }}
       >
         {shortLabel}
@@ -385,9 +385,9 @@ export default function Categories() {
                       nameKey="label"
                       cx="50%"
                       cy="50%"
-                      innerRadius={90}
-                      outerRadius={190}
-                      paddingAngle={1}
+                      innerRadius={95}
+                      outerRadius={180}
+                      paddingAngle={0.2}
                       labelLine={false}
                       label={renderInnerLabel}
                       onClick={(entry) => {
@@ -411,9 +411,9 @@ export default function Categories() {
                       nameKey="label"
                       cx="50%"
                       cy="50%"
-                      innerRadius={198}
-                      outerRadius={312}
-                      paddingAngle={0.6}
+                      innerRadius={190}
+                      outerRadius={295}
+                      paddingAngle={0.1}
                       labelLine={false}
                       label={renderOuterLabel}
                       onClick={(entry) => {
@@ -431,7 +431,12 @@ export default function Categories() {
                       ))}
                     </Pie>
 
-                    <Tooltip content={<ChartTooltip />} />
+                    <Tooltip
+                      content={<ChartTooltip />}
+                      isAnimationActive={false}
+                      wrapperStyle={{ pointerEvents: "none" }}
+                      cursor={{ fill: "rgba(15, 23, 42, 0.04)" }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
