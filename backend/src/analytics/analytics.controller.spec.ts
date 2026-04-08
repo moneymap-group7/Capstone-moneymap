@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
 
-describe('AnalyticsController', () => {
+describe("AnalyticsController", () => {
   let controller: AnalyticsController;
 
   const mockAnalyticsService = {
@@ -26,7 +26,7 @@ describe('AnalyticsController', () => {
     controller = module.get<AnalyticsController>(AnalyticsController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });
