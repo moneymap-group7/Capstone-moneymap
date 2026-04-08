@@ -8,10 +8,11 @@ vi.mock("../services/statementService", () => ({
 }));
 
 describe("UploadStatement", () => {
+
   it("uploads file successfully", async () => {
     uploadStatement.mockResolvedValueOnce({
       ok: true,
-      data: { message: "Upload successful", totalRows: 1 },
+      data: { message: "Upload successful" },
     });
 
     render(<UploadStatement />);
@@ -23,13 +24,12 @@ describe("UploadStatement", () => {
       target: { files: [file] },
     });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /upload/i })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /upload/i }));
 
     await waitFor(() => {
-      const elements = screen.getAllByText(/Upload successful/i);
-      expect(elements.length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByText(/upload successful/i).length
+      ).toBeGreaterThan(0);
     });
   });
 
@@ -41,7 +41,6 @@ describe("UploadStatement", () => {
 
     render(<UploadStatement />);
 
-    // select file
     const file = new File(["data"], "test.csv", { type: "text/csv" });
     const input = document.querySelector('input[type="file"]');
 
@@ -49,13 +48,41 @@ describe("UploadStatement", () => {
       target: { files: [file] },
     });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /upload/i })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /upload/i }));
 
     await waitFor(() => {
-      const elements = screen.getAllByText(/Upload failed/i);
-      expect(elements.length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByText(/upload failed/i).length
+      ).toBeGreaterThan(0);
     });
   });
+
+  it("shows loading state during upload", async () => {
+    uploadStatement.mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ ok: true }), 500)
+        )
+    );
+
+    render(<UploadStatement />);
+
+    const file = new File(["data"], "test.csv", { type: "text/csv" });
+    const input = document.querySelector('input[type="file"]');
+
+    fireEvent.change(input, {
+      target: { files: [file] },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /upload/i }));
+
+    expect(
+      screen.getAllByText(/uploading|loading/i).length
+    ).toBeGreaterThan(0);
+
+    await waitFor(() => {
+      expect(uploadStatement).toHaveBeenCalled();
+    });
+  });
+
 });

@@ -11,16 +11,16 @@ describe("AppRoutes", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/MoneyMap/i)).toBeInTheDocument();
+    expect(screen.getByText(/see where your money goes/i)).toBeInTheDocument();
   });
 
   it("redirects unknown route to landing", () => {
     render(
-      <MemoryRouter initialEntries={["/random"]}>
+      <MemoryRouter initialEntries={["/unknown"]}>
         <AppRoutes />
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/MoneyMap/i)).toBeInTheDocument();
+    expect(screen.getByText(/see where your money goes/i)).toBeInTheDocument();
   });
 });
