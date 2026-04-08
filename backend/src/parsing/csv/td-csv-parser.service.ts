@@ -27,7 +27,7 @@ export class TdCsvParserService {
     }
 
     throw new Error(
-      "Unsupported TD CSV format. Expected TD header row or TD account activity rows."
+      "Unsupported CSV format. Expected a valid header row or supported account activity rows."
     );
   }
 
