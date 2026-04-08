@@ -1,4 +1,4 @@
-const ENDPOINT = "http://localhost:3000/transactions/upload-csv";
+const ENDPOINT = `${import.meta.env.VITE_API_URL}/statements/upload`;
 const FIELD_NAME = "file";
 
 export async function uploadStatement(file) {
@@ -24,7 +24,7 @@ export async function uploadStatement(file) {
   const message =
     (data && typeof data === "object" && (data.message || data.error)) ||
     (typeof data === "string" && data) ||
-    `Request failed (${res.status})`;
+    "Request failed. Please try again.";
 
   const errors =
     (data && typeof data === "object" && Array.isArray(data.errors) && data.errors) ||

@@ -6,8 +6,10 @@ const passwordSchema = z
   .min(8, "Password must be at least 8 characters")
   .max(72, "Password must be at most 72 characters")
   .refine((v) => v.trim() === v, "Password cannot start or end with spaces")
-  .refine((v) => /[A-Za-z]/.test(v), "Password must include at least 1 letter")
-  .refine((v) => /\d/.test(v), "Password must include at least 1 number");
+  .refine((v) => /[A-Z]/.test(v), "Password must include an uppercase letter")
+  .refine((v) => /[a-z]/.test(v), "Password must include a lowercase letter")
+  .refine((v) => /[0-9]/.test(v), "Password must include a number")
+  .refine((v) => /[^\w\s]/.test(v), "Password must include a special character");
 
 export const RegisterSchema = z
   .object({
