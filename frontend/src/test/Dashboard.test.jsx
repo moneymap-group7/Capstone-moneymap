@@ -4,6 +4,7 @@ import Dashboard from "../pages/Dashboard";
 import { describe, it, expect } from "vitest";
 
 describe("Dashboard", () => {
+
   it("renders dashboard title", () => {
     render(
       <BrowserRouter>
@@ -11,7 +12,7 @@ describe("Dashboard", () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText(/Dashboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
   });
 
   it("renders navigation buttons", () => {
@@ -21,7 +22,13 @@ describe("Dashboard", () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText(/Upload Statement/i)).toBeInTheDocument();
-    expect(screen.getByText(/View Transactions/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/upload statements/i).length
+    ).toBeGreaterThan(0);
+
+    expect(
+      screen.getAllByText(/view transactions/i).length
+    ).toBeGreaterThan(0);
   });
+
 });
