@@ -28,9 +28,9 @@
 }
 
 .uploadHeroCard {
-  background: rgba(255, 255, 255, 0.9);
-  padding: 24px 28px 22px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+  background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+  padding: 26px 30px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
 }
 
 .uploadHeroSide {
@@ -170,11 +170,28 @@
 }
 
 .uploadDropzone {
-  border: 2px dashed #cbd5e1;
-  border-radius: 22px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  padding: 24px;
-  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  border: 2px dashed #b6c6f5;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f6f9ff 100%);
+  padding: 28px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.uploadDropzone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(59,130,246,0.08), transparent 60%);
+  pointer-events: none;
+}
+
+.uploadDropzone:hover {
+  border-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.15);
 }
 
 .uploadDropzone.isReady {
@@ -222,9 +239,14 @@
 }
 
 .uploadPrimaryBtn {
-  background: #2f5bea;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(47, 91, 234, 0.18);
+  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.28);
+}
+
+.uploadPrimaryBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.35);
 }
 
 .uploadSecondaryBtn {
