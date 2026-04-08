@@ -1,9 +1,15 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { AnalyticsService } from "./analytics.service";
-import { PrismaService } from "../prisma/prisma.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { AnalyticsService } from './analytics.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe("AnalyticsService", () => {
   let service: AnalyticsService;
+
+  const mockPrismaService = {
+    transaction: {
+      findMany: jest.fn(),
+    },
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -11,7 +17,7 @@ describe("AnalyticsService", () => {
         AnalyticsService,
         {
           provide: PrismaService,
-          useValue: {}, // ✅ minimal mock
+          useValue: mockPrismaService,
         },
       ],
     }).compile();

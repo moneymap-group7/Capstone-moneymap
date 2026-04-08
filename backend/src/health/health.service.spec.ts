@@ -1,9 +1,14 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { HealthService } from "./health.service";
-import { PrismaService } from "../prisma/prisma.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { HealthService } from './health.service';
+import { PrismaService } from '../prisma/prisma.service'; 
 
 describe("HealthService", () => {
   let service: HealthService;
+
+  const mockPrismaService = {
+    $connect: jest.fn(),
+    $disconnect: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -11,7 +16,7 @@ describe("HealthService", () => {
         HealthService,
         {
           provide: PrismaService,
-          useValue: {}, 
+          useValue: mockPrismaService,
         },
       ],
     }).compile();

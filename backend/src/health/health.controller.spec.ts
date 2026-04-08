@@ -1,9 +1,13 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { HealthController } from "./health.controller";
-import { HealthService } from "./health.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { HealthController } from './health.controller';
+import { HealthService } from './health.service';
 
 describe("HealthController", () => {
   let controller: HealthController;
+
+  const mockHealthService = {
+    check: jest.fn().mockReturnValue({ status: 'ok' }),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -11,7 +15,7 @@ describe("HealthController", () => {
       providers: [
         {
           provide: HealthService,
-          useValue: {}, 
+          useValue: mockHealthService,
         },
       ],
     }).compile();

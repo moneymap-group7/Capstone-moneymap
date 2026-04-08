@@ -1,17 +1,24 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { AnalyticsController } from "./analytics.controller";
-import { AnalyticsService } from "./analytics.service";
+import { Test, TestingModule } from '@nestjs/testing';
+import { AnalyticsController } from './analytics.controller';
+import { AnalyticsService } from './analytics.service';
 
 describe("AnalyticsController", () => {
   let controller: AnalyticsController;
+
+  const mockAnalyticsService = {
+    getSummary: jest.fn().mockReturnValue({
+      total: 100,
+      categories: {},
+    }),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AnalyticsController],
       providers: [
         {
-          provide: AnalyticsService,
-          useValue: {}, // minimal mock for "should be defined"
+          provide: AnalyticsService, 
+          useValue: mockAnalyticsService,
         },
       ],
     }).compile();
