@@ -164,6 +164,7 @@ export class AnalyticsService {
   const base = partsClean.slice(0, 2).join(" ");
 
   // Strong brand normalization
+  if (v.includes("AMAZON")) return "AMAZON";
   if (base.includes("SUBWAY")) return "SUBWAY";
   if (base.includes("TIM HORTONS")) return "TIM HORTONS";
   if (base.includes("MCDONALD")) return "MCDONALD'S";
