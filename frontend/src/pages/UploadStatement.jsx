@@ -262,22 +262,6 @@ export default function UploadStatement() {
 
   const canUpload = !!file && status !== STATUS.UPLOADING;
 
-  const total = pickNumber(meta, ["totalRows", "total", "rows", "rowCount"]);
-  const imported = pickNumber(meta, [
-    "insertedCount",
-    "imported",
-    "created",
-    "saved",
-    "successCount",
-  ]);
-  const skipped = pickNumber(meta, ["skippedCount", "skipped", "ignored"]);
-
-  const warnings = Array.isArray(meta?.warnings)
-    ? meta.warnings
-    : Array.isArray(meta?.warning)
-      ? meta.warning
-      : null;
-
   function getStatusLabel() {
     if (status === STATUS.IDLE) return "Waiting";
     if (status === STATUS.READY) return "Ready";
@@ -457,65 +441,6 @@ export default function UploadStatement() {
                     <ErrorBox title="Upload failed" errors={errorList} />
                   )}
                 </div>
-
-                {status === STATUS.SUCCESS && meta && typeof meta === "object" && (
-                  <div className="uploadSummaryCard">
-                    <div className="uploadCardHeader">
-                      <h3 className="uploadCardTitle">Import Summary</h3>
-                      <p className="uploadCardText">
-                        Overview of the processed statement file.
-                      </p>
-                    </div>
-
-                    <div className="uploadCardBody">
-                      <div className="uploadSummaryGrid">
-                        <div className="uploadMetricCard blue">
-                          <div className="uploadMetricLabel">Total Rows</div>
-                          <div className="uploadMetricValue">{total ?? "—"}</div>
-                        </div>
-
-                        <div className="uploadMetricCard green">
-                          <div className="uploadMetricLabel">Imported</div>
-                          <div className="uploadMetricValue">
-                            {imported ?? "—"}
-                          </div>
-                        </div>
-
-                        <div className="uploadMetricCard">
-                          <div className="uploadMetricLabel">Skipped</div>
-                          <div className="uploadMetricValue">{skipped ?? "—"}</div>
-                        </div>
-                      </div>
-
-                      {total === null && imported === null && skipped === null && (
-                        <div className="uploadInfoNote">
-                          Upload completed, but the backend did not return
-                          standard summary fields.
-                        </div>
-                      )}
-
-                      {warnings && warnings.length > 0 && (
-                        <div className="uploadWarningsBox">
-                          <h4 className="uploadWarningsTitle">Warnings</h4>
-
-                          <ul className="uploadWarningsList">
-                            {warnings.slice(0, 5).map((w, i) => (
-                              <li key={i}>
-                                {typeof w === "string" ? w : JSON.stringify(w)}
-                              </li>
-                            ))}
-                          </ul>
-
-                          {warnings.length > 5 && (
-                            <div className="uploadSideText" style={{ marginTop: 10 }}>
-                              Showing first 5 warnings.
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 <div className="uploadFilesCard">
                   <div className="uploadCardHeader">
