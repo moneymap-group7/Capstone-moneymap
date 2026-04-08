@@ -1,8 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "ignoreDeprecations": "5.0",
     "module": "commonjs",
-    "types": ["jest", "node"]
+    "moduleResolution": "node",
+    "resolvePackageJsonExports": false,
+    "types": ["node", "jest"]
   },
-  "include": ["src/**/*.spec.ts", "src/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts"]
 }

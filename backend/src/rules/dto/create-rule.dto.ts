@@ -9,10 +9,6 @@ import {
 import { SpendCategory, TransactionType } from "@prisma/client";
 
 export class CreateRuleDto {
-  @IsInt()
-  @Min(1)
-  userId!: number;
-
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
@@ -30,7 +26,6 @@ export class CreateRuleDto {
   @IsString()
   merchantEquals?: string;
 
-  // Decimal safe as string (avoid float rounding issues)
   @IsOptional()
   @IsString()
   minAmount?: string;

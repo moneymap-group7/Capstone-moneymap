@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateRuleDto } from "./dto/create-rule.dto";
@@ -12,8 +16,8 @@ export class RulesService {
     private readonly ruleEngineService: RuleEngineService,
   ) {}
 
-  async create(dto: CreateRuleDto) {
-    const userId = BigInt(dto.userId);
+  async create(authUserId: string, dto: CreateRuleDto) {
+    const userId = BigInt(authUserId);
 
     const rule = await this.prisma.userCategoryRule.create({
       data: {
@@ -40,14 +44,14 @@ export class RulesService {
     return rule;
   }
 
-  findAll(userId: number) {
+  findAll(authUserId: string) {
     return this.prisma.userCategoryRule.findMany({
-      where: { userId: BigInt(userId) },
+      where: { userId: BigInt(authUserId) },
       orderBy: [{ priority: "asc" }, { ruleId: "asc" }],
     });
   }
 
-  async update(id: string, dto: UpdateRuleDto = {}) {
+  async update(authUserId: string, id: string, dto: UpdateRuleDto = {}) {
     const ruleId = BigInt(id);
 
     const existing = await this.prisma.userCategoryRule.findUnique({
@@ -58,10 +62,13 @@ export class RulesService {
       throw new NotFoundException("Rule not found");
     }
 
+    if (existing.userId.toString() !== authUserId) {
+      throw new ForbiddenException("You do not have access to this rule");
+    }
+
     const updated = await this.prisma.userCategoryRule.update({
       where: { ruleId },
       data: {
-        userId: dto.userId ? BigInt(dto.userId) : undefined,
         isActive: dto.isActive ?? undefined,
         priority: dto.priority ?? undefined,
         merchantContains: dto.merchantContains ?? undefined,
@@ -90,7 +97,7 @@ export class RulesService {
     return updated;
   }
 
-  async remove(id: string) {
+  async remove(authUserId: string, id: string) {
     const ruleId = BigInt(id);
 
     const existing = await this.prisma.userCategoryRule.findUnique({
@@ -99,6 +106,10 @@ export class RulesService {
 
     if (!existing) {
       throw new NotFoundException("Rule not found");
+    }
+
+    if (existing.userId.toString() !== authUserId) {
+      throw new ForbiddenException("You do not have access to this rule");
     }
 
     const deleted = await this.prisma.userCategoryRule.delete({
