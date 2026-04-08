@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HealthService } from './health.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-describe('HealthService', () => {
+describe("HealthService", () => {
   let service: HealthService;
 
   const mockPrisma = {
@@ -23,7 +23,7 @@ describe('HealthService', () => {
     service = module.get<HealthService>(HealthService);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(service).toBeDefined();
   });
 });

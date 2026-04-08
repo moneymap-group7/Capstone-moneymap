@@ -7,9 +7,14 @@ import Dashboard from "../pages/Dashboard";
 import UploadStatement from "../pages/UploadStatement";
 import Transactions from "../pages/Transactions";
 import Categories from "../pages/Categories";
-
+import CategoryExplorerPage from "../pages/CategoryExplorerPage";
+import BudgetPage from "../pages/BudgetPage";
+import InsightsPage from "../pages/InsightsPage";
+import RulesPage from "../pages/RulesPage";
+import VerifyEmail from "../pages/VerifyEmail";
+import ForgotPassword from "../pages/ForgotPassword";
+import InsightsVisualsPage from "../pages/InsightsVisualsPage";
 import ProtectedRoute from "./ProtectedRoute";
-
 
 export default function AppRoutes() {
   return (
@@ -18,6 +23,9 @@ export default function AppRoutes() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+     
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
@@ -25,6 +33,11 @@ export default function AppRoutes() {
         <Route path="/upload" element={<UploadStatement />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/categories" element={<Categories />} />
+        <Route path="/categories/explorer" element={<CategoryExplorerPage />} />
+        <Route path="/budget" element={<BudgetPage />} />
+        <Route path="/insights" element={<InsightsPage />} />
+        <Route path="/rules" element={<RulesPage />} />
+        <Route path="/insights-visuals" element={<InsightsVisualsPage />} />
       </Route>
 
       {/* Fallback */}
