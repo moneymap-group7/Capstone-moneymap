@@ -32,11 +32,6 @@ export default function Landing() {
 
         <h1 className="landingHeroTitle">See where your money goes</h1>
 
-        <p className="landingHeroSubtitle">
-          Upload statements, organize transactions, track budgets, and explore
-          spending insights in one place.
-        </p>
-
         <div className="landingHeroActions">
           <Link to="/register" className="landingPrimaryBtn">
             Register
