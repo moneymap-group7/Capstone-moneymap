@@ -1,13 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthService } from './health.service';
-import { PrismaService } from '../prisma/prisma.service'; 
+import { PrismaService } from '../prisma/prisma.service';
 
 describe("HealthService", () => {
   let service: HealthService;
 
-  const mockPrismaService = {
-    $connect: jest.fn(),
-    $disconnect: jest.fn(),
+  const mockPrisma = {
+    $connect: jest.fn().mockResolvedValue(true),
   };
 
   beforeEach(async () => {
@@ -16,7 +15,7 @@ describe("HealthService", () => {
         HealthService,
         {
           provide: PrismaService,
-          useValue: mockPrismaService,
+          useValue: mockPrisma,
         },
       ],
     }).compile();

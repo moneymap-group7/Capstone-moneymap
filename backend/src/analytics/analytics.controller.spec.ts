@@ -5,10 +5,12 @@ import { AnalyticsService } from './analytics.service';
 describe("AnalyticsController", () => {
   let controller: AnalyticsController;
 
-  const mockAnalyticsService = {
-    getSummary: jest.fn().mockReturnValue({
-      total: 100,
-      categories: {},
+  const mockService = {
+    getSummary: jest.fn().mockResolvedValue({
+      totalIncome: '100.00',
+      totalExpense: '50.00',
+      net: '50.00',
+      byCategory: [],
     }),
   };
 
@@ -17,8 +19,8 @@ describe("AnalyticsController", () => {
       controllers: [AnalyticsController],
       providers: [
         {
-          provide: AnalyticsService, 
-          useValue: mockAnalyticsService,
+          provide: AnalyticsService,
+          useValue: mockService,
         },
       ],
     }).compile();
@@ -28,5 +30,11 @@ describe("AnalyticsController", () => {
 
   it("should be defined", () => {
     expect(controller).toBeDefined();
+  });
+
+  it('should call service getSummary', async () => {
+    const result = await mockService.getSummary(1, new Date(), new Date());
+
+    expect(result.totalIncome).toBe('100.00');
   });
 });
