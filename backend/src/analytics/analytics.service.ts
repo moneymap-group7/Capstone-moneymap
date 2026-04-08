@@ -156,13 +156,25 @@ export class AnalyticsService {
   const parts = v.split(" ").filter(Boolean);
   if (parts.length === 0) return "UNKNOWN";
 
-  const keep = parts.slice(0, 2).join(" ");
+  v = v.replace(/\b\d{3,}\b/g, "").trim();
 
-  if (keep.startsWith("WALMART")) return "WALMART";
-  if (keep.startsWith("UBER")) return "UBER";
-  if (keep.startsWith("ROGERS")) return "ROGERS";
+  const partsClean = v.split(" ").filter(Boolean);
+  if (partsClean.length === 0) return "UNKNOWN";
 
-  return keep;
+  const base = partsClean.slice(0, 2).join(" ");
+
+  // Strong brand normalization
+  if (base.includes("SUBWAY")) return "SUBWAY";
+  if (base.includes("TIM HORTONS")) return "TIM HORTONS";
+  if (base.includes("MCDONALD")) return "MCDONALD'S";
+  if (base.includes("UBER EATS")) return "UBER EATS";
+  if (base.includes("UBER")) return "UBER";
+  if (base.includes("WALMART")) return "WALMART";
+  if (base.includes("ROGERS")) return "ROGERS";
+  if (base.includes("STARBUCKS")) return "STARBUCKS";
+  if (base.includes("GINO")) return "GINO'S PIZZA";
+
+  return base;
 }
 
   private decToString(v: any): string {
