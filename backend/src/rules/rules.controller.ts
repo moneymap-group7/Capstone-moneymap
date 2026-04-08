@@ -6,33 +6,41 @@ import {
   Param,
   Patch,
   Post,
-  Query,
+  Req,
+  UseGuards,
 } from "@nestjs/common";
+import type { Request } from "express";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RulesService } from "./rules.service";
 import { CreateRuleDto } from "./dto/create-rule.dto";
 import { UpdateRuleDto } from "./dto/update-rule.dto";
 
 @Controller("rules")
+@UseGuards(JwtAuthGuard)
 export class RulesController {
   constructor(private readonly rulesService: RulesService) {}
 
   @Post()
-  create(@Body() dto: CreateRuleDto) {
-    return this.rulesService.create(dto);
+  create(@Req() req: Request, @Body() dto: CreateRuleDto) {
+    const user = (req as any).user;
+    return this.rulesService.create(user.userId, dto);
   }
 
   @Get()
-  findAll(@Query("userId") userId: string) {
-    return this.rulesService.findAll(Number(userId));
+  findAll(@Req() req: Request) {
+    const user = (req as any).user;
+    return this.rulesService.findAll(user.userId);
   }
 
   @Patch(":id")
-  update(@Param("id") id: string, @Body() dto?: UpdateRuleDto) {
-    return this.rulesService.update(id, dto ?? {});
+  update(@Req() req: Request, @Param("id") id: string, @Body() dto?: UpdateRuleDto) {
+    const user = (req as any).user;
+    return this.rulesService.update(user.userId, id, dto ?? {});
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.rulesService.remove(id);
+  remove(@Req() req: Request, @Param("id") id: string) {
+    const user = (req as any).user;
+    return this.rulesService.remove(user.userId, id);
   }
 }
