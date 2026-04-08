@@ -1,0 +1,594 @@
+.uploadPageShell {
+  min-height: 100vh;
+  padding: 36px 24px 56px;
+  background:
+    radial-gradient(circle at 14% 10%, rgba(99, 102, 241, 0.18), transparent 30%),
+    radial-gradient(circle at 52% 92%, rgba(34, 197, 94, 0.14), transparent 20%),
+    linear-gradient(135deg, #eef4ff 0%, #f7fbff 45%, #f2fbf6 100%);
+}
+
+.uploadPageContainer {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.uploadHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.9fr);
+  gap: 20px;
+  margin-bottom: 20px;
+  align-items: start;
+}
+
+.uploadHeroCard,
+.uploadHeroSide {
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  backdrop-filter: blur(6px);
+}
+
+.uploadHeroCard {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 24px 28px 22px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+.uploadHeroSide {
+  background: rgba(255, 255, 255, 0.82);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+}
+
+.uploadBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e8efff;
+  color: #335cff;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.uploadHeroTitle {
+  margin: 0;
+  font-size: clamp(38px, 4vw, 52px);
+  line-height: 1.02;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.uploadHeroText {
+  margin: 14px 0 0;
+  max-width: 620px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.uploadMiniCard {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid #dbe3ee;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.uploadMiniCardInfo {
+  cursor: default;
+  box-shadow: none;
+}
+
+.uploadMiniCardInfo:hover {
+  transform: none;
+}
+
+.uploadMiniIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.uploadMiniIconBlue {
+  background: #e0e7ff;
+  color: #335cff;
+}
+
+.uploadMiniIconGreen {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.uploadMiniIconPurple {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.uploadMiniCard h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.uploadMiniCard p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+.uploadMainGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 0.95fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.uploadMainCard,
+.uploadSideCard,
+.uploadFilesCard,
+.uploadSummaryCard {
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+.uploadCardHeader {
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.uploadCardTitle {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.uploadCardText {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.uploadCardBody {
+  padding: 24px;
+}
+
+.uploadDropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 24px;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.uploadDropzone.isReady {
+  border-color: #93c5fd;
+  background: linear-gradient(180deg, #f8fbff 0%, #f1f5f9 100%);
+}
+
+.uploadDropzoneTop {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.uploadDropzoneTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.uploadDropzoneSub {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.uploadPrimaryBtn,
+.uploadSecondaryBtn,
+.uploadGhostBtn {
+  border: none;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+.uploadPrimaryBtn:hover,
+.uploadSecondaryBtn:hover,
+.uploadGhostBtn:hover {
+  transform: translateY(-1px);
+}
+
+.uploadPrimaryBtn {
+  background: #2f5bea;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(47, 91, 234, 0.18);
+}
+
+.uploadSecondaryBtn {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.uploadGhostBtn {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.uploadPrimaryBtn:disabled,
+.uploadSecondaryBtn:disabled,
+.uploadGhostBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+  box-shadow: none;
+}
+
+.uploadSelectedFile {
+  margin-top: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 16px 18px;
+}
+
+.uploadSelectedFileRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+
+.uploadFileInfo {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.uploadFileIconWrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #eef2ff;
+  color: #335cff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.uploadFileName {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.uploadFileMeta {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.uploadReadyPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.uploadActionRow {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.uploadBannerWrap {
+  margin-top: 18px;
+}
+
+.uploadSummaryCard {
+  margin-top: 22px;
+}
+
+.uploadSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.uploadMetricCard {
+  border-radius: 18px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.uploadMetricCard.green {
+  background: #f0fdf4;
+  border-color: #d1fae5;
+}
+
+.uploadMetricCard.blue {
+  background: #eef4ff;
+  border-color: #dbeafe;
+}
+
+.uploadMetricLabel {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.uploadMetricCard.green .uploadMetricLabel {
+  color: #166534;
+}
+
+.uploadMetricCard.blue .uploadMetricLabel {
+  color: #1d4ed8;
+}
+
+.uploadMetricValue {
+  margin-top: 8px;
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.uploadMetricCard.green .uploadMetricValue {
+  color: #166534;
+}
+
+.uploadMetricCard.blue .uploadMetricValue {
+  color: #1d4ed8;
+}
+
+.uploadInfoNote {
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 14px;
+}
+
+.uploadWarningsBox {
+  margin-top: 10px;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.uploadWarningsTitle {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #92400e;
+}
+
+.uploadWarningsList {
+  margin: 0;
+  padding-left: 18px;
+  color: #78350f;
+}
+
+.uploadWarningsList li {
+  margin-bottom: 6px;
+}
+
+.uploadFilesCard {
+  margin-top: 24px;
+}
+
+.uploadFilesBody {
+  padding: 24px;
+}
+
+.uploadSideColumn {
+  display: grid;
+  gap: 24px;
+}
+
+.uploadSideCard {
+  padding: 22px;
+}
+
+.uploadSideTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.uploadSideText {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.uploadTipsList {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: #475569;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.uploadStatusLabel {
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.uploadStatusValue {
+  margin-top: 12px;
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.uploadStatusText {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+@media (max-width: 960px) {
+  .uploadHero,
+  .uploadMainGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .uploadHeroTitle {
+    font-size: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .uploadPageShell {
+    padding: 24px 16px 40px;
+  }
+
+  .uploadHeroCard,
+  .uploadHeroSide,
+  .uploadMainCard,
+  .uploadSideCard,
+  .uploadFilesCard,
+  .uploadSummaryCard {
+    border-radius: 20px;
+  }
+
+  .uploadHeroTitle {
+    font-size: 34px;
+  }
+
+  .uploadCardHeader,
+  .uploadCardBody,
+  .uploadFilesBody,
+  .uploadSideCard,
+  .uploadHeroCard {
+    padding: 18px;
+  }
+
+  .uploadDropzone {
+    padding: 18px;
+  }
+}
+
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.confirmModal {
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.confirmIconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fee2e2;
+  color: #b91c1c;
+  margin-bottom: 14px;
+}
+
+.confirmTitle {
+  margin: 0 0 10px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.confirmText {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.confirmError {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 14px;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.confirmDangerBtn {
+  border: none;
+  border-radius: 12px;
+  padding: 11px 16px;
+  background: #b91c1c;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirmDangerBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
