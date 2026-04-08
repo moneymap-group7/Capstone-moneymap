@@ -5,9 +5,7 @@ import { HealthService } from './health.service';
 describe('HealthController', () => {
   let controller: HealthController;
 
-  const mockHealthService = {
-    check: jest.fn().mockReturnValue({ status: 'ok' }),
-  };
+  const mockHealthService = {};
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
