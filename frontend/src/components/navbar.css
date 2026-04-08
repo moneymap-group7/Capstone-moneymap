@@ -1,0 +1,232 @@
+.navbar {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 28px;
+  border-bottom: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  box-sizing: border-box;
+}
+
+.navbarLogo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.navbarLogoText {
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.navbarLinks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  flex-wrap: wrap;
+}
+
+.navbarLinks a {
+  text-decoration: none;
+  color: #334155;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.navbarLinks a:hover {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.activeNavLink {
+  color: #2563eb !important;
+  background: #eff6ff;
+}
+
+.profileMenuWrap {
+  position: relative;
+  margin-left: auto;
+}
+
+.profileTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 7px 14px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.profileTrigger:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.profileAvatarIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.profileTriggerText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+
+.profileTriggerLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.profileChevron {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.profileDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 300px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.profileDropdownHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px;
+}
+
+.profileDropdownIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profileDropdownIdentity {
+  min-width: 0;
+}
+
+.profileName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.profileEmail {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748b;
+  word-break: break-word;
+}
+
+.profileDropdownDivider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 6px 0;
+}
+
+.profileDropdownItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  padding: 12px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.profileDropdownItem:hover {
+  background: #f8fafc;
+}
+
+.profileDropdownItemDanger {
+  color: #b91c1c;
+}
+
+.profileDropdownItemDanger:hover {
+  background: #fef2f2;
+}
+
+@media (max-width: 980px) {
+  .navbar {
+    flex-wrap: wrap;
+    padding: 14px 18px;
+  }
+
+  .navbarLinks {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    gap: 6px;
+  }
+
+  .navbarLinks a {
+    padding: 9px 12px;
+  }
+
+  .profileMenuWrap {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbarLogoText {
+    font-size: 22px;
+  }
+
+  .profileTrigger {
+    padding: 7px 10px;
+  }
+
+  .profileDropdown {
+    width: min(300px, calc(100vw - 24px));
+    right: 0;
+  }
+}
